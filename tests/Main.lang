@@ -1,0 +1,6 @@
+class Main {
+
+	shared fun main(args: Array<String>) {
+		Test.test();
+	}
+}

@@ -1,0 +1,35 @@
+
+class Pair<First, Second> {
+	var first: First;
+	var second: Second;
+
+	fun init(first: First, second: Second) {
+		this.first = first;
+		this.second = second;
+	}
+
+	fun getFirst(): First {
+		return this.first;
+	}
+
+	fun getSecond(): Second {
+		return this.second;
+	}
+
+	fun setFirst(value: First) {
+		this.first = value;
+	}
+
+	fun setSecond(value: Second) {
+		this.second = value;
+	}
+
+	// swap retorna um novo Pair com os valores trocados
+	fun swap(): Pair<Second, First> {
+		return Pair<Second, First>(this.second, this.first);
+	}
+
+	fun toString(): String {
+		return "(" + this.first.toString() + ", " + this.second.toString() + ")";
+	}
+}

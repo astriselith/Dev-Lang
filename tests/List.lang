@@ -1,0 +1,97 @@
+trait List<T> {
+	fun size(): Int;
+	fun isEmpty(): Boolean;
+	fun get(index: Int): T;
+	fun set(index: Int, value: T);
+	fun add(value: T);
+	fun remove(index: Int);
+	fun clear();
+	fun contains(value: T): Boolean;
+	fun indexOf(value: T): Int;
+}
+
+class ArrayList<T> | List<T> {
+	var elements: Array<T>;
+	var _size: Int = 0;
+
+	fun init() {
+		this.elements = Array<T>(10);
+	}
+
+	fun isEmpty(): Boolean {
+		return this._size == 0;
+	}
+
+	fun clear() {
+		var i = 0;
+		while (i < this._size) {
+			this.elements.set(i, null);
+			i = i + 1;
+		}
+		this._size = 0;
+	}
+
+	fun contains(value: T): Boolean {
+		var i = 0;
+		while (i < this._size) {
+			if (this.elements.get(i) == value) {
+				return true;
+			}
+			i = i + 1;
+		}
+		return false;
+	}
+
+	fun indexOf(value: T): Int {
+		var i = 0;
+		while (i < this._size) {
+			if (this.elements.get(i) == value) {
+				return i;
+			}
+			i = i + 1;
+		}
+		return -1;
+	}
+
+	fun add(value: T) {
+		if (this._size == this.elements.length()) {
+			var newArray = Array<T>(this.elements.length() * 2);
+			var i = 0;
+			while (i < this._size) {
+				newArray.set(i, this.elements.get(i));
+				i = i + 1;
+			}
+			this.elements = newArray;
+		}
+		this.elements.set(this._size, value);
+		this._size = this._size + 1;
+	}
+
+	fun remove(index: Int) {
+		if (index >= 0 && index < this._size) {
+			var i = index;
+			while (i < this._size - 1) {
+				this.elements.set(i, this.elements.get(i + 1));
+				i = i + 1;
+			}
+			this._size = this._size - 1;
+		}
+	}
+
+	fun set(index: Int, value: T) {
+		if (index >= 0 && index < this._size) {
+			this.elements.set(index, value);
+		}
+	}
+
+	fun get(index: Int): T {
+		if (index >= 0 && index < this._size) {
+			return this.elements.get(index);
+		}
+		return null;
+	}
+
+	fun size(): Int {
+		return this._size;
+	}
+}

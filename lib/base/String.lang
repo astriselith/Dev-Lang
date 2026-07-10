@@ -1,0 +1,8 @@
+readonly class String | Addable<String>, Equality, Stringfiable {
+	private readonly var chars: Array<Char>;
+
+	fun charAt(idx: Int): Char = '';
+	fun add(other: String): String = "";
+	fun equals(other): Bool = false;
+	fun toString(): String = this;
+}

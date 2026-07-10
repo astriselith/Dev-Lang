@@ -1,0 +1,8 @@
+readonly class Char | Equality {
+	fun code(): Int = 0;
+
+	fun toUpper(): Char = '';
+	fun toLower(): Char = '';
+
+	fun equals(other): Bool = false;
+}

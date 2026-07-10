@@ -1,0 +1,5 @@
+readonly class Array<T> | Indexable<Int, T> {
+	fun length(): Int = 0;
+	fun get(index: Int): T = null;
+	fun set(index: Int, value: T) = ?;
+}
