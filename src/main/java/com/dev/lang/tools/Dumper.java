@@ -56,11 +56,6 @@ public class Dumper implements ExprVisitor<String>, StmtVisitor<String> {
 		return " <" + name + ">";
 	}
 
-	private String type(Node node) {
-		if (!showTypes || node == null) return "";
-		return type(node.getClass());
-	}
-
 	private String type(Expr expr) {
 		if (!showTypes || expr == null) return "";
 		return type(expr.getClass());

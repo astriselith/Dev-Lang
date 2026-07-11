@@ -15,10 +15,6 @@ public class SourceStream extends CodepointStream {
 	private static final int BUFFER_SIZE = 8192;
 
 	private long currentByteOffset = 0;
-	private int currentCodepointOffset = 0;
-	private int currentLine = 1;
-	private int currentColumn = 1;
-	private int currentLineStart = 0;
 	private boolean eofReached = false;
 
 	public SourceStream(InputStream inputStream) {
@@ -159,16 +155,6 @@ public class SourceStream extends CodepointStream {
 
 			buffer.position(pos + width);
 			currentByteOffset += width;
-			currentCodepointOffset++;
-
-			if (Codepoint.isLineBreak(codepoint)) {
-				currentLine++;
-				currentColumn = 1;
-				currentLineStart = currentCodepointOffset;
-			} else {
-				currentColumn++;
-			}
-
 			return codepoint;
 		}
 	}

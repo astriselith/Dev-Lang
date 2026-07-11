@@ -1,6 +1,5 @@
 package com.dev.lang;
 
-import com.dev.lang.ast.ClassOrTraitDeclStmt;
 import com.dev.lang.lexer.Lexer;
 import com.dev.lang.parser.Parser;
 import com.dev.lang.source.SourceFile;
@@ -17,14 +16,11 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.stream.Collectors;
 
 public class Main {
 	private static boolean verbose = false;
 	private static CompilationUnit sharedUnit = new CompilationUnit();
-	private static SymbolTable sharedSymbols = new SymbolTable();
 	private static String currentDir = System.getProperty("user.dir");
 	private static final Modules modules = new Modules();
 
@@ -104,7 +100,7 @@ public class Main {
 
 			if (line.equals("reset")) {
 				sharedUnit = new CompilationUnit();
-				sharedSymbols = new SymbolTable();
+				new SymbolTable();
 				modules.clear();
 				System.out.println("Resetado");
 				continue;

@@ -95,10 +95,6 @@ public class Lexer extends TokenStream {
 		symbols.put(cp, Pair.of(token, Codepoint.toString(cp)));
 	}
 
-	private void addSymbol(int cp, Type token, String lexeme) {
-		symbols.put(cp, Pair.of(token, lexeme));
-	}
-
 	private void update() {
 		int cp = source.advance();
 		current++;

@@ -15,16 +15,13 @@ import java.util.Set;
 
 public class Parser {
 	private static final Set<Type> DEFAULT_STMT_RECOVERY = Set.of(
-				VAR, IF, WHILE, RETURN, BREAK, CONTINUE, RBRACE
-			);
+			VAR, IF, WHILE, RETURN, BREAK, CONTINUE, RBRACE);
 
 	private static final Set<Type> DEFAULT_MEMBER_RECOVERY = Set.of(
-				FUN, VAR, RBRACE
-			);
+			FUN, VAR, RBRACE);
 
 	private static final Set<Type> DEFAULT_MODIFIER_RECOVERY = Set.of(
-				PUBLIC, PRIVATE, SHARED, READONLY
-			);
+			PUBLIC, PRIVATE, SHARED, READONLY);
 
 	private final TokenStream stream;
 	private final CompilationUnit unit;
@@ -50,10 +47,9 @@ public class Parser {
 				kind = new Kind(Kind.TRAIT);
 			} else {
 				throw unit.error(
-					TAG,
-					EXPECTED_TOKEN.format("class or trait", stream.peek().type),
-					stream.peek()
-				);
+						TAG,
+						EXPECTED_TOKEN.format("class or trait", stream.peek().type),
+						stream.peek());
 			}
 
 			ClassOrTraitDeclStmt classDecl = classOrTraitDecl(kind, mods);
@@ -63,9 +59,11 @@ public class Parser {
 
 	private void synchronizeAfter(Set<Type> recoveryPoints) {
 		while (!stream.isAtEnd() && !stream.check(EOF)) {
-			if (stream.match(SEMICOLON)) return;
+			if (stream.match(SEMICOLON))
+				return;
 			for (Type type : recoveryPoints) {
-				if (stream.check(type)) return;
+				if (stream.check(type))
+					return;
 			}
 			stream.advance();
 		}
@@ -82,12 +80,10 @@ public class Parser {
 	private void semicolon() {
 		if (!stream.match(SEMICOLON)) {
 			unit.addError(
-				unit.error(
-					TAG,
-					EXPECTED_TOKEN.format(";", stream.peek().type),
-					stream.peek()
-				)
-			);
+					unit.error(
+							TAG,
+							EXPECTED_TOKEN.format(";", stream.peek().type),
+							stream.peek()));
 		}
 	}
 
@@ -102,18 +98,17 @@ public class Parser {
 		while (!stream.isAtEnd() && !stream.check(RBRACE)) {
 			try {
 				Stmt s = stmt();
-				if (s != null) statements.add(s);
+				if (s != null)
+					statements.add(s);
 			} catch (CompilationException e) {
 				unit.addError(e);
 				synchronizeAfter(stmtRecovery);
 			} catch (IllegalStateException e) {
 				unit.addError(
-					unit.error(
-						TAG,
-						e.getMessage(),
-						stream.peek()
-					)
-				);
+						unit.error(
+								TAG,
+								e.getMessage(),
+								stream.peek()));
 				synchronizeAfter(stmtRecovery);
 			}
 		}
@@ -129,31 +124,31 @@ public class Parser {
 			int flag = 0;
 
 			switch (type) {
-			case SHARED:
-				flag = Modifier.SHARED;
-				break;
-			case READONLY:
-				flag = Modifier.READONLY;
-				break;
-			case PUBLIC:
-				flag = Modifier.PUBLIC;
-				break;
-			case PRIVATE:
-				flag = Modifier.PRIVATE;
-				break;
-			default:
-				flag = 0;
-				break;
+				case SHARED:
+					flag = Modifier.SHARED;
+					break;
+				case READONLY:
+					flag = Modifier.READONLY;
+					break;
+				case PUBLIC:
+					flag = Modifier.PUBLIC;
+					break;
+				case PRIVATE:
+					flag = Modifier.PRIVATE;
+					break;
+				default:
+					flag = 0;
+					break;
 			}
 
-			if (flag == 0) break;
+			if (flag == 0)
+				break;
 
 			if ((mods & flag) != 0) {
 				unit.addError(unit.error(
-								  TAG,
-								  DUPLICATE_MODIFIER.format(stream.peek().lexeme),
-								  stream.peek()
-							  ));
+						TAG,
+						DUPLICATE_MODIFIER.format(stream.peek().lexeme),
+						stream.peek()));
 			} else {
 				mods |= flag;
 			}
@@ -215,16 +210,15 @@ public class Parser {
 			body = block();
 		} else {
 			throw unit.error(
-				TAG,
-				EXPECTED_FUNCTION_BODY.format(),
-				stream.peek()
-			);
+					TAG,
+					EXPECTED_FUNCTION_BODY.format(),
+					stream.peek());
 		}
 
 		Modifier modifier = new Modifier(mods, between(start, body != null ? body : stream.previous()));
 
 		return new FunDeclStmt(modifier, nameToken.lexeme, typeParameters, params, returnType, body,
-							   between(start, body != null ? body : stream.previous()));
+				between(start, body != null ? body : stream.previous()));
 	}
 
 	private List<ParamDeclStmt> parameters() {
@@ -253,12 +247,12 @@ public class Parser {
 
 		if (stream.match(COLON)) {
 			superclass = type();
-
-			if (stream.match(BAR)) {
-				do {
-					supertraits.add(type());
-				} while (stream.match(AMP));
-			}
+		}
+		
+		if (stream.match(BAR)) {
+			do {
+				supertraits.add(type());
+			} while (stream.match(AMP));
 		}
 
 		return Pair.of(superclass, supertraits);
@@ -278,19 +272,17 @@ public class Parser {
 			List<Typed> supertraits = inherit.second;
 
 			Positioned end = !supertraits.isEmpty()
-							 ? supertraits.get(supertraits.size() - 1)
-							 : superclass != null
-							 ? superclass
-							 : nameToken;
+					? supertraits.get(supertraits.size() - 1)
+					: superclass != null
+							? superclass
+							: nameToken;
 
 			params.add(
-				new TypeParamDeclStmt(
-					nameToken.lexeme,
-					superclass,
-					supertraits,
-					between(nameToken, end)
-				)
-			);
+					new TypeParamDeclStmt(
+							nameToken.lexeme,
+							superclass,
+							supertraits,
+							between(nameToken, end)));
 		} while (stream.match(COMMA));
 
 		stream.expect(RANGLE);
@@ -302,7 +294,8 @@ public class Parser {
 
 		List<Typed> args = new ArrayList<>();
 
-		if (stream.match(RANGLE)) return args;
+		if (stream.match(RANGLE))
+			return args;
 
 		do {
 			args.add(type());
@@ -316,13 +309,11 @@ public class Parser {
 		Token nameToken = stream.expect(IDENTIFIER);
 
 		if (stream.check(LANGLE)) {
-			Token start = stream.peek();
 			List<Typed> types = typeArguments();
 			return new ParameterizedRefTyped(
-					   nameToken.lexeme,
-					   types,
-					   between(nameToken, stream.previous())
-				   );
+					nameToken.lexeme,
+					types,
+					between(nameToken, stream.previous()));
 		}
 
 		return new RefTyped(nameToken.lexeme, pos(nameToken));
@@ -332,9 +323,12 @@ public class Parser {
 		Set<Type> stmtRecovery = DEFAULT_STMT_RECOVERY;
 
 		try {
-			if (stream.check(VAR)) return varDecl(0);
-			if (stream.check(IF)) return ifStmt();
-			if (stream.check(WHILE)) return whileStmt();
+			if (stream.check(VAR))
+				return varDecl(0);
+			if (stream.check(IF))
+				return ifStmt();
+			if (stream.check(WHILE))
+				return whileStmt();
 
 			if (stream.match(BREAK)) {
 				Token t = stream.previous();
@@ -360,12 +354,9 @@ public class Parser {
 				semicolon();
 
 				return new ReturnStmt(
-						   value,
-						   between(t, value)
-					   );
+						value,
+						between(t, value));
 			}
-
-
 
 			return exprStmt();
 
@@ -375,12 +366,10 @@ public class Parser {
 			return null;
 		} catch (IllegalStateException e) {
 			unit.addError(
-				unit.error(
-					TAG,
-					e.getMessage(),
-					stream.peek()
-				)
-			);
+					unit.error(
+							TAG,
+							e.getMessage(),
+							stream.peek()));
 			synchronizeAfter(stmtRecovery);
 			return null;
 		}
@@ -423,35 +412,33 @@ public class Parser {
 
 					if (stream.check(FUN)) {
 						FunDeclStmt fun = funDecl(memberMods);
-						if (fun != null) funs.add(fun);
+						if (fun != null)
+							funs.add(fun);
 					} else if (stream.check(VAR)) {
 						VarDeclStmt var = varDecl(memberMods);
-						if (var != null) vars.add(var);
+						if (var != null)
+							vars.add(var);
 					} else {
 						if (hasModifiers) {
 							throw unit.error(
-								TAG,
-								UNEXPECTED_TOKEN.format(stream.peek().lexeme),
-								stream.peek()
-							);
+									TAG,
+									UNEXPECTED_TOKEN.format(stream.peek().lexeme),
+									stream.peek());
 						}
 						throw unit.error(
-							TAG,
-							EXPECTED_MEMBER.format(),
-							stream.peek()
-						);
+								TAG,
+								EXPECTED_MEMBER.format(),
+								stream.peek());
 					}
 				} catch (CompilationException e) {
 					unit.addError(e);
 					synchronizeAfter(memberRecovery);
 				} catch (IllegalStateException e) {
 					unit.addError(
-						unit.error(
-							TAG,
-							e.getMessage(),
-							stream.peek()
-						)
-					);
+							unit.error(
+									TAG,
+									e.getMessage(),
+									stream.peek()));
 					synchronizeAfter(memberRecovery);
 				}
 			}
@@ -462,7 +449,7 @@ public class Parser {
 
 		Modifier modifier = new Modifier(mods, between(start, end));
 		return new ClassOrTraitDeclStmt(modifier, nameToken.lexeme, kind, superclass, supertraits,
-										typeParams, funs, vars, between(start, end));
+				typeParams, funs, vars, between(start, end));
 	}
 
 	private IfStmt ifStmt() {
@@ -479,9 +466,8 @@ public class Parser {
 			List<Stmt> thenList = new ArrayList<>();
 			thenList.add(stmt());
 			thenBranch = new BlockStmt(
-				thenList,
-				between(start, thenList.get(thenList.size() - 1))
-			);
+					thenList,
+					between(start, thenList.get(thenList.size() - 1)));
 		}
 
 		BlockStmt elseBranch = null;
@@ -493,21 +479,18 @@ public class Parser {
 				List<Stmt> elseList = new ArrayList<>();
 				elseList.add(stmt());
 				elseBranch = new BlockStmt(
-					elseList,
-					between(start, elseList.get(elseList.size() - 1))
-				);
+						elseList,
+						between(start, elseList.get(elseList.size() - 1)));
 			}
 		}
 
-		Positioned endPos =
-			elseBranch != null ? elseBranch : thenBranch;
+		Positioned endPos = elseBranch != null ? elseBranch : thenBranch;
 
 		return new IfStmt(
-				   condition,
-				   thenBranch,
-				   elseBranch,
-				   between(start, endPos)
-			   );
+				condition,
+				thenBranch,
+				elseBranch,
+				between(start, endPos));
 	}
 
 	private WhileStmt whileStmt() {
@@ -524,16 +507,14 @@ public class Parser {
 			List<Stmt> bodyList = new ArrayList<>();
 			bodyList.add(stmt());
 			body = new BlockStmt(
-				bodyList,
-				between(start, bodyList.get(bodyList.size() - 1))
-			);
+					bodyList,
+					between(start, bodyList.get(bodyList.size() - 1)));
 		}
 
 		return new WhileStmt(
-				   condition,
-				   body,
-				   between(start, body)
-			   );
+				condition,
+				body,
+				between(start, body));
 	}
 
 	private ExprStmt exprStmt() {
@@ -557,10 +538,9 @@ public class Parser {
 
 		if (strict) {
 			throw unit.error(
-				TAG,
-				EXPECTED_TOKEN.format("= after $", stream.peek().type),
-				stream.peek()
-			);
+					TAG,
+					EXPECTED_TOKEN.format("= after $", stream.peek().type),
+					stream.peek());
 		}
 
 		return expr;
@@ -602,16 +582,17 @@ public class Parser {
 
 			if (stream.matchSequence(EQUALS, EQUALS)) {
 				Expr right = comparison();
-				expr = new BinaryExpr(expr, Operator.of(strict, "==", pos(stream.previous())), right, between(expr, right));
+				expr = new BinaryExpr(expr, Operator.of(strict, "==", pos(stream.previous())), right,
+						between(expr, right));
 			} else if (stream.matchSequence(BANG, EQUALS)) {
 				Expr right = comparison();
-				expr = new BinaryExpr(expr, Operator.of(strict, "!=", pos(stream.previous())), right, between(expr, right));
+				expr = new BinaryExpr(expr, Operator.of(strict, "!=", pos(stream.previous())), right,
+						between(expr, right));
 			} else if (strict) {
 				throw unit.error(
-					TAG,
-					EXPECTED_TOKEN.format("== or != after $", stream.peek().type),
-					stream.peek()
-				);
+						TAG,
+						EXPECTED_TOKEN.format("== or != after $", stream.peek().type),
+						stream.peek());
 			} else {
 				break;
 			}
@@ -626,22 +607,25 @@ public class Parser {
 
 			if (stream.matchSequence(LANGLE, EQUALS)) {
 				Expr right = term();
-				expr = new BinaryExpr(expr, Operator.of(strict, "<=", pos(stream.previous())), right, between(expr, right));
+				expr = new BinaryExpr(expr, Operator.of(strict, "<=", pos(stream.previous())), right,
+						between(expr, right));
 			} else if (stream.matchSequence(RANGLE, EQUALS)) {
 				Expr right = term();
-				expr = new BinaryExpr(expr, Operator.of(strict, ">=", pos(stream.previous())), right, between(expr, right));
+				expr = new BinaryExpr(expr, Operator.of(strict, ">=", pos(stream.previous())), right,
+						between(expr, right));
 			} else if (stream.match(LANGLE)) {
 				Expr right = term();
-				expr = new BinaryExpr(expr, Operator.of(strict, "<", pos(stream.previous())), right, between(expr, right));
+				expr = new BinaryExpr(expr, Operator.of(strict, "<", pos(stream.previous())), right,
+						between(expr, right));
 			} else if (stream.match(RANGLE)) {
 				Expr right = term();
-				expr = new BinaryExpr(expr, Operator.of(strict, ">", pos(stream.previous())), right, between(expr, right));
+				expr = new BinaryExpr(expr, Operator.of(strict, ">", pos(stream.previous())), right,
+						between(expr, right));
 			} else if (strict) {
 				throw unit.error(
-					TAG,
-					EXPECTED_TOKEN.format("comparison operator after $", stream.peek().type),
-					stream.peek()
-				);
+						TAG,
+						EXPECTED_TOKEN.format("comparison operator after $", stream.peek().type),
+						stream.peek());
 			} else {
 				break;
 			}
@@ -660,10 +644,9 @@ public class Parser {
 				expr = new BinaryExpr(expr, Operator.of(strict, op.lexeme, pos(op)), right, between(expr, right));
 			} else if (strict) {
 				throw unit.error(
-					TAG,
-					EXPECTED_TOKEN.format("+ or - after $", stream.peek().type),
-					stream.peek()
-				);
+						TAG,
+						EXPECTED_TOKEN.format("+ or - after $", stream.peek().type),
+						stream.peek());
 			}
 		}
 		return expr;
@@ -680,10 +663,9 @@ public class Parser {
 				expr = new BinaryExpr(expr, Operator.of(strict, op.lexeme, pos(op)), right, between(expr, right));
 			} else if (strict) {
 				throw unit.error(
-					TAG,
-					EXPECTED_TOKEN.format("*, / or % after $", stream.peek().type),
-					stream.peek()
-				);
+						TAG,
+						EXPECTED_TOKEN.format("*, / or % after $", stream.peek().type),
+						stream.peek());
 			}
 		}
 		return expr;
@@ -693,21 +675,23 @@ public class Parser {
 		boolean strict = stream.match(DOLLAR);
 
 		if (stream.match(BANG)) {
-			return new UnaryExpr(Operator.of(strict, "!", pos(stream.previous())), unary(), between(stream.previous(), stream.peek()));
+			return new UnaryExpr(Operator.of(strict, "!", pos(stream.previous())), unary(),
+					between(stream.previous(), stream.peek()));
 		}
 		if (stream.match(MINUS)) {
-			return new UnaryExpr(Operator.of(strict, "-", pos(stream.previous())), unary(), between(stream.previous(), stream.peek()));
+			return new UnaryExpr(Operator.of(strict, "-", pos(stream.previous())), unary(),
+					between(stream.previous(), stream.peek()));
 		}
 		if (stream.match(PLUS)) {
-			return new UnaryExpr(Operator.of(strict, "+", pos(stream.previous())), unary(), between(stream.previous(), stream.peek()));
+			return new UnaryExpr(Operator.of(strict, "+", pos(stream.previous())), unary(),
+					between(stream.previous(), stream.peek()));
 		}
 
 		if (strict) {
 			throw unit.error(
-				TAG,
-				EXPECTED_TOKEN.format("!, - or + after $", stream.peek().type),
-				stream.peek()
-			);
+					TAG,
+					EXPECTED_TOKEN.format("!, - or + after $", stream.peek().type),
+					stream.peek());
 		}
 
 		return access();
@@ -782,26 +766,26 @@ public class Parser {
 			Object value = t.literal;
 
 			switch (t.type) {
-			case NULL:
-				literalType = LiteralExpr.NULL;
-				break;
-			case BOOLEAN:
-				literalType = LiteralExpr.BOOLEAN;
-				break;
-			case CHAR:
-				literalType = LiteralExpr.CHAR;
-				break;
-			case INT:
-				literalType = LiteralExpr.INT;
-				break;
-			case FLOAT:
-				literalType = LiteralExpr.FLOAT;
-				break;
-			case STRING:
-				literalType = LiteralExpr.STRING;
-				break;
-			default:
-				throw new IllegalStateException("Unexpected literal type: " + t.type);
+				case NULL:
+					literalType = LiteralExpr.NULL;
+					break;
+				case BOOLEAN:
+					literalType = LiteralExpr.BOOLEAN;
+					break;
+				case CHAR:
+					literalType = LiteralExpr.CHAR;
+					break;
+				case INT:
+					literalType = LiteralExpr.INT;
+					break;
+				case FLOAT:
+					literalType = LiteralExpr.FLOAT;
+					break;
+				case STRING:
+					literalType = LiteralExpr.STRING;
+					break;
+				default:
+					throw new IllegalStateException("Unexpected literal type: " + t.type);
 			}
 
 			return new LiteralExpr(literalType, value, pos(t));
@@ -818,10 +802,9 @@ public class Parser {
 		}
 
 		throw unit.error(
-			TAG,
-			UNEXPECTED_TOKEN.format(t.lexeme),
-			t
-		);
+				TAG,
+				UNEXPECTED_TOKEN.format(t.lexeme),
+				t);
 	}
 
 	public TokenStream getStream() {

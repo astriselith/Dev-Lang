@@ -3,8 +3,8 @@ package com.dev.lang.util;
 import java.util.Objects;
 
 public final class Pair<A, B> {
- private final A first;
- private final B second;
+ public final A first;
+ public final B second;
 
  private Pair(A first, B second) {
 		this.first = first;
