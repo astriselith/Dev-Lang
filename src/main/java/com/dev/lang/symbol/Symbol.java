@@ -8,8 +8,8 @@ public abstract class Symbol {
 		this.declarationOrder = ++globalCounter;
 	}
 
-	public boolean isClassOrTrait() {
-		return this instanceof ClassOrTraitSymbol;
+	public boolean isClass() {
+		return this instanceof ClassSymbol;
 	}
 
 	public boolean isFun() {
@@ -29,11 +29,11 @@ public abstract class Symbol {
 	}
 
 	public boolean isParameterized() {
-		return this instanceof ParameterizedClassOrTraitSymbol;
+		return this instanceof ParameterizedClassSymbol;
 	}
 
-	public ClassOrTraitSymbol asClassOrTrait() {
-		return isClassOrTrait() ? (ClassOrTraitSymbol) this : null;
+	public ClassSymbol asClass() {
+		return isClass() ? (ClassSymbol) this : null;
 	}
 
 	public FunSymbol asFun() {
@@ -52,8 +52,8 @@ public abstract class Symbol {
 		return isTypeParam() ? (TypeParamSymbol) this : null;
 	}
 
-	public ParameterizedClassOrTraitSymbol asParameterized() {
-		return isParameterized() ? (ParameterizedClassOrTraitSymbol) this : null;
+	public ParameterizedClassSymbol asParameterized() {
+		return isParameterized() ? (ParameterizedClassSymbol) this : null;
 	}
 
 	public static void resetCounter() {

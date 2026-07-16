@@ -1,14 +1,10 @@
 package com.dev.lang.symbol;
 
 import java.util.*;
-import com.dev.lang.ast.Modifier;
 import com.dev.lang.ast.Typed;
-import com.dev.lang.ast.Kind;
 
-public class ClassOrTraitSymbol extends Symbol {
-	private final Modifier modifier;
+public class ClassSymbol extends Symbol {
 	private final String name;
-	private final Kind kind;
 
 	private final List<String> typeParameterTypes;
 	private final List<Typed> supertraitTypes;
@@ -21,36 +17,26 @@ public class ClassOrTraitSymbol extends Symbol {
 	private Map<String, FunSymbol> funs;
 	private Map<String, VarSymbol> vars;
 
-	public ClassOrTraitSymbol(Modifier modifier, String name, Kind kind,
+	public ClassSymbol(String name,
 							  List<String> typeParameterTypes,
 							  List<Typed> supertraitTypes,
 							  Typed superclassType) {
-		this.modifier = modifier;
 		this.name = name;
-		this.kind = kind;
-
+		
 		this.typeParameterTypes = typeParameterTypes != null ? new ArrayList<>(typeParameterTypes) : new ArrayList<>();
 		this.supertraitTypes = supertraitTypes != null ? new ArrayList<>(supertraitTypes) : new ArrayList<>();
 		this.superclassType = superclassType;
 
 		this.typeParameters = new ArrayList<>();
-		this.supertraits = new ArrayList<>();
 		this.superclass = null;
+		this.supertraits = new ArrayList<>();
 		this.members = new HashMap<>();
 		this.funs = new HashMap<>();
 		this.vars = new HashMap<>();
 	}
 
-	public Modifier getModifier() {
-		return modifier;
-	}
-
 	public String getName() {
 		return name;
-	}
-
-	public Kind getKind() {
-		return kind;
 	}
 
 	public List<String> getTypeParameterTypes() {
@@ -63,14 +49,6 @@ public class ClassOrTraitSymbol extends Symbol {
 
 	public Typed getSuperclassType() {
 		return superclassType;
-	}
-
-	public boolean isClass() {
-		return kind.isClass();
-	}
-
-	public boolean isTrait() {
-		return kind.isTrait();
 	}
 
 	public List<TypeParamSymbol> getTypeParameters() {
@@ -87,9 +65,47 @@ public class ClassOrTraitSymbol extends Symbol {
 	public boolean hasTypeParameters() {
 		return !typeParameters.isEmpty();
 	}
+	public Symbol getSuperclass() {
+		return superclass;
+	}
+
+	public ClassSymbol getBaseSuperclass() {
+		if (superclass == null) return null;
+
+		if (superclass.isClass()) {
+			return superclass.asClass();
+		}
+
+		if (superclass.isParameterized()) {
+			return superclass.asParameterized().getBase();
+		}
+
+		return null;
+	}
+
+	public void setSuperclass(Symbol superclass) {
+		this.superclass = superclass;
+	}
+
+	public boolean hasSuperclass() {
+		return superclass != null;
+	}
+
 
 	public List<Symbol> getSupertraits() {
 		return Collections.unmodifiableList(supertraits);
+	}
+
+	public List<ClassSymbol> getBaseSupertraits() {
+		List<ClassSymbol> result = new ArrayList<>();
+		for (Symbol trait : supertraits) {
+			if (trait.isClass()) {
+				result.add(trait.asClass());
+			} else if (trait.isParameterized()) {
+				result.add(trait.asParameterized().getBase());
+			}
+		}
+		return Collections.unmodifiableList(result);
 	}
 
 	public void setSupertraits(List<Symbol> traits) {
@@ -98,18 +114,7 @@ public class ClassOrTraitSymbol extends Symbol {
 			for (Symbol trait : traits) {
 				if (trait != null) {
 					if (this.supertraits.contains(trait)) continue;
-
-					if (trait.isClassOrTrait()) {
-						ClassOrTraitSymbol ct = trait.asClassOrTrait();
-						if (ct != null && ct.isTrait()) {
-							this.supertraits.add(trait);
-						}
-					} else if (trait.isParameterized()) {
-						ParameterizedClassOrTraitSymbol p = trait.asParameterized();
-						if (p != null && p.getBase().isTrait()) {
-							this.supertraits.add(trait);
-						}
-					}
+					this.supertraits.add(trait);
 				}
 			}
 		}
@@ -119,24 +124,7 @@ public class ClassOrTraitSymbol extends Symbol {
 		return !supertraits.isEmpty();
 	}
 
-	public Symbol getSuperclass() {
-		return superclass;
-	}
-
-	public void setSuperclass(Symbol superclass) {
-		if (superclass != null) {
-			ClassOrTraitSymbol ct = superclass.asClassOrTrait();
-			if (ct == null || !ct.isClass()) {
-				superclass = null;
-			}
-		}
-		this.superclass = superclass;
-	}
-
-	public boolean hasSuperclass() {
-		return superclass != null;
-	}
-
+	
 	public void addMember(Symbol member) {
 		if (member == null) return;
 
@@ -166,33 +154,16 @@ public class ClassOrTraitSymbol extends Symbol {
 	public Symbol getMember(String name) {
 		Symbol member = members.get(name);
 		if (member != null) return member;
-
-		if (superclass != null) {
-			ClassOrTraitSymbol ct = superclass.asClassOrTrait();
-			if (ct == null) {
-				ParameterizedClassOrTraitSymbol p = superclass.asParameterized();
-				if (p != null) ct = p.getBase();
-			}
-			if (ct != null) {
-				member = ct.getMember(name);
-				if (member != null) return member;
-			}
+		ClassSymbol baseSuperclass = getBaseSuperclass();
+		if (baseSuperclass != null) {
+			member = baseSuperclass.getMember(name);
+			if (member != null) return member;
 		}
-
-		if (supertraits != null) {
-			for (Symbol trait : supertraits) {
-				ClassOrTraitSymbol ct = trait.asClassOrTrait();
-				if (ct == null) {
-					ParameterizedClassOrTraitSymbol p = trait.asParameterized();
-					if (p != null) ct = p.getBase();
-				}
-				if (ct != null) {
-					member = ct.getMember(name);
-					if (member != null) return member;
-				}
-			}
+		List<ClassSymbol> baseSupertraits = getBaseSupertraits();
+		for (ClassSymbol trait : baseSupertraits) {
+			member = trait.getMember(name);
+			if (member != null) return member;
 		}
-
 		return null;
 	}
 
@@ -200,32 +171,17 @@ public class ClassOrTraitSymbol extends Symbol {
 		FunSymbol fun = funs.get(name);
 		if (fun != null) return fun;
 
-		if (superclass != null) {
-			ClassOrTraitSymbol ct = superclass.asClassOrTrait();
-			if (ct == null) {
-				ParameterizedClassOrTraitSymbol p = superclass.asParameterized();
-				if (p != null) ct = p.getBase();
-			}
-			if (ct != null) {
-				fun = ct.getFun(name);
-				if (fun != null) return fun;
-			}
+		ClassSymbol baseSuperclass = getBaseSuperclass();
+		if (baseSuperclass != null) {
+			fun = baseSuperclass.getFun(name);
+			if (fun != null) return fun;
 		}
-
-		if (supertraits != null) {
-			for (Symbol trait : supertraits) {
-				ClassOrTraitSymbol ct = trait.asClassOrTrait();
-				if (ct == null) {
-					ParameterizedClassOrTraitSymbol p = trait.asParameterized();
-					if (p != null) ct = p.getBase();
-				}
-				if (ct != null) {
-					fun = ct.getFun(name);
-					if (fun != null) return fun;
-				}
-			}
+		
+		List<ClassSymbol> baseSupertraits = getBaseSupertraits();
+		for (ClassSymbol trait : baseSupertraits) {
+			fun = trait.getFun(name);
+			if (fun != null) return fun;
 		}
-
 		return null;
 	}
 
@@ -233,32 +189,17 @@ public class ClassOrTraitSymbol extends Symbol {
 		VarSymbol var = vars.get(name);
 		if (var != null) return var;
 
-		if (superclass != null) {
-			ClassOrTraitSymbol ct = superclass.asClassOrTrait();
-			if (ct == null) {
-				ParameterizedClassOrTraitSymbol p = superclass.asParameterized();
-				if (p != null) ct = p.getBase();
-			}
-			if (ct != null) {
-				var = ct.getVar(name);
-				if (var != null) return var;
-			}
+		ClassSymbol baseSuperclass = getBaseSuperclass();
+		if (baseSuperclass != null) {
+			var = baseSuperclass.getVar(name);
+			if (var != null) return var;
 		}
 
-		if (supertraits != null) {
-			for (Symbol trait : supertraits) {
-				ClassOrTraitSymbol ct = trait.asClassOrTrait();
-				if (ct == null) {
-					ParameterizedClassOrTraitSymbol p = trait.asParameterized();
-					if (p != null) ct = p.getBase();
-				}
-				if (ct != null) {
-					var = ct.getVar(name);
-					if (var != null) return var;
-				}
-			}
+		List<ClassSymbol> baseSupertraits = getBaseSupertraits();
+		for (ClassSymbol trait : baseSupertraits) {
+			var = trait.getVar(name);
+			if (var != null) return var;
 		}
-
 		return null;
 	}
 

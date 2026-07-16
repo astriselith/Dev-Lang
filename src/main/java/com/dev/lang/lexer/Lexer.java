@@ -41,14 +41,10 @@ public class Lexer extends TokenStream {
 		this.unit = unit != null ? unit : new CompilationUnit();
 
 		if (includeKeyword) {
-			addKeyword("public", PUBLIC);
-			addKeyword("private", PRIVATE);
-			addKeyword("shared", SHARED);
-			addKeyword("readonly", READONLY);
 			addKeyword("var", VAR);
 			addKeyword("fun", FUN);
 			addKeyword("class", CLASS);
-			addKeyword("trait", TRAIT);
+			addKeyword("let", LET);
 			addKeyword("if", IF);
 			addKeyword("else", ELSE);
 			addKeyword("while", WHILE);

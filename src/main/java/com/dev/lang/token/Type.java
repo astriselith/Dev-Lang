@@ -13,18 +13,14 @@ public enum Type {
 	IDENTIFIER("identifier"),
 
 	// Modificadores
-	PUBLIC("public"),
-	PRIVATE("private"),
-	SHARED("shared"),
-	READONLY("readonly"),
 	CLASS("class"),
-	TRAIT("trait"),
 
 	// Membros
 	VAR("var"),
 	FUN("fun"),
 
 	// Palavras-chave
+	LET("let"),
 	IF("if"),
 	ELSE("else"),
 	WHILE("while"),

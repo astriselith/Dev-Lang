@@ -125,11 +125,6 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 	public String visitVarDeclStmt(VarDeclStmt stmt) {
 		StringBuilder sb = new StringBuilder();
 
-		String modifiers = stmt.modifier.getName();
-		if (!modifiers.isEmpty()) {
-			sb.append(modifiers).append(" ");
-		}
-
 		sb.append("var ").append(stmt.name);
 		if (stmt.hasType()) {
 			sb.append(": ").append(stmt.type.getName());
@@ -144,11 +139,6 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 	@Override
 	public String visitFunDeclStmt(FunDeclStmt stmt) {
 		StringBuilder sb = new StringBuilder();
-
-		String modifiers = stmt.modifier.getName();
-		if (!modifiers.isEmpty()) {
-			sb.append(modifiers).append(" ");
-		}
 
 		sb.append("fun ").append(stmt.name);
 
@@ -209,14 +199,10 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 	}
 
 	@Override
-	public String visitClassOrTraitDeclStmt(ClassOrTraitDeclStmt stmt) {
+	public String visitClassOrTraitDeclStmt(ClassDeclStmt stmt) {
 		StringBuilder sb = new StringBuilder();
 
-		if (stmt.modifier.has()) {
-			sb.append(stmt.modifier.getName()).append(" ");
-		}
-
-		sb.append(stmt.kind.getName()).append(" ");
+		sb.append("class ");
 		sb.append(stmt.name);
 
 		if (stmt.hasTypeParameters()) {
@@ -267,6 +253,20 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 			indent--;
 			sb.append(indent()).append("}");
 		}
+		return sb.toString();
+	}
+
+	@Override
+	public String visitLetDeclStmt(LetDeclStmt stmt) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("let ").append(stmt.name);
+		if (stmt.hasType()) {
+			sb.append(": ").append(stmt.type.getName());
+		}
+		if (stmt.hasValue()) {
+			sb.append(" = ").append(stmt.value.accept(this));
+		}
+		sb.append(";");
 		return sb.toString();
 	}
 

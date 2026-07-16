@@ -202,7 +202,6 @@ public class Dumper implements ExprVisitor<String>, StmtVisitor<String> {
 		StringBuilder sb = new StringBuilder();
 		sb.append(indent()).append("VarDecl").append(type(stmt)).append(" {\n");
 		indent++;
-		sb.append(indent()).append("modifiers: ").append(stmt.modifier.getName()).append("\n");
 		sb.append(indent()).append("name: ").append(stmt.name).append("\n");
 		if (stmt.hasType()) {
 			sb.append(indent()).append("type: ").append(stmt.type.getName()).append("\n");
@@ -220,7 +219,6 @@ public class Dumper implements ExprVisitor<String>, StmtVisitor<String> {
 		StringBuilder sb = new StringBuilder();
 		sb.append(indent()).append("FunDecl").append(type(stmt)).append(" {\n");
 		indent++;
-		sb.append(indent()).append("modifiers: ").append(stmt.modifier.getName()).append("\n");
 		sb.append(indent()).append("name: ").append(stmt.name).append("\n");
 
 		if (stmt.hasTypeParameters()) {
@@ -292,11 +290,10 @@ public class Dumper implements ExprVisitor<String>, StmtVisitor<String> {
 	}
 
 	@Override
-	public String visitClassOrTraitDeclStmt(ClassOrTraitDeclStmt stmt) {
+	public String visitClassOrTraitDeclStmt(ClassDeclStmt stmt) {
 		StringBuilder sb = new StringBuilder();
-		sb.append(indent()).append(stmt.kind.isClass() ? "Class" : "Trait").append(type(stmt)).append(" {\n");
+		sb.append(indent()).append("Class").append(type(stmt)).append(" {\n");
 		indent++;
-		sb.append(indent()).append("modifiers: ").append(stmt.modifier.getName()).append("\n");
 		sb.append(indent()).append("name: ").append(stmt.name).append("\n");
 
 		if (stmt.hasTypeParameters()) {
@@ -342,6 +339,23 @@ public class Dumper implements ExprVisitor<String>, StmtVisitor<String> {
 			sb.append(indent()).append("]\n");
 		}
 
+		indent--;
+		sb.append(indent()).append("}").append(pos(stmt.getPosition())).append("\n");
+		return sb.toString();
+	}
+
+	@Override
+	public String visitLetDeclStmt(LetDeclStmt stmt) {
+		StringBuilder sb = new StringBuilder();
+		sb.append(indent()).append("LetDecl").append(type(stmt)).append(" {\n");
+		indent++;
+		sb.append(indent()).append("name: ").append(stmt.name).append("\n");
+		if (stmt.hasType()) {
+			sb.append(indent()).append("type: ").append(stmt.type.getName()).append("\n");
+		}
+		if (stmt.hasValue()) {
+			sb.append(indent()).append("value: ").append(stmt.value.accept(this));
+		}
 		indent--;
 		sb.append(indent()).append("}").append(pos(stmt.getPosition())).append("\n");
 		return sb.toString();

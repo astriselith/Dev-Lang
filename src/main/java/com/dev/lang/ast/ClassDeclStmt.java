@@ -4,10 +4,8 @@ import com.dev.lang.util.Position;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ClassOrTraitDeclStmt extends Stmt {
-	public final Modifier modifier;
+public class ClassDeclStmt extends Stmt {
 	public final String name;
-	public final Kind kind;
 
 	public final Typed superclass;
 	public final List<Typed> supertraits;
@@ -16,27 +14,17 @@ public class ClassOrTraitDeclStmt extends Stmt {
 	public final List<FunDeclStmt> funs;
 	public final List<VarDeclStmt> vars;
 
-	public ClassOrTraitDeclStmt(Modifier modifier, String name, Kind kind, Typed superclass,
+	public ClassDeclStmt(String name, Typed superclass,
 								List<Typed> supertraits, List<TypeParamDeclStmt> typeParameters,
 								List<FunDeclStmt> funs, List<VarDeclStmt> vars, Position position) {
 		super(position);
-		this.modifier = modifier != null ? modifier : new Modifier(position);
 		this.name = name;
-		this.kind = kind != null ? kind : new Kind();
 
 		this.superclass = superclass;
 		this.supertraits = supertraits != null ? supertraits : new ArrayList<>();
 		this.typeParameters = typeParameters != null ? typeParameters : new ArrayList<>();
 		this.funs = funs != null ? funs : new ArrayList<>();
 		this.vars = vars != null ? vars : new ArrayList<>();
-	}
-
-	public boolean isClass() {
-		return kind.isClass();
-	}
-
-	public boolean isTrait() {
-		return kind.isTrait();
 	}
 
 	public boolean hasSuperclass() {

@@ -2,12 +2,12 @@ package com.dev.lang.ast;
 
 import com.dev.lang.util.Position;
 
-public class VarDeclStmt extends Stmt {
+public class LetDeclStmt extends Stmt {
 	public final String name;
 	public final Typed type;
 	public final Expr value;
 
-	public VarDeclStmt(String name, Typed type, Expr value, Position position) {
+	public LetDeclStmt(String name, Typed type, Expr value, Position position) {
 		super(position);
 		this.name = name;
 		this.type = type;

@@ -1,6 +1,6 @@
 package com.dev.lang.unit;
 
-import com.dev.lang.ast.ClassOrTraitDeclStmt;
+import com.dev.lang.ast.ClassDeclStmt;
 import com.dev.lang.util.Position;
 import com.dev.lang.util.Positioned;
 
@@ -9,7 +9,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class CompilationUnit {
-	private final List<ClassOrTraitDeclStmt> classes;
+	private final List<ClassDeclStmt> classes;
 	private final List<CompilationException> errors;
 	private final List<WarningException> warnings;
 
@@ -117,20 +117,20 @@ public class CompilationUnit {
 		return warnings.size();
 	}
 
-	public void addClass(ClassOrTraitDeclStmt classDecl) {
+	public void addClass(ClassDeclStmt classDecl) {
 		classes.add(classDecl);
 	}
 
-	public void addClasses(List<ClassOrTraitDeclStmt> classes) {
+	public void addClasses(List<ClassDeclStmt> classes) {
 		this.classes.addAll(classes);
 	}
 
-	public List<ClassOrTraitDeclStmt> getClasses() {
+	public List<ClassDeclStmt> getClasses() {
 		return Collections.unmodifiableList(classes);
 	}
 
 	public boolean hasClass(String name) {
-		for (ClassOrTraitDeclStmt cls : classes) {
+		for (ClassDeclStmt cls : classes) {
 			if (cls.name.equals(name)) {
 				return true;
 			}
@@ -138,8 +138,8 @@ public class CompilationUnit {
 		return false;
 	}
 
-	public ClassOrTraitDeclStmt getClass(String name) {
-		for (ClassOrTraitDeclStmt cls : classes) {
+	public ClassDeclStmt getClass(String name) {
+		for (ClassDeclStmt cls : classes) {
 			if (cls.name.equals(name)) {
 				return cls;
 			}
@@ -151,7 +151,7 @@ public class CompilationUnit {
 		return classes.size();
 	}
 
-	public void forEachClass(java.util.function.Consumer<ClassOrTraitDeclStmt> action) {
+	public void forEachClass(java.util.function.Consumer<ClassDeclStmt> action) {
 		classes.forEach(action);
 	}
 

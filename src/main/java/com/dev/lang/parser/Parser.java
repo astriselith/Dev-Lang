@@ -9,7 +9,6 @@ import com.dev.lang.unit.*;
 import com.dev.lang.util.*;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -19,9 +18,6 @@ public class Parser {
 
 	private static final Set<Type> DEFAULT_MEMBER_RECOVERY = Set.of(
 			FUN, VAR, RBRACE);
-
-	private static final Set<Type> DEFAULT_MODIFIER_RECOVERY = Set.of(
-			PUBLIC, PRIVATE, SHARED, READONLY);
 
 	private final TokenStream stream;
 	private final CompilationUnit unit;
@@ -38,22 +34,14 @@ public class Parser {
 
 	private void program() {
 		while (!stream.isAtEnd() && !stream.check(EOF)) {
-			int mods = modifiers();
-			Kind kind = null;
-
-			if (stream.match(CLASS)) {
-				kind = new Kind(Kind.CLASS);
-			} else if (stream.match(TRAIT)) {
-				kind = new Kind(Kind.TRAIT);
+			if (stream.check(CLASS)) {
+				unit.addClass(classDecl());
 			} else {
 				throw unit.error(
 						TAG,
-						EXPECTED_TOKEN.format("class or trait", stream.peek().type),
+						EXPECTED_TOKEN.format("class", stream.peek().type),
 						stream.peek());
 			}
-
-			ClassOrTraitDeclStmt classDecl = classOrTraitDecl(kind, mods);
-			unit.addClass(classDecl);
 		}
 	}
 
@@ -91,10 +79,7 @@ public class Parser {
 		stream.expect(LBRACE);
 		Token start = stream.previous();
 		List<Stmt> statements = new ArrayList<>();
-		Set<Type> stmtRecovery = new HashSet<>();
-		stmtRecovery.addAll(DEFAULT_STMT_RECOVERY);
-		stmtRecovery.addAll(DEFAULT_MODIFIER_RECOVERY);
-
+		
 		while (!stream.isAtEnd() && !stream.check(RBRACE)) {
 			try {
 				Stmt s = stmt();
@@ -102,63 +87,21 @@ public class Parser {
 					statements.add(s);
 			} catch (CompilationException e) {
 				unit.addError(e);
-				synchronizeAfter(stmtRecovery);
+				synchronizeAfter(DEFAULT_STMT_RECOVERY);
 			} catch (IllegalStateException e) {
 				unit.addError(
 						unit.error(
 								TAG,
 								e.getMessage(),
 								stream.peek()));
-				synchronizeAfter(stmtRecovery);
+				synchronizeAfter(DEFAULT_STMT_RECOVERY);
 			}
 		}
 		Token end = stream.expect(RBRACE);
 		return new BlockStmt(statements, between(start, end));
 	}
 
-	private int modifiers() {
-		int mods = 0;
-
-		while (!stream.isAtEnd()) {
-			Type type = stream.peek().type;
-			int flag = 0;
-
-			switch (type) {
-				case SHARED:
-					flag = Modifier.SHARED;
-					break;
-				case READONLY:
-					flag = Modifier.READONLY;
-					break;
-				case PUBLIC:
-					flag = Modifier.PUBLIC;
-					break;
-				case PRIVATE:
-					flag = Modifier.PRIVATE;
-					break;
-				default:
-					flag = 0;
-					break;
-			}
-
-			if (flag == 0)
-				break;
-
-			if ((mods & flag) != 0) {
-				unit.addError(unit.error(
-						TAG,
-						DUPLICATE_MODIFIER.format(stream.peek().lexeme),
-						stream.peek()));
-			} else {
-				mods |= flag;
-			}
-			stream.advance();
-		}
-
-		return mods;
-	}
-
-	private VarDeclStmt varDecl(int mods) {
+	private VarDeclStmt varDecl() {
 		Token start = stream.expect(VAR);
 
 		Token nameToken = stream.expect(IDENTIFIER);
@@ -173,11 +116,10 @@ public class Parser {
 
 		semicolon();
 
-		Modifier modifier = new Modifier(mods, between(start, stream.previous()));
-		return new VarDeclStmt(modifier, nameToken.lexeme, type, value, between(start, stream.previous()));
+		return new VarDeclStmt(nameToken.lexeme, type, value, between(start, stream.previous()));
 	}
 
-	private FunDeclStmt funDecl(int mods) {
+	private FunDeclStmt funDecl() {
 		Token start = stream.expect(FUN);
 
 		Token nameToken = stream.expect(IDENTIFIER);
@@ -215,9 +157,7 @@ public class Parser {
 					stream.peek());
 		}
 
-		Modifier modifier = new Modifier(mods, between(start, body != null ? body : stream.previous()));
-
-		return new FunDeclStmt(modifier, nameToken.lexeme, typeParameters, params, returnType, body,
+		return new FunDeclStmt(nameToken.lexeme, typeParameters, params, returnType, body,
 				between(start, body != null ? body : stream.previous()));
 	}
 
@@ -323,8 +263,8 @@ public class Parser {
 		Set<Type> stmtRecovery = DEFAULT_STMT_RECOVERY;
 
 		try {
-			if (stream.check(VAR))
-				return varDecl(0);
+			if (stream.check(LET))
+				return letDecl();
 			if (stream.check(IF))
 				return ifStmt();
 			if (stream.check(WHILE))
@@ -375,8 +315,8 @@ public class Parser {
 		}
 	}
 
-	private ClassOrTraitDeclStmt classOrTraitDecl(Kind kind, int mods) {
-		Token start = stream.peek();
+	private ClassDeclStmt classDecl() {
+		Token start = stream.expect(CLASS);
 
 		Token nameToken = stream.expect(IDENTIFIER);
 
@@ -398,48 +338,31 @@ public class Parser {
 		} else {
 			stream.expect(LBRACE);
 
-			Set<Type> memberRecovery = new HashSet<>();
-			memberRecovery.addAll(DEFAULT_MEMBER_RECOVERY);
-			memberRecovery.addAll(DEFAULT_MODIFIER_RECOVERY);
-
 			while (!stream.isAtEnd() && !stream.check(RBRACE)) {
-				try {
-					int memberMods = 0;
-					boolean hasModifiers = stream.checkAny(PUBLIC, PRIVATE, SHARED, READONLY);
-					if (hasModifiers) {
-						memberMods = modifiers();
-					}
-
+try {
 					if (stream.check(FUN)) {
-						FunDeclStmt fun = funDecl(memberMods);
-						if (fun != null)
-							funs.add(fun);
+						FunDeclStmt fun = funDecl();
+						funs.add(fun);
 					} else if (stream.check(VAR)) {
-						VarDeclStmt var = varDecl(memberMods);
-						if (var != null)
-							vars.add(var);
+						VarDeclStmt var = varDecl();
+						vars.add(var);
+				
 					} else {
-						if (hasModifiers) {
-							throw unit.error(
-									TAG,
-									UNEXPECTED_TOKEN.format(stream.peek().lexeme),
-									stream.peek());
-						}
 						throw unit.error(
 								TAG,
 								EXPECTED_MEMBER.format(),
 								stream.peek());
 					}
-				} catch (CompilationException e) {
+} catch (CompilationException e) {
 					unit.addError(e);
-					synchronizeAfter(memberRecovery);
+					synchronizeAfter(DEFAULT_MEMBER_RECOVERY);
 				} catch (IllegalStateException e) {
 					unit.addError(
 							unit.error(
 									TAG,
 									e.getMessage(),
 									stream.peek()));
-					synchronizeAfter(memberRecovery);
+					synchronizeAfter(DEFAULT_MEMBER_RECOVERY);
 				}
 			}
 
@@ -447,9 +370,25 @@ public class Parser {
 			end = stream.previous();
 		}
 
-		Modifier modifier = new Modifier(mods, between(start, end));
-		return new ClassOrTraitDeclStmt(modifier, nameToken.lexeme, kind, superclass, supertraits,
+		return new ClassDeclStmt(nameToken.lexeme, superclass, supertraits,
 				typeParams, funs, vars, between(start, end));
+	}
+	private LetDeclStmt letDecl() {
+		Token start = stream.expect(LET);
+
+		Token nameToken = stream.expect(IDENTIFIER);
+
+		Typed type = null;
+		if (stream.match(COLON))
+			type = type();
+
+		Expr value = null;
+		if (stream.match(EQUALS))
+			value = expr();
+
+		semicolon();
+
+		return new LetDeclStmt(nameToken.lexeme, type, value, between(start, stream.previous()));
 	}
 
 	private IfStmt ifStmt() {

@@ -58,6 +58,14 @@ public class Token implements Positioned {
 		return false;
 	}
 
+	public boolean isKeyword() {
+		return typeEquals(
+				   Type.VAR, Type.FUN, Type.CLASS, Type.LET,
+				   Type.IF, Type.ELSE, Type.WHILE,
+				   Type.BREAK, Type.CONTINUE, Type.RETURN
+			   );
+	}
+
 	public boolean isOperator() {
 		return typeEquals(
 				   Type.PLUS, Type.MINUS, Type.STAR, Type.SLASH, Type.PERCENT,

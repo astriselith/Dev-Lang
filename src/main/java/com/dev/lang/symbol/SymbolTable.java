@@ -6,7 +6,8 @@ import com.dev.lang.ast.ParameterizedRefTyped;
 import java.util.*;
 
 public class SymbolTable {
-	private final Map<String, ClassOrTraitSymbol> classesAndTraits = new LinkedHashMap<>();
+	private final Map<String, ClassSymbol> classesAndTraits = new LinkedHashMap<>();
+	
 	private final Map<String, Symbol> globals = new LinkedHashMap<>();
 	private final Map<String, FunSymbol> funs = new LinkedHashMap<>();
 	private final Map<String, VarSymbol> vars = new LinkedHashMap<>();
@@ -14,11 +15,11 @@ public class SymbolTable {
 	public SymbolTable() {
 	}
 
-	public void register(String name, ClassOrTraitSymbol cs) {
+	public void register(String name, ClassSymbol cs) {
 		classesAndTraits.put(name, cs);
 	}
 
-	public ClassOrTraitSymbol get(String name) {
+	public ClassSymbol get(String name) {
 		return classesAndTraits.get(name);
 	}
 
@@ -26,7 +27,7 @@ public class SymbolTable {
 		return classesAndTraits.containsKey(name);
 	}
 
-	public Map<String, ClassOrTraitSymbol> getAll() {
+	public Map<String, ClassSymbol> getAll() {
 		return Collections.unmodifiableMap(classesAndTraits);
 	}
 
@@ -80,16 +81,16 @@ public class SymbolTable {
 			return getGlobal(name);
 		}
 
-		if (left.isClassOrTrait()) {
-			ClassOrTraitSymbol cls = left.asClassOrTrait();
+		if (left.isClass()) {
+			ClassSymbol cls = left.asClass();
 			Symbol result = cls.getFun(name);
 			if (result != null) return result;
 			return cls.getVar(name);
 		}
 
 		if (left.isParameterized()) {
-			ParameterizedClassOrTraitSymbol param = left.asParameterized();
-			ClassOrTraitSymbol base = param.getBase();
+			ParameterizedClassSymbol param = left.asParameterized();
+			ClassSymbol base = param.getBase();
 			Symbol result = base.getFun(name);
 			if (result != null) return result;
 			return base.getVar(name);
@@ -122,7 +123,7 @@ public class SymbolTable {
 			ParameterizedRefTyped param = (ParameterizedRefTyped) type;
 			String name = param.name;
 
-			ClassOrTraitSymbol baseClass = this.get(name);
+			ClassSymbol baseClass = this.get(name);
 			if (baseClass == null) {
 				return null;
 			}
@@ -144,41 +145,41 @@ public class SymbolTable {
 				}
 			}
 
-			return new ParameterizedClassOrTraitSymbol(baseClass, typeArgs);
+			return new ParameterizedClassSymbol(baseClass, typeArgs);
 		}
 
 		return null;
 	}
 
-	public ClassOrTraitSymbol getAny() {
+	public ClassSymbol getAny() {
 		return get("Any");
 	}
 
-	public ClassOrTraitSymbol getNumber() {
+	public ClassSymbol getNumber() {
 		return get("Number");
 	}
 
-	public ClassOrTraitSymbol getInt() {
+	public ClassSymbol getInt() {
 		return get("Int");
 	}
 
-	public ClassOrTraitSymbol getFloat() {
+	public ClassSymbol getFloat() {
 		return get("Float");
 	}
 
-	public ClassOrTraitSymbol getBool() {
+	public ClassSymbol getBool() {
 		return get("Bool");
 	}
 
-	public ClassOrTraitSymbol getString() {
+	public ClassSymbol getString() {
 		return get("String");
 	}
 
-	public ClassOrTraitSymbol getVoid() {
+	public ClassSymbol getVoid() {
 		return get("Void");
 	}
 
-	public ClassOrTraitSymbol getNull() {
+	public ClassSymbol getNull() {
 		return get("Null");
 	}
 
@@ -191,13 +192,13 @@ public class SymbolTable {
 			return sym1 == sym2;
 		}
 
-		if (sym1.isClassOrTrait() && sym2.isClassOrTrait()) {
+		if (sym1.isClass() && sym2.isClass()) {
 			return sym1 == sym2;
 		}
 
 		if (sym1.isParameterized() && sym2.isParameterized()) {
-			ParameterizedClassOrTraitSymbol p1 = sym1.asParameterized();
-			ParameterizedClassOrTraitSymbol p2 = sym2.asParameterized();
+			ParameterizedClassSymbol p1 = sym1.asParameterized();
+			ParameterizedClassSymbol p2 = sym2.asParameterized();
 
 			if (p1.getBase() != p2.getBase()) {
 				return false;
@@ -266,9 +267,9 @@ public class SymbolTable {
 			return sub == sup;
 		}
 
-		ClassOrTraitSymbol any = getAny();
+		ClassSymbol any = getAny();
 
-		if (sub.isTypeParam() && sup.isClassOrTrait()) {
+		if (sub.isTypeParam() && sup.isClass()) {
 			TypeParamSymbol tp = sub.asTypeParam();
 
 			Symbol superclass = tp.getSuperclass();
@@ -285,13 +286,13 @@ public class SymbolTable {
 			return sup == any;
 		}
 
-		if (sub.isClassOrTrait() && sup.isTypeParam()) {
+		if (sub.isClass() && sup.isTypeParam()) {
 			return sub == any;
 		}
 
 		if (sub.isParameterized() && sup.isParameterized()) {
-			ParameterizedClassOrTraitSymbol pSub = sub.asParameterized();
-			ParameterizedClassOrTraitSymbol pSup = sup.asParameterized();
+			ParameterizedClassSymbol pSub = sub.asParameterized();
+			ParameterizedClassSymbol pSup = sup.asParameterized();
 
 			if (pSub.getBase() == pSup.getBase()) {
 				Map<String, Symbol> argsSub = pSub.getTypeArguments();
@@ -308,8 +309,8 @@ public class SymbolTable {
 			}
 		}
 
-		if ((sub.isClassOrTrait() || sub.isParameterized()) &&
-				(sup.isClassOrTrait() || sup.isParameterized())) {
+		if ((sub.isClass() || sub.isParameterized()) &&
+				(sup.isClass() || sup.isParameterized())) {
 
 			Set<Symbol> visited = new HashSet<>();
 			Deque<Symbol> stack = new ArrayDeque<>();
@@ -325,9 +326,9 @@ public class SymbolTable {
 					return true;
 				}
 
-				ClassOrTraitSymbol currentBase = current.isParameterized()
+				ClassSymbol currentBase = current.isParameterized()
 												 ? current.asParameterized().getBase()
-												 : current.isClassOrTrait() ? current.asClassOrTrait() : null;
+												 : current.isClass() ? current.asClass() : null;
 
 				if (currentBase == null) continue;
 

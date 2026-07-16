@@ -1,31 +1,24 @@
 package com.dev.lang.symbol;
 
 import com.dev.lang.ast.BlockStmt;
-import com.dev.lang.ast.Modifier;
 import java.util.*;
 
 public class FunSymbol extends Symbol {
-	private final Modifier modifier;
 	private final String name;
 	private final List<ParamSymbol> parameters;
 	private final Symbol returnType;
 	private BlockStmt body;
 	private final List<TypeParamSymbol> typeParameters;
-	private final ClassOrTraitSymbol declaringClassOrTrait;
+	private final ClassSymbol declaringClass;
 
-	public FunSymbol(Modifier modifier, String name, List<ParamSymbol> parameters, Symbol returnType,
-					 ClassOrTraitSymbol declaringClassOrTrait,
+	public FunSymbol(String name, List<ParamSymbol> parameters, Symbol returnType,
+					 ClassSymbol declaringClass,
 					 List<TypeParamSymbol> typeParameters) {
-		this.modifier = modifier;
 		this.name = name;
 		this.parameters = parameters != null ? Collections.unmodifiableList(parameters) : Collections.emptyList();
 		this.returnType = returnType;
-		this.declaringClassOrTrait = declaringClassOrTrait;
+		this.declaringClass = declaringClass;
 		this.typeParameters = typeParameters != null ? Collections.unmodifiableList(typeParameters) : Collections.emptyList();
-	}
-
-	public Modifier getModifier() {
-		return modifier;
 	}
 
 	public String getName() {
@@ -60,7 +53,7 @@ public class FunSymbol extends Symbol {
 		return typeParameters;
 	}
 
-	public ClassOrTraitSymbol getDeclaringClassOrTrait() {
-		return declaringClassOrTrait;
+	public ClassSymbol getDeclaringClass() {
+		return declaringClass;
 	}
 }

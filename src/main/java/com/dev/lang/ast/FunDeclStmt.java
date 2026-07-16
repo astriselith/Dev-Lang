@@ -5,19 +5,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FunDeclStmt extends Stmt {
-	public final Modifier modifier;
 	public final String name;
 	public final List<TypeParamDeclStmt> typeParameters;
 	public final List<ParamDeclStmt> parameters;
 	public final Typed returnType;
 	public final BlockStmt body;
 
-	public FunDeclStmt(Modifier modifier, String name,
+	public FunDeclStmt(String name,
 					   List<TypeParamDeclStmt> typeParameters,
 					   List<ParamDeclStmt> parameters,
 					   Typed returnType, BlockStmt body, Position position) {
 		super(position);
-		this.modifier = modifier != null ? modifier : new Modifier(position);
 		this.name = name;
 		this.typeParameters = typeParameters != null ? typeParameters : new ArrayList<>();
 		this.parameters = parameters != null ? parameters : new ArrayList<>();
