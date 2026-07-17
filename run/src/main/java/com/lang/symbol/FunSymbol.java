@@ -9,16 +9,14 @@ public class FunSymbol extends Symbol {
 	private final Symbol returnType;
 	private BlockStmt body;
 	private final List<TypeParamSymbol> typeParameters;
-	private final ClassSymbol declaringClass;
 
 	public FunSymbol(String name, List<ParamSymbol> parameters, Symbol returnType,
-					 ClassSymbol declaringClass,
-					 List<TypeParamSymbol> typeParameters) {
+			List<TypeParamSymbol> typeParameters) {
 		this.name = name;
 		this.parameters = parameters != null ? Collections.unmodifiableList(parameters) : Collections.emptyList();
 		this.returnType = returnType;
-		this.declaringClass = declaringClass;
-		this.typeParameters = typeParameters != null ? Collections.unmodifiableList(typeParameters) : Collections.emptyList();
+		this.typeParameters = typeParameters != null ? Collections.unmodifiableList(typeParameters)
+				: Collections.emptyList();
 	}
 
 	public String getName() {
@@ -51,9 +49,5 @@ public class FunSymbol extends Symbol {
 
 	public List<TypeParamSymbol> getTypeParameters() {
 		return typeParameters;
-	}
-
-	public ClassSymbol getDeclaringClass() {
-		return declaringClass;
 	}
 }

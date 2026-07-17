@@ -21,7 +21,7 @@ public abstract class Stmt extends Node {
 		if (this instanceof ExprStmt) return visitor.visitExprStmt((ExprStmt) this);
 		if (this instanceof ParamDeclStmt) return visitor.visitParamDeclStmt((ParamDeclStmt) this);
 		if (this instanceof TypeParamDeclStmt) return visitor.visitTypeParamDeclStmt((TypeParamDeclStmt) this);
-		if (this instanceof ClassDeclStmt) return visitor.visitClassOrTraitDeclStmt((ClassDeclStmt) this);
+		if (this instanceof ClassDeclStmt) return visitor.visitClassDeclStmt((ClassDeclStmt) this);
 		if (this instanceof VarDeclStmt) return visitor.visitVarDeclStmt((VarDeclStmt) this);
 		if (this instanceof FunDeclStmt) return visitor.visitFunDeclStmt((FunDeclStmt) this);
 

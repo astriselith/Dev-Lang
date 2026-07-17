@@ -11,7 +11,7 @@ public interface StmtVisitor<T> {
 	T visitExprStmt(ExprStmt stmt);
 	T visitParamDeclStmt(ParamDeclStmt stmt);
 	T visitTypeParamDeclStmt(TypeParamDeclStmt stmt);
-	T visitClassOrTraitDeclStmt(ClassDeclStmt stmt);
+	T visitClassDeclStmt(ClassDeclStmt stmt);
 	T visitVarDeclStmt(VarDeclStmt stmt);
 	T visitFunDeclStmt(FunDeclStmt stmt);
 }

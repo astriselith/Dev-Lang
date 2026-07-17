@@ -1,10 +1,13 @@
-package com.dev.lang.semantic;
+package com.lang.analyzer;
 
-import com.dev.lang.ast.*;
-import com.dev.lang.symbol.*;
-import com.dev.lang.unit.CompilationException;
-import com.dev.lang.unit.CompilationUnit;
-import java.util.*;
+import static com.lang.analyzer.AnalyzingErrorCode.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.lang.ast.*;
+import com.lang.symbol.ClassSymbol;
+import com.lang.symbol.SymbolTable;
+import com.lang.unit.CompilationUnit;
 
 public class ClassRegister implements StmtVisitor<Void> {
 	private final SymbolTable symbolTable;
@@ -15,41 +18,23 @@ public class ClassRegister implements StmtVisitor<Void> {
 		this.compilationUnit = compilationUnit;
 	}
 
-	private void error(Node node, SemanticErrorCode code, Object... args) {
-		compilationUnit.addError(new CompilationException(code.format(args), node));
-	}
-
 	@Override
-	public Void visitClassOrTraitDeclStmt(ClassOrTraitDeclStmt stmt) {
+	public Void visitClassDeclStmt(ClassDeclStmt stmt) {
 		if (symbolTable.get(stmt.name) != null) {
-			error(stmt, SemanticErrorCode.REDEFINED_CLASS, stmt.name);
+			compilationUnit.error(TAG, REDEFINED_CLASS.format(stmt.name), stmt);
 			return null;
 		}
 
-		List<String> typeParameterNames = new ArrayList<>();
+		List<String> typeParameterTypes = new ArrayList<>();
 		for (TypeParamDeclStmt param : stmt.typeParameters) {
-			typeParameterNames.add(param.name);
-		}
-
-		Typed classType;
-		if (!typeParameterNames.isEmpty()) {
-			List<Typed> typeArgs = new ArrayList<>();
-			for (String tp : typeParameterNames) {
-				typeArgs.add(new RefTyped(tp, stmt.getPosition()));
-			}
-			classType = new ParameterizedRefTyped(stmt.name, typeArgs, stmt.getPosition());
-		} else {
-			classType = new RefTyped(stmt.name, stmt.getPosition());
+			typeParameterTypes.add(param.name);
 		}
 
 		Typed superclassType = stmt.hasSuperclass() ? stmt.superclass : null;
 		List<Typed> supertraitTypes = new ArrayList<>(stmt.supertraits);
 
-		Symbol.Kind kind = stmt.isClass() ? Symbol.Kind.CLASS : Symbol.Kind.TRAIT;
-		ClassOrTraitSymbol classSymbol = new ClassOrTraitSymbol(
-			stmt.name, kind, typeParameterNames, classType, superclassType, supertraitTypes
-		);
-		classSymbol.modifier = stmt.modifier;
+		ClassSymbol classSymbol = new ClassSymbol(
+				stmt.name, typeParameterTypes, superclassType, supertraitTypes);
 
 		symbolTable.register(stmt.name, classSymbol);
 

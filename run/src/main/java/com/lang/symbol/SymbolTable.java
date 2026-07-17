@@ -128,15 +128,15 @@ public class SymbolTable {
 				return null;
 			}
 
-			List<String> typeParamNames = baseClass.getTypeParameterTypes();
+			List<String> typeParameterTypes = baseClass.getTypeParameterTypes();
 
-			if (typeParamNames.size() != param.typeArguments.size()) {
+			if (typeParameterTypes.size() != param.typeArguments.size()) {
 				return baseClass;
 			}
 
 			Map<String, Symbol> typeArgs = new LinkedHashMap<>();
-			for (int i = 0; i < typeParamNames.size(); i++) {
-				String paramName = typeParamNames.get(i);
+			for (int i = 0; i < typeParameterTypes.size(); i++) {
+				String paramName = typeParameterTypes.get(i);
 				Typed arg = param.typeArguments.get(i);
 
 				Symbol resolvedArg = resolve(arg, substitutions);

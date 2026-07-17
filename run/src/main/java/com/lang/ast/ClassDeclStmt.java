@@ -15,8 +15,8 @@ public class ClassDeclStmt extends Stmt {
 	public final List<VarDeclStmt> vars;
 
 	public ClassDeclStmt(String name, Typed superclass,
-								List<Typed> supertraits, List<TypeParamDeclStmt> typeParameters,
-								List<FunDeclStmt> funs, List<VarDeclStmt> vars, Position position) {
+			List<Typed> supertraits, List<TypeParamDeclStmt> typeParameters,
+			List<FunDeclStmt> funs, List<VarDeclStmt> vars, Position position) {
 		super(position);
 		this.name = name;
 
@@ -71,9 +71,5 @@ public class ClassDeclStmt extends Stmt {
 
 	public boolean hasVar(String name) {
 		return getVar(name) != null;
-	}
-
-	public boolean hasMember(String name) {
-		return hasFun(name) || hasVar(name);
 	}
 }

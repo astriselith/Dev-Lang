@@ -290,7 +290,7 @@ public class Dumper implements ExprVisitor<String>, StmtVisitor<String> {
 	}
 
 	@Override
-	public String visitClassOrTraitDeclStmt(ClassDeclStmt stmt) {
+	public String visitClassDeclStmt(ClassDeclStmt stmt) {
 		StringBuilder sb = new StringBuilder();
 		sb.append(indent()).append("Class").append(type(stmt)).append(" {\n");
 		indent++;
