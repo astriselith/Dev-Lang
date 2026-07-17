@@ -3,7 +3,7 @@ class Pair<First, Second> {
 	var first: First;
 	var second: Second;
 
-	fun init(first: First, second: Second) {
+	fun Pair(first: First, second: Second) {
 		this.first = first;
 		this.second = second;
 	}
@@ -24,7 +24,6 @@ class Pair<First, Second> {
 		this.second = value;
 	}
 
-	// swap retorna um novo Pair com os valores trocados
 	fun swap(): Pair<Second, First> {
 		return Pair<Second, First>(this.second, this.first);
 	}
