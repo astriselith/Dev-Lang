@@ -16,11 +16,12 @@ class Name<T> : Superclass | Trait1 & Trait2 {
 fun add(a: Int, b: Int): Int {
 	return a + b;
 }
-```
+
 fun short(x: Int) = x * 2;        # expression-bodied
 fun opt() = ?;                     # empty body
 ```
 - Variable declarations
+
 ```
 var x: Int = 10;
 let y = 20;                        # immutable (let)
