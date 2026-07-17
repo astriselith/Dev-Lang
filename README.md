@@ -46,7 +46,7 @@ return expr;                        # return with value
 ```
 # arithmetic, comparisons, logicals, ternary
 1 + 2 * 3
-foo(bar)<T1, T2>(arg1, arg2)         # calls with optional type arguments
+foo<T1, T2>(arg1, arg2)         # calls with optional type arguments
 obj.field                             # member access
 arr[index]                            # index access
 cond ? a : b                          # ternary
