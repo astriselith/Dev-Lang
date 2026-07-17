@@ -1,26 +1,32 @@
 package com.lang.unit;
 
 import com.lang.ast.ClassDeclStmt;
+import com.lang.ast.Comment;
 import com.lang.util.Position;
 import com.lang.util.Positioned;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class CompilationUnit {
 	private final List<ClassDeclStmt> classes;
+	private final List<Comment> comments;
+
 	private final List<CompilationException> errors;
 	private final List<WarningException> warnings;
 
 	public CompilationUnit() {
 		this.classes = new ArrayList<>();
+		this.comments = new ArrayList<>();
 		this.errors = new ArrayList<>();
 		this.warnings = new ArrayList<>();
 	}
 
 	public CompilationUnit(CompilationUnit other) {
 		this.classes = new ArrayList<>(other.classes);
+		this.comments = new ArrayList<>(other.comments);
 		this.errors = new ArrayList<>(other.errors);
 		this.warnings = new ArrayList<>(other.warnings);
 	}
@@ -151,8 +157,32 @@ public class CompilationUnit {
 		return classes.size();
 	}
 
-	public void forEachClass(java.util.function.Consumer<ClassDeclStmt> action) {
+	public void forEachClass(Consumer<ClassDeclStmt> action) {
 		classes.forEach(action);
+	}
+
+	public void addComment(Comment comment) {
+		comments.add(comment);
+	}
+
+	public void addComments(List<Comment> comments) {
+		this.comments.addAll(comments);
+	}
+
+	public List<Comment> getComments() {
+		return Collections.unmodifiableList(comments);
+	}
+
+	public boolean hasComments() {
+		return !comments.isEmpty();
+	}
+
+	public int getCommentCount() {
+		return comments.size();
+	}
+
+	public void forEachComment(Consumer<Comment> action) {
+		comments.forEach(action);
 	}
 
 	public void printReport() {
@@ -190,6 +220,8 @@ public class CompilationUnit {
 
 		result.addClasses(unit1.classes);
 		result.addClasses(unit2.classes);
+		result.addComments(unit1.comments);
+		result.addComments(unit2.comments);
 		result.addErrors(unit1.errors);
 		result.addErrors(unit2.errors);
 		result.addWarnings(unit1.warnings);

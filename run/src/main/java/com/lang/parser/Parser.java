@@ -13,11 +13,11 @@ import java.util.List;
 import java.util.Set;
 
 public class Parser {
-	private static final Set<Type> DEFAULT_STMT_RECOVERY = Set.of(
-			VAR, IF, WHILE, RETURN, BREAK, CONTINUE, RBRACE);
+	private static final Set<String> DEFAULT_STMT_RECOVERY = Set.of(
+			"let", "if", "while", "break", "continue", "return");
 
-	private static final Set<Type> DEFAULT_MEMBER_RECOVERY = Set.of(
-			FUN, VAR, RBRACE);
+	private static final Set<String> DEFAULT_MEMBER_RECOVERY = Set.of(
+			"fun", "var", "}");
 
 	private final TokenStream stream;
 	private final CompilationUnit unit;
@@ -25,6 +25,18 @@ public class Parser {
 	public Parser(TokenStream stream, CompilationUnit unit) {
 		this.stream = stream;
 		this.unit = unit != null ? unit : new CompilationUnit();
+
+		if (this.stream == null) {
+			throw new IllegalArgumentException("TokenStream cannot be null");
+		}
+		this.stream.setHandler((token) -> {
+			if (token.isComment()) {
+				this.unit.addComment(new Comment(token.lexeme, token.position));
+				return false; // Skip comments
+			}
+			return true; // Process other tokens
+		});
+		
 	}
 
 	public CompilationUnit parse() {
@@ -34,7 +46,7 @@ public class Parser {
 
 	private void program() {
 		while (!stream.isAtEnd() && !stream.check(EOF)) {
-			if (stream.check(CLASS)) {
+			if (stream.check("class")) {
 				unit.addClass(classDecl());
 			} else {
 				throw unit.error(
@@ -45,12 +57,24 @@ public class Parser {
 		}
 	}
 
-	private void synchronizeAfter(Set<Type> recoveryPoints) {
+	private void synchronizeAfterTypes(Set<Type> recoveryPoints) {
 		while (!stream.isAtEnd() && !stream.check(EOF)) {
 			if (stream.match(SEMICOLON))
 				return;
 			for (Type type : recoveryPoints) {
 				if (stream.check(type))
+					return;
+			}
+			stream.advance();
+		}
+	}
+
+	private void synchronizeAfterStrings(Set<String> recoveryPoints) {
+		while (!stream.isAtEnd() && !stream.check(EOF)) {
+			if (stream.match(SEMICOLON))
+				return;
+			for (String keyword : recoveryPoints) {
+				if (stream.check(keyword))
 					return;
 			}
 			stream.advance();
@@ -87,14 +111,14 @@ public class Parser {
 					statements.add(s);
 			} catch (CompilationException e) {
 				unit.addError(e);
-				synchronizeAfter(DEFAULT_STMT_RECOVERY);
+				synchronizeAfterStrings(DEFAULT_STMT_RECOVERY);
 			} catch (IllegalStateException e) {
 				unit.addError(
 						unit.error(
 								TAG,
 								e.getMessage(),
 								stream.peek()));
-				synchronizeAfter(DEFAULT_STMT_RECOVERY);
+				synchronizeAfterStrings(DEFAULT_STMT_RECOVERY);
 			}
 		}
 		Token end = stream.expect(RBRACE);
@@ -102,7 +126,7 @@ public class Parser {
 	}
 
 	private VarDeclStmt varDecl() {
-		Token start = stream.expect(VAR);
+		Token start = stream.expect("var");
 
 		Token nameToken = stream.expect(IDENTIFIER);
 
@@ -120,7 +144,7 @@ public class Parser {
 	}
 
 	private FunDeclStmt funDecl() {
-		Token start = stream.expect(FUN);
+		Token start = stream.expect("fun");
 
 		Token nameToken = stream.expect(IDENTIFIER);
 
@@ -260,29 +284,29 @@ public class Parser {
 	}
 
 	private Stmt stmt() {
-		Set<Type> stmtRecovery = DEFAULT_STMT_RECOVERY;
+		Set<String> stmtRecovery = DEFAULT_STMT_RECOVERY;
 
 		try {
-			if (stream.check(LET))
+			if (stream.check("let"))
 				return letDecl();
-			if (stream.check(IF))
+			if (stream.check("if"))
 				return ifStmt();
-			if (stream.check(WHILE))
+			if (stream.check("while"))
 				return whileStmt();
 
-			if (stream.match(BREAK)) {
+			if (stream.match("break")) {
 				Token t = stream.previous();
 				semicolon();
 				return new BreakStmt(pos(t));
 			}
 
-			if (stream.match(CONTINUE)) {
+			if (stream.match("continue")) {
 				Token t = stream.previous();
 				semicolon();
 				return new ContinueStmt(pos(t));
 			}
 
-			if (stream.match(RETURN)) {
+			if (stream.match("return")) {
 				Token t = stream.previous();
 
 				if (stream.check(SEMICOLON)) {
@@ -302,7 +326,7 @@ public class Parser {
 
 		} catch (CompilationException e) {
 			unit.addError(e);
-			synchronizeAfter(stmtRecovery);
+			synchronizeAfterStrings(stmtRecovery);
 			return null;
 		} catch (IllegalStateException e) {
 			unit.addError(
@@ -310,13 +334,13 @@ public class Parser {
 							TAG,
 							e.getMessage(),
 							stream.peek()));
-			synchronizeAfter(stmtRecovery);
+			synchronizeAfterStrings(stmtRecovery);
 			return null;
 		}
 	}
 
 	private ClassDeclStmt classDecl() {
-		Token start = stream.expect(CLASS);
+		Token start = stream.expect("class");
 
 		Token nameToken = stream.expect(IDENTIFIER);
 
@@ -340,10 +364,10 @@ public class Parser {
 
 			while (!stream.isAtEnd() && !stream.check(RBRACE)) {
 try {
-					if (stream.check(FUN)) {
+					if (stream.check("fun")) {
 						FunDeclStmt fun = funDecl();
 						funs.add(fun);
-					} else if (stream.check(VAR)) {
+					} else if (stream.check("var")) {
 						VarDeclStmt var = varDecl();
 						vars.add(var);
 				
@@ -355,14 +379,14 @@ try {
 					}
 } catch (CompilationException e) {
 					unit.addError(e);
-					synchronizeAfter(DEFAULT_MEMBER_RECOVERY);
+					synchronizeAfterStrings(DEFAULT_MEMBER_RECOVERY);
 				} catch (IllegalStateException e) {
 					unit.addError(
 							unit.error(
 									TAG,
 									e.getMessage(),
 									stream.peek()));
-					synchronizeAfter(DEFAULT_MEMBER_RECOVERY);
+					synchronizeAfterStrings(DEFAULT_MEMBER_RECOVERY);
 				}
 			}
 
@@ -374,7 +398,7 @@ try {
 				typeParams, funs, vars, between(start, end));
 	}
 	private LetDeclStmt letDecl() {
-		Token start = stream.expect(LET);
+		Token start = stream.expect("let");
 
 		Token nameToken = stream.expect(IDENTIFIER);
 
@@ -392,7 +416,7 @@ try {
 	}
 
 	private IfStmt ifStmt() {
-		Token start = stream.expect(IF);
+		Token start = stream.expect("if");
 
 		stream.expect(LPAREN);
 		Expr condition = expr();
@@ -411,7 +435,7 @@ try {
 
 		BlockStmt elseBranch = null;
 
-		if (stream.match(ELSE)) {
+		if (stream.match("else")) {
 			if (stream.check(LBRACE)) {
 				elseBranch = block();
 			} else {
@@ -433,7 +457,7 @@ try {
 	}
 
 	private WhileStmt whileStmt() {
-		Token start = stream.expect(WHILE);
+		Token start = stream.expect("while");
 
 		stream.expect(LPAREN);
 		Expr condition = expr();

@@ -58,12 +58,8 @@ public class Token implements Positioned {
 		return false;
 	}
 
-	public boolean isKeyword() {
-		return typeEquals(
-				   Type.VAR, Type.FUN, Type.CLASS, Type.LET,
-				   Type.IF, Type.ELSE, Type.WHILE,
-				   Type.BREAK, Type.CONTINUE, Type.RETURN
-			   );
+	public boolean isComment() {
+		return typeEquals(Type.COMMENT, Type.MULTILINE_COMMENT);
 	}
 
 	public boolean isOperator() {
@@ -123,18 +119,6 @@ public class Token implements Positioned {
 
 	public boolean isUnary() {
 		return typeEquals(Type.BANG, Type.MINUS, Type.PLUS);
-	}
-
-	public boolean isReturn() {
-		return typeEquals(Type.RETURN);
-	}
-
-	public boolean isBreak() {
-		return typeEquals(Type.BREAK);
-	}
-
-	public boolean isContinue() {
-		return typeEquals(Type.CONTINUE);
 	}
 
 	public boolean isUndefined() {

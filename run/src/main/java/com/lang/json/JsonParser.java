@@ -1,5 +1,6 @@
 package com.lang.json;
 
+import com.lang.ast.Comment;
 import com.lang.token.Token;
 import com.lang.token.TokenStream;
 import com.lang.unit.CompilationUnit;
@@ -15,6 +16,18 @@ public class JsonParser {
 	public JsonParser(TokenStream stream, CompilationUnit unit) {
 		this.stream = stream;
 		this.unit = unit != null ? unit : new CompilationUnit();
+
+		if (stream == null) {
+			throw new IllegalArgumentException("TokenStream cannot be null");
+		}
+
+		this.stream.setHandler((token) -> {
+			if (token.isComment()) {
+				this.unit.addComment(new Comment(token.lexeme, token.position));
+				return false; // Skip comments
+			}
+			return true; // Process other tokens
+		});
 	}
 
 	public Json<?> parse() {

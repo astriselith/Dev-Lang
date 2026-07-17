@@ -12,21 +12,9 @@ public enum Type {
 	STRING("string"),
 	IDENTIFIER("identifier"),
 
-	// Modificadores
-	CLASS("class"),
-
-	// Membros
-	VAR("var"),
-	FUN("fun"),
-
-	// Palavras-chave
-	LET("let"),
-	IF("if"),
-	ELSE("else"),
-	WHILE("while"),
-	BREAK("break"),
-	CONTINUE("continue"),
-	RETURN("return"),
+	// Comentários
+	COMMENT("comment"),
+	MULTILINE_COMMENT("multiline_comment"),
 
 	// Símbolos Únicos (cada caractere é um token)
 	PLUS("+"),

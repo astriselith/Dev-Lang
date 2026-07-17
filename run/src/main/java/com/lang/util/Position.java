@@ -7,7 +7,8 @@ public class Position implements Positioned {
 	private final int end;
 
 	public static final Position ZERO = new Position(0, 0, 0, 0);
-
+	public static final Position UNKNOWN = new Position(-1, -1, -1, -1);
+	
 	public Position(int line, int lineStart, int start, int end) {
 		this.line = line;
 		this.lineStart = lineStart;

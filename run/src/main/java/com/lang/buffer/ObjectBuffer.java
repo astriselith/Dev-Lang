@@ -8,6 +8,8 @@ public abstract class ObjectBuffer<T> {
 	private final int forwardWindow;
 	private final int backwardWindow;
 
+	protected ObjectHandler<T> handler;
+
 	private int head = 0;
 	private int tail = -1;
 	private boolean hitEof = false;
@@ -58,6 +60,12 @@ public abstract class ObjectBuffer<T> {
 			}
 
 			T next = fetchNext();
+
+			if (handler != null && !isEOF(next)) {	
+				if (!handler.handle(next)) {
+					continue; // Skip this object and fetch the next one
+				}
+			}
 
 			if (next == null || isEOF(next)) {
 				tail++;
@@ -115,6 +123,14 @@ public abstract class ObjectBuffer<T> {
 			return false;
 		}
 		return head <= tail && buffer[head] != null;
+	}
+
+	public ObjectHandler<T> getHandler() {
+		return handler;
+	}
+
+	public void setHandler(ObjectHandler<T> handler) {
+		this.handler = handler;
 	}
 
 	public int getHead() {

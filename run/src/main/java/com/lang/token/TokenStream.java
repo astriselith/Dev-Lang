@@ -1,8 +1,19 @@
 package com.lang.token;
 
 import com.lang.buffer.ObjectBuffer;
+import com.lang.buffer.ObjectHandler;
 
 public abstract class TokenStream extends ObjectBuffer<Token> {
+
+	@Override
+	public TokenHandler getHandler() {
+		return (TokenHandler) handler;
+	}
+
+	@Override
+	public void setHandler(ObjectHandler<Token> handler) {
+		this.handler = handler;
+	}
 
 	protected TokenStream() {
 		this(10, 10, 4);

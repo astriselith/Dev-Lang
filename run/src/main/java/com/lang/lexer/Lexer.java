@@ -28,30 +28,13 @@ public class Lexer extends TokenStream {
 	private final Map<Integer, Pair<Type, String>> symbols = new HashMap<>();
 
 	public Lexer(CodepointStream source) {
-		this(source, null, true);
+		this(source, null);
 	}
 
 	public Lexer(CodepointStream source, CompilationUnit unit) {
-		this(source, unit, true);
-	}
-
-	public Lexer(CodepointStream source, CompilationUnit unit, boolean includeKeyword) {
 		super(10, 10, 4);
 		this.source = source;
 		this.unit = unit != null ? unit : new CompilationUnit();
-
-		if (includeKeyword) {
-			addKeyword("var", VAR);
-			addKeyword("fun", FUN);
-			addKeyword("class", CLASS);
-			addKeyword("let", LET);
-			addKeyword("if", IF);
-			addKeyword("else", ELSE);
-			addKeyword("while", WHILE);
-			addKeyword("break", BREAK);
-			addKeyword("continue", CONTINUE);
-			addKeyword("return", RETURN);
-		}
 
 		addKeyword("true", BOOLEAN);
 		addKeyword("false", BOOLEAN);
@@ -114,8 +97,6 @@ public class Lexer extends TokenStream {
 					return Token.eof(line, lineStart, current, current);
 				}
 
-				skipWhitespace();
-
 				if (source.isAtEnd()) {
 					eofReached = true;
 					return Token.eof(line, lineStart, current, current);
@@ -127,61 +108,53 @@ public class Lexer extends TokenStream {
 				unit.addError(e);
 			} catch (Exception e) {
 				unit.addError(unit.error(
-								  TAG,
-								  e.getMessage(),
-								  new Position(line, lineStart, current, current),
-								  e
-							  ));
+						TAG,
+						e.getMessage(),
+						new Position(line, lineStart, current, current),
+						e));
 			}
-		}
-	}
-
-	private void skipWhitespace() {
-		while (!source.isAtEnd()) {
-			int cp = source.peek();
-
-			if (Codepoint.isWhitespace(cp)) {
-				update();
-				continue;
-			}
-
-			if (cp == '/') {
-				int next = source.peekNext();
-				if (next == '/') {
-					update(2);
-					while (!source.isAtEnd() && source.peek() != '\n') {
-						update();
-					}
-					continue;
-				} else if (next == '*') {
-					update(2);
-					boolean closed = false;
-					while (!source.isAtEnd()) {
-						if (source.peek() == '*' && source.peekNext() == '/') {
-							update(2);
-							closed = true;
-							break;
-						}
-						update();
-					}
-					if (!closed) {
-						throw unit.error(
-							TAG,
-							UNTERMINATED_COMMENT.format(),
-							new Position(line, lineStart, start, current)
-						);
-					}
-					continue;
-				}
-			}
-
-			break;
 		}
 	}
 
 	private Token scan() {
 		int cp = source.peek();
 
+		if (Codepoint.isWhitespace(cp)) {
+			update();
+			return scan();
+		}
+
+		if (cp == '/') {
+			StringBuilder comment = new StringBuilder();
+			int next = source.peekNext();
+			if (next == '/') {
+				update(2);
+				while (!source.isAtEnd() && source.peek() != '\n') {
+					comment.appendCodePoint(source.peek());
+					update();
+				}
+				return Token.of(COMMENT, comment.toString(), null, line, lineStart, start, current);
+			} else if (next == '*') {
+				update(2);
+				boolean closed = false;
+				while (!source.isAtEnd()) {
+					if (source.peek() == '*' && source.peekNext() == '/') {
+						update(2);
+						closed = true;
+						break;
+					}
+					comment.appendCodePoint(source.peek());
+					update();
+				}
+				if (!closed) {
+					throw unit.error(
+							TAG,
+							UNTERMINATED_COMMENT.format(),
+							new Position(line, lineStart, start, current));
+				}
+				return Token.of(MULTILINE_COMMENT, comment.toString(), null, line, lineStart, start, current);
+			}
+		}
 		if (cp == -1) {
 			return Token.eof(line, lineStart, current, current);
 		}
@@ -205,10 +178,9 @@ public class Lexer extends TokenStream {
 		}
 
 		throw unit.error(
-			TAG,
-			UNEXPECTED_CHARACTER.format(String.valueOf((char) cp)),
-			new Position(line, lineStart, start, current)
-		);
+				TAG,
+				UNEXPECTED_CHARACTER.format(String.valueOf((char) cp)),
+				new Position(line, lineStart, start, current));
 	}
 
 	private Token identifier() {
@@ -265,11 +237,10 @@ public class Lexer extends TokenStream {
 				return Token.of(INT, text, value, line, lineStart, start, current);
 			} catch (NumberFormatException e) {
 				unit.addError(unit.error(
-								  TAG,
-								  INVALID_NUMBER.format(text),
-								  new Position(line, lineStart, start, current),
-								  e
-							  ));
+						TAG,
+						INVALID_NUMBER.format(text),
+						new Position(line, lineStart, start, current),
+						e));
 				return Token.of(UNDEFINED, text, null, line, lineStart, start, current);
 			}
 		}
@@ -280,20 +251,18 @@ public class Lexer extends TokenStream {
 				return Token.of(FLOAT, text, value, line, lineStart, start, current);
 			} catch (NumberFormatException e) {
 				unit.addError(unit.error(
-								  TAG,
-								  INVALID_NUMBER.format(text),
-								  new Position(line, lineStart, start, current),
-								  e
-							  ));
+						TAG,
+						INVALID_NUMBER.format(text),
+						new Position(line, lineStart, start, current),
+						e));
 				return Token.of(UNDEFINED, text, null, line, lineStart, start, current);
 			}
 		}
 
 		unit.addError(unit.error(
-						  TAG,
-						  INVALID_NUMBER.format(text),
-						  new Position(line, lineStart, start, current)
-					  ));
+				TAG,
+				INVALID_NUMBER.format(text),
+				new Position(line, lineStart, start, current)));
 		return Token.of(UNDEFINED, text, null, line, lineStart, start, current);
 	}
 
@@ -307,7 +276,8 @@ public class Lexer extends TokenStream {
 
 		while (!source.isAtEnd()) {
 			int cp = source.peek();
-			if (cp == quote) break;
+			if (cp == quote)
+				break;
 
 			if (cp == '\n') {
 				if (quote == '"') {
@@ -316,45 +286,44 @@ public class Lexer extends TokenStream {
 					update();
 				} else {
 					throw unit.error(
-						TAG,
-						UNTERMINATED_CHARACTER.format(),
-						new Position(line, lineStart, start, current)
-					);
+							TAG,
+							UNTERMINATED_CHARACTER.format(),
+							new Position(line, lineStart, start, current));
 				}
 			} else if (cp == '\\') {
 				lexemeBuilder.appendCodePoint(cp);
 				update();
-				if (source.isAtEnd()) break;
+				if (source.isAtEnd())
+					break;
 
 				int escaped;
 				int next = source.peek();
 				lexemeBuilder.appendCodePoint(next);
 
 				switch (next) {
-				case 'n':
-					escaped = '\n';
-					break;
-				case 'r':
-					escaped = '\r';
-					break;
-				case 't':
-					escaped = '\t';
-					break;
-				case '\\':
-					escaped = '\\';
-					break;
-				case '"':
-					escaped = '"';
-					break;
-				case '\'':
-					escaped = '\'';
-					break;
-				default:
-					throw unit.error(
-						TAG,
-						UNKNOWN_ESCAPE_SEQUENCE.format(String.valueOf((char) next)),
-						new Position(line, lineStart, start, current)
-					);
+					case 'n':
+						escaped = '\n';
+						break;
+					case 'r':
+						escaped = '\r';
+						break;
+					case 't':
+						escaped = '\t';
+						break;
+					case '\\':
+						escaped = '\\';
+						break;
+					case '"':
+						escaped = '"';
+						break;
+					case '\'':
+						escaped = '\'';
+						break;
+					default:
+						throw unit.error(
+								TAG,
+								UNKNOWN_ESCAPE_SEQUENCE.format(String.valueOf((char) next)),
+								new Position(line, lineStart, start, current));
 				}
 				builder.appendCodePoint(escaped);
 				update();
@@ -367,10 +336,9 @@ public class Lexer extends TokenStream {
 
 		if (source.isAtEnd()) {
 			throw unit.error(
-				TAG,
-				quote == '"' ? UNTERMINATED_STRING.format() : UNTERMINATED_CHARACTER.format(),
-				new Position(line, lineStart, start, current)
-			);
+					TAG,
+					quote == '"' ? UNTERMINATED_STRING.format() : UNTERMINATED_CHARACTER.format(),
+					new Position(line, lineStart, start, current));
 		}
 
 		lexemeBuilder.appendCodePoint(quote);
@@ -387,10 +355,9 @@ public class Lexer extends TokenStream {
 				charValue = value.charAt(0);
 			} else {
 				throw unit.error(
-					TAG,
-					INVALID_CHARACTER_LITERAL.format(),
-					new Position(line, lineStart, start, current)
-				);
+						TAG,
+						INVALID_CHARACTER_LITERAL.format(),
+						new Position(line, lineStart, start, current));
 			}
 			return Token.of(CHAR, lexeme, charValue, line, lineStart, start, current);
 		}

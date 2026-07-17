@@ -6,3 +6,6 @@ plugins {
 application {
     mainClass.set("com.lang.Main")
 }
+
+dependencies {
+}
