@@ -2,15 +2,14 @@ package com.lang.json;
 
 import com.lang.util.Position;
 
-public class JsonNull extends Json<Void> {
-	public static final JsonNull INSTANCE = new JsonNull();
-
-	private JsonNull() {
-		super(null, TYPE_NULL, null);
-	}
+public class JsonNull extends Json {
 
 	public JsonNull(Position position) {
-		super(null, TYPE_NULL, position);
+		super(TYPE_NULL, position);
+	}
+
+	private JsonNull() {
+		this(null);
 	}
 
 	@Override

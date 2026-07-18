@@ -3,40 +3,47 @@ package com.lang.json;
 import com.lang.util.Position;
 import java.util.*;
 
-public class JsonArray extends Json<List<Json<?>>> {
-	public JsonArray(List<Json<?>> elements, Position position) {
-		super(Collections.unmodifiableList(new ArrayList<>(elements)), TYPE_ARRAY, position);
+public class JsonArray extends Json {
+	private final List<Json> elements;
+
+	public JsonArray(List<Json> elements, Position position) {
+		super(TYPE_ARRAY, position);
+		this.elements = Collections.unmodifiableList(new ArrayList<>(elements));
+
 	}
 
 	public JsonArray() {
 		this(new ArrayList<>(), null);
 	}
 
-	public List<Json<?>> getElements() {
-		return value;
+	public List<Json> getElements() {
+		return elements;
 	}
+
 	public int size() {
-		return value.size();
+		return elements.size();
 	}
+
 	public boolean isEmpty() {
-		return value.isEmpty();
+		return elements.isEmpty();
 	}
-	public Json<?> get(int index) {
-		return value.get(index);
+
+	public Json get(int index) {
+		return elements.get(index);
 	}
 
 	@Override
 	public String toString(int indent) {
-		if (value.isEmpty()) {
+		if (elements.isEmpty()) {
 			return "[]";
 		}
 
 		StringBuilder sb = new StringBuilder();
 		sb.append("[\n");
-		for (int i = 0; i < value.size(); i++) {
+		for (int i = 0; i < elements.size(); i++) {
 			sb.append(indent(indent + 1));
-			sb.append(value.get(i).toString(indent + 1));
-			if (i < value.size() - 1) {
+			sb.append(elements.get(i).toString(indent + 1));
+			if (i < elements.size() - 1) {
 				sb.append(",");
 			}
 			sb.append("\n");
@@ -48,14 +55,16 @@ public class JsonArray extends Json<List<Json<?>>> {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) return true;
-		if (!(obj instanceof JsonArray)) return false;
-		return value.equals(((JsonArray) obj).value);
+		if (this == obj)
+			return true;
+		if (!(obj instanceof JsonArray))
+			return false;
+		return elements.equals(((JsonArray) obj).elements);
 	}
 
 	@Override
 	public int hashCode() {
-		return value.hashCode();
+		return elements.hashCode();
 	}
 
 	public static Builder builder() {
@@ -63,7 +72,7 @@ public class JsonArray extends Json<List<Json<?>>> {
 	}
 
 	public static class Builder {
-		private final List<Json<?>> elements = new ArrayList<>();
+		private final List<Json> elements = new ArrayList<>();
 		private Position position;
 
 		public Builder position(Position position) {
@@ -71,12 +80,12 @@ public class JsonArray extends Json<List<Json<?>>> {
 			return this;
 		}
 
-		public Builder add(Json<?> element) {
+		public Builder add(Json element) {
 			elements.add(element);
 			return this;
 		}
 
-		public Builder addAll(List<Json<?>> elements) {
+		public Builder addAll(List<Json> elements) {
 			this.elements.addAll(elements);
 			return this;
 		}

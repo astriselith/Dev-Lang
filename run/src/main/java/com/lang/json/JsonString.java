@@ -2,13 +2,20 @@ package com.lang.json;
 
 import com.lang.util.Position;
 
-public class JsonString extends Json<String> {
+public class JsonString extends Json {
+	private final String value;
+
 	public JsonString(String value, Position position) {
-		super(value, TYPE_STRING, position);
+		super( TYPE_STRING, position);
+		this.value = value;
 	}
 
 	public JsonString(String value) {
 		this(value, null);
+	}
+
+	public String getValue() {
+		return value;
 	}
 
 	@Override

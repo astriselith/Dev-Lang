@@ -1,1 +1,3 @@
-class Main;
+class Main {
+    fun add(a, a);
+}

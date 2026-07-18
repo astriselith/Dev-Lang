@@ -165,7 +165,7 @@ public class ClassBinder implements StmtVisitor<Void> {
 		}
 
 		Typed varType = stmt.type;
-		Symbol varTypeSymbol = null;
+		Symbol varTypeSymbol = table.getAny();
 
 		if (varType != null) {
 			varTypeSymbol = table.resolve(varType, substitutions);
@@ -193,7 +193,7 @@ public class ClassBinder implements StmtVisitor<Void> {
 		}
 
 		Typed paramType = stmt.type;
-		Symbol paramTypeSymbol = null;
+		Symbol paramTypeSymbol = table.getAny();
 
 		if (paramType != null) {
 			paramTypeSymbol = table.resolve(paramType, substitutions);

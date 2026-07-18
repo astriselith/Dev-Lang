@@ -30,11 +30,11 @@ public class JsonParser {
 		});
 	}
 
-	public Json<?> parse() {
+	public Json parse() {
 		return value();
 	}
 
-	private Json<?> value() {
+	private Json value() {
 		Token token = stream.peek();
 
 		if (token.typeEquals(NULL)) {
@@ -75,7 +75,7 @@ public class JsonParser {
 
 	private JsonObject object() {
 		Token start = stream.advance();
-		Map<String, Json<?>> fields = new LinkedHashMap<>();
+		Map<String, Json> fields = new LinkedHashMap<>();
 
 		if (stream.check(RBRACE)) {
 			stream.advance();
@@ -85,17 +85,15 @@ public class JsonParser {
 		do {
 			Token keyToken = stream.peek();
 
-			if (!keyToken.typeEquals(STRING)) {
+			if (!stream.match(STRING)) {
 				throw unit.error("JSON", "Expected string key", keyToken);
 			}
-			stream.advance();
 
 			String key = (String) keyToken.literal;
 
-			if (!stream.checkAny(COLON, EQUALS)) {
-				throw unit.error("JSON", "Expected ':' or '=' after key", stream.peek());
+			if (!stream.match(COLON)) {
+				throw unit.error("JSON", "Expected ':' after key", stream.previous());
 			}
-			stream.advance();
 
 			fields.put(key, value());
 
@@ -111,7 +109,7 @@ public class JsonParser {
 
 	private JsonArray array() {
 		Token start = stream.advance();
-		List<Json<?>> elements = new ArrayList<>();
+		List<Json> elements = new ArrayList<>();
 
 		if (stream.check(RBRACKET)) {
 			stream.advance();

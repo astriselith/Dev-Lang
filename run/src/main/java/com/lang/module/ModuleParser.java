@@ -28,7 +28,7 @@ public final class ModuleParser {
 	public Module parse() {
 		try {
 			JsonParser parser = new JsonParser(stream, unit);
-			Json<?> json = parser.parse();
+			Json json = parser.parse();
 
 			if (json.isNull()) {
 				unit.addError(unit.error(TAG, "Invalid module-info: null", (Positioned) null));
@@ -50,7 +50,7 @@ public final class ModuleParser {
 
 			JsonArray depsArray = obj.optArray("dependencies");
 			if (depsArray != null) {
-				for (Json<?> depJson : depsArray.getElements()) {
+				for (Json depJson : depsArray.getElements()) {
 					if (!depJson.isString()) {
 						unit.addError(unit.error(TAG, "Invalid dependency: expected string, got " + depJson.getTypeName(), (Positioned) null));
 						continue;

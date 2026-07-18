@@ -3,40 +3,49 @@ package com.lang.json;
 import com.lang.util.Position;
 import java.util.*;
 
-public class JsonObject extends Json<Map<String, Json<?>>> {
-	public JsonObject(Map<String, Json<?>> fields, Position position) {
-		super(Collections.unmodifiableMap(new LinkedHashMap<>(fields)), TYPE_OBJECT, position);
+public class JsonObject extends Json {
+
+	private final Map<String, Json> fields;
+
+	public JsonObject(Map<String, Json> fields, Position position) {
+		super(TYPE_OBJECT, position);
+		this.fields = Collections.unmodifiableMap(new LinkedHashMap<>(fields));
 	}
 
 	public JsonObject() {
 		this(new LinkedHashMap<>(), null);
 	}
 
-	public Map<String, Json<?>> getFields() {
-		return value;
+	public Map<String, Json> getFields() {
+		return fields;
 	}
-	public Json<?> get(String key) {
-		return value.get(key);
+
+	public Json get(String key) {
+		return fields.get(key);
 	}
+
 	public boolean has(String key) {
-		return value.containsKey(key);
+		return fields.containsKey(key);
 	}
+
 	public Set<String> keys() {
-		return value.keySet();
+		return fields.keySet();
 	}
+
 	public int size() {
-		return value.size();
+		return fields.size();
 	}
+
 	public boolean isEmpty() {
-		return value.isEmpty();
+		return fields.isEmpty();
 	}
 
-	public Json<?> opt(String key) {
-		return value.get(key);
+	public Json opt(String key) {
+		return fields.get(key);
 	}
 
-	public Json<?> opt(String key, Json<?> defaultValue) {
-		Json<?> result = value.get(key);
+	public Json opt(String key, Json defaultValue) {
+		Json result = fields.get(key);
 		return result != null ? result : defaultValue;
 	}
 
@@ -45,7 +54,7 @@ public class JsonObject extends Json<Map<String, Json<?>>> {
 	}
 
 	public String optString(String key, String defaultValue) {
-		Json<?> result = value.get(key);
+		Json result = fields.get(key);
 		if (result != null && result.isString()) {
 			return result.asString().getValue();
 		}
@@ -57,7 +66,7 @@ public class JsonObject extends Json<Map<String, Json<?>>> {
 	}
 
 	public int optInt(String key, int defaultValue) {
-		Json<?> result = value.get(key);
+		Json result = fields.get(key);
 		if (result != null && result.isNumber()) {
 			return result.asNumber().intValue();
 		}
@@ -69,7 +78,7 @@ public class JsonObject extends Json<Map<String, Json<?>>> {
 	}
 
 	public long optLong(String key, long defaultValue) {
-		Json<?> result = value.get(key);
+		Json result = fields.get(key);
 		if (result != null && result.isNumber()) {
 			return result.asNumber().longValue();
 		}
@@ -81,7 +90,7 @@ public class JsonObject extends Json<Map<String, Json<?>>> {
 	}
 
 	public double optDouble(String key, double defaultValue) {
-		Json<?> result = value.get(key);
+		Json result = fields.get(key);
 		if (result != null && result.isNumber()) {
 			return result.asNumber().doubleValue();
 		}
@@ -93,7 +102,7 @@ public class JsonObject extends Json<Map<String, Json<?>>> {
 	}
 
 	public float optFloat(String key, float defaultValue) {
-		Json<?> result = value.get(key);
+		Json result = fields.get(key);
 		if (result != null && result.isNumber()) {
 			return result.asNumber().floatValue();
 		}
@@ -105,7 +114,7 @@ public class JsonObject extends Json<Map<String, Json<?>>> {
 	}
 
 	public boolean optBoolean(String key, boolean defaultValue) {
-		Json<?> result = value.get(key);
+		Json result = fields.get(key);
 		if (result != null && result.isBoolean()) {
 			return result.asBoolean().getValue();
 		}
@@ -117,7 +126,7 @@ public class JsonObject extends Json<Map<String, Json<?>>> {
 	}
 
 	public JsonObject optObject(String key, JsonObject defaultValue) {
-		Json<?> result = value.get(key);
+		Json result = fields.get(key);
 		if (result != null && result.isObject()) {
 			return result.asObject();
 		}
@@ -129,7 +138,7 @@ public class JsonObject extends Json<Map<String, Json<?>>> {
 	}
 
 	public JsonArray optArray(String key, JsonArray defaultValue) {
-		Json<?> result = value.get(key);
+		Json result = fields.get(key);
 		if (result != null && result.isArray()) {
 			return result.asArray();
 		}
@@ -138,14 +147,14 @@ public class JsonObject extends Json<Map<String, Json<?>>> {
 
 	@Override
 	public String toString(int indent) {
-		if (value.isEmpty()) {
+		if (fields.isEmpty()) {
 			return "{}";
 		}
 
 		StringBuilder sb = new StringBuilder();
 		sb.append("{\n");
 		boolean first = true;
-		for (Map.Entry<String, Json<?>> entry : value.entrySet()) {
+		for (Map.Entry<String, Json> entry : fields.entrySet()) {
 			if (!first) {
 				sb.append(",\n");
 			}
@@ -162,14 +171,16 @@ public class JsonObject extends Json<Map<String, Json<?>>> {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) return true;
-		if (!(obj instanceof JsonObject)) return false;
-		return value.equals(((JsonObject) obj).value);
+		if (this == obj)
+			return true;
+		if (!(obj instanceof JsonObject))
+			return false;
+		return fields.equals(((JsonObject) obj).fields);
 	}
 
 	@Override
 	public int hashCode() {
-		return value.hashCode();
+		return fields.hashCode();
 	}
 
 	public static Builder builder() {
@@ -177,7 +188,7 @@ public class JsonObject extends Json<Map<String, Json<?>>> {
 	}
 
 	public static class Builder {
-		private final Map<String, Json<?>> fields = new LinkedHashMap<>();
+		private final Map<String, Json> fields = new LinkedHashMap<>();
 		private Position position;
 
 		public Builder position(Position position) {
@@ -185,47 +196,12 @@ public class JsonObject extends Json<Map<String, Json<?>>> {
 			return this;
 		}
 
-		public Builder put(String key, Json<?> value) {
+		public Builder put(String key, Json value) {
 			fields.put(key, value);
 			return this;
 		}
 
-		public Builder put(String key, String value) {
-			fields.put(key, new JsonString(value));
-			return this;
-		}
-
-		public Builder put(String key, int value) {
-			fields.put(key, new JsonNumber(value));
-			return this;
-		}
-
-		public Builder put(String key, long value) {
-			fields.put(key, new JsonNumber(value));
-			return this;
-		}
-
-		public Builder put(String key, double value) {
-			fields.put(key, new JsonNumber(value));
-			return this;
-		}
-
-		public Builder put(String key, float value) {
-			fields.put(key, new JsonNumber(value));
-			return this;
-		}
-
-		public Builder put(String key, boolean value) {
-			fields.put(key, new JsonBoolean(value));
-			return this;
-		}
-
-		public Builder putNull(String key) {
-			fields.put(key, JsonNull.INSTANCE);
-			return this;
-		}
-
-		public Builder putAll(Map<String, Json<?>> fields) {
+		public Builder putAll(Map<String, Json> fields) {
 			this.fields.putAll(fields);
 			return this;
 		}

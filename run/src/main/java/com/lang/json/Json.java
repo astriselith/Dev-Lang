@@ -2,8 +2,7 @@ package com.lang.json;
 
 import com.lang.util.Position;
 
-public abstract class Json<T> {
-	protected final T value;
+public abstract class Json {
 	protected final int type;
 	protected final Position position;
 
@@ -16,15 +15,11 @@ public abstract class Json<T> {
 
 	private static final String INDENT_STRING = "  ";
 
-	protected Json(T value, int type, Position position) {
-		this.value = value;
+	protected Json(int type, Position position) {
 		this.type = type;
 		this.position = position;
 	}
 
-	public T getValue() {
-		return value;
-	}
 	public int getType() {
 		return type;
 	}
