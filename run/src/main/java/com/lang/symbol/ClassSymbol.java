@@ -16,6 +16,8 @@ public class ClassSymbol extends Symbol {
 	private Map<String, FunSymbol> funs;
 	private Map<String, VarSymbol> vars;
 
+	private boolean pure = false;
+
 	public ClassSymbol(String name,
 			List<String> typeParameterTypes,
 			Typed superclassType,
@@ -211,5 +213,13 @@ public class ClassSymbol extends Symbol {
 
 	public VarSymbol getDeclaredVar(String name) {
 		return vars.get(name);
+	}
+
+	public void setPure(boolean pure) {	
+		this.pure = pure;
+	}
+
+	public boolean isPure() {
+		return this.pure;
 	}
 }

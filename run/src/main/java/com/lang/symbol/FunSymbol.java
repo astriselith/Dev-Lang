@@ -10,6 +10,8 @@ public class FunSymbol extends Symbol {
 	private BlockStmt body;
 	private final List<TypeParamSymbol> typeParameters;
 
+	private boolean pure;
+
 	public FunSymbol(String name, List<ParamSymbol> parameters, Symbol returnType,
 			List<TypeParamSymbol> typeParameters) {
 		this.name = name;
@@ -49,5 +51,13 @@ public class FunSymbol extends Symbol {
 
 	public List<TypeParamSymbol> getTypeParameters() {
 		return typeParameters;
+	}
+
+	public void setPure(boolean pure) {
+		this.pure = pure;
+	}
+
+	public boolean isPure() {
+		return this.pure;
 	}
 }
