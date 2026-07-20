@@ -8,4 +8,5 @@ application {
 }
 
 dependencies {
+    implementation("commons-cli:commons-cli:1.10.0")
 }

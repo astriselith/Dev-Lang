@@ -32,11 +32,11 @@ public class Parser {
 		this.stream.setHandler((token) -> {
 			if (token.isComment()) {
 				this.unit.addComment(new Comment(token.lexeme, token.position));
-				return false; // Skip comments
+				return false;
 			}
-			return true; // Process other tokens
+			return true;
 		});
-		
+
 	}
 
 	public CompilationUnit parse() {
@@ -103,7 +103,7 @@ public class Parser {
 		stream.expect(LBRACE);
 		Token start = stream.previous();
 		List<Stmt> statements = new ArrayList<>();
-		
+
 		while (!stream.isAtEnd() && !stream.check(RBRACE)) {
 			try {
 				Stmt s = stmt();
@@ -212,7 +212,7 @@ public class Parser {
 		if (stream.match(COLON)) {
 			superclass = type();
 		}
-		
+
 		if (stream.match(BAR)) {
 			do {
 				supertraits.add(type());
@@ -363,21 +363,21 @@ public class Parser {
 			stream.expect(LBRACE);
 
 			while (!stream.isAtEnd() && !stream.check(RBRACE)) {
-try {
+				try {
 					if (stream.check("fun")) {
 						FunDeclStmt fun = funDecl();
 						funs.add(fun);
 					} else if (stream.check("var")) {
 						VarDeclStmt var = varDecl();
 						vars.add(var);
-				
+
 					} else {
 						throw unit.error(
 								TAG,
 								EXPECTED_MEMBER.format(),
 								stream.peek());
 					}
-} catch (CompilationException e) {
+				} catch (CompilationException e) {
 					unit.addError(e);
 					synchronizeAfterStrings(DEFAULT_MEMBER_RECOVERY);
 				} catch (IllegalStateException e) {
@@ -397,6 +397,7 @@ try {
 		return new ClassDeclStmt(nameToken.lexeme, superclass, supertraits,
 				typeParams, funs, vars, between(start, end));
 	}
+
 	private LetDeclStmt letDecl() {
 		Token start = stream.expect("let");
 
@@ -496,7 +497,7 @@ try {
 
 		if (stream.match(EQUALS)) {
 			Expr value = assignment();
-			return new AssignExpr(expr, Operator.of(strict, "=", pos(stream.previous())), value, between(expr, value));
+			return new AssignExpr(expr, new Operator(strict, "=", pos(stream.previous())), value, between(expr, value));
 		}
 
 		if (strict) {
@@ -524,7 +525,7 @@ try {
 		Expr expr = logicalAnd();
 		while (stream.matchSequence(BAR, BAR)) {
 			Expr right = logicalAnd();
-			expr = new BinaryExpr(expr, Operator.of("||", pos(stream.previous())), right, between(expr, right));
+			expr = new BinaryExpr(expr, new Operator(false, "||", pos(stream.previous())), right, between(expr, right));
 		}
 		return expr;
 	}
@@ -533,7 +534,7 @@ try {
 		Expr expr = equality();
 		while (stream.matchSequence(AMP, AMP)) {
 			Expr right = equality();
-			expr = new BinaryExpr(expr, Operator.of("&&", pos(stream.previous())), right, between(expr, right));
+			expr = new BinaryExpr(expr, new Operator(false, "&&", pos(stream.previous())), right, between(expr, right));
 		}
 		return expr;
 	}
@@ -545,11 +546,11 @@ try {
 
 			if (stream.matchSequence(EQUALS, EQUALS)) {
 				Expr right = comparison();
-				expr = new BinaryExpr(expr, Operator.of(strict, "==", pos(stream.previous())), right,
+				expr = new BinaryExpr(expr, new Operator(strict, "==", pos(stream.previous())), right,
 						between(expr, right));
 			} else if (stream.matchSequence(BANG, EQUALS)) {
 				Expr right = comparison();
-				expr = new BinaryExpr(expr, Operator.of(strict, "!=", pos(stream.previous())), right,
+				expr = new BinaryExpr(expr, new Operator(strict, "!=", pos(stream.previous())), right,
 						between(expr, right));
 			} else if (strict) {
 				throw unit.error(
@@ -570,19 +571,19 @@ try {
 
 			if (stream.matchSequence(LANGLE, EQUALS)) {
 				Expr right = term();
-				expr = new BinaryExpr(expr, Operator.of(strict, "<=", pos(stream.previous())), right,
+				expr = new BinaryExpr(expr, new Operator(strict, "<=", pos(stream.previous())), right,
 						between(expr, right));
 			} else if (stream.matchSequence(RANGLE, EQUALS)) {
 				Expr right = term();
-				expr = new BinaryExpr(expr, Operator.of(strict, ">=", pos(stream.previous())), right,
+				expr = new BinaryExpr(expr, new Operator(strict, ">=", pos(stream.previous())), right,
 						between(expr, right));
 			} else if (stream.match(LANGLE)) {
 				Expr right = term();
-				expr = new BinaryExpr(expr, Operator.of(strict, "<", pos(stream.previous())), right,
+				expr = new BinaryExpr(expr, new Operator(strict, "<", pos(stream.previous())), right,
 						between(expr, right));
 			} else if (stream.match(RANGLE)) {
 				Expr right = term();
-				expr = new BinaryExpr(expr, Operator.of(strict, ">", pos(stream.previous())), right,
+				expr = new BinaryExpr(expr, new Operator(strict, ">", pos(stream.previous())), right,
 						between(expr, right));
 			} else if (strict) {
 				throw unit.error(
@@ -604,7 +605,7 @@ try {
 			if (stream.checkAny(PLUS, MINUS)) {
 				Token op = stream.advance();
 				Expr right = factor();
-				expr = new BinaryExpr(expr, Operator.of(strict, op.lexeme, pos(op)), right, between(expr, right));
+				expr = new BinaryExpr(expr, new Operator(strict, op.lexeme, pos(op)), right, between(expr, right));
 			} else if (strict) {
 				throw unit.error(
 						TAG,
@@ -623,7 +624,7 @@ try {
 			if (stream.checkAny(STAR, SLASH, PERCENT)) {
 				Token op = stream.advance();
 				Expr right = unary();
-				expr = new BinaryExpr(expr, Operator.of(strict, op.lexeme, pos(op)), right, between(expr, right));
+				expr = new BinaryExpr(expr, new Operator(strict, op.lexeme, pos(op)), right, between(expr, right));
 			} else if (strict) {
 				throw unit.error(
 						TAG,
@@ -638,15 +639,15 @@ try {
 		boolean strict = stream.match(DOLLAR);
 
 		if (stream.match(BANG)) {
-			return new UnaryExpr(Operator.of(strict, "!", pos(stream.previous())), unary(),
+			return new UnaryExpr(new Operator(strict, "!", pos(stream.previous())), unary(),
 					between(stream.previous(), stream.peek()));
 		}
 		if (stream.match(MINUS)) {
-			return new UnaryExpr(Operator.of(strict, "-", pos(stream.previous())), unary(),
+			return new UnaryExpr(new Operator(strict, "-", pos(stream.previous())), unary(),
 					between(stream.previous(), stream.peek()));
 		}
 		if (stream.match(PLUS)) {
-			return new UnaryExpr(Operator.of(strict, "+", pos(stream.previous())), unary(),
+			return new UnaryExpr(new Operator(strict, "+", pos(stream.previous())), unary(),
 					between(stream.previous(), stream.peek()));
 		}
 
@@ -761,7 +762,7 @@ try {
 		if (t.typeEquals(LPAREN)) {
 			Expr inner = expr();
 			stream.expect(RPAREN);
-			return inner;
+			return new ParenthesisExpr(inner, pos(inner));
 		}
 
 		throw unit.error(

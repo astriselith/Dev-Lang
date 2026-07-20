@@ -25,7 +25,8 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 	}
 
 	private String indent() {
-		if (indent == 0) return "";
+		if (indent == 0)
+			return "";
 		int dashes = 3 + (indent - 1) * 4;
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < dashes; i++) {
@@ -42,18 +43,18 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 
 		if (expr.isString()) {
 			return "\"" + expr.value.toString()
-				   .replace("\\", "\\\\")
-				   .replace("\"", "\\\"")
-				   .replace("\n", "\\n")
-				   .replace("\t", "\\t")
-				   + "\"";
+					.replace("\\", "\\\\")
+					.replace("\"", "\\\"")
+					.replace("\n", "\\n")
+					.replace("\t", "\\t")
+					+ "\"";
 		}
 
 		if (expr.isChar()) {
 			return "'" + expr.value.toString()
-				   .replace("\\", "\\\\")
-				   .replace("'", "\\'")
-				   + "'";
+					.replace("\\", "\\\\")
+					.replace("'", "\\'")
+					+ "'";
 		}
 
 		if (expr.isBoolean() || expr.isInt() || expr.isFloat()) {
@@ -69,13 +70,18 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 	}
 
 	@Override
+	public String visitParenthesisExpr(ParenthesisExpr expr) {
+		return "(" + expr.inner.accept(this) + ")";
+	}
+
+	@Override
 	public String visitAssignExpr(AssignExpr expr) {
 		return expr.target.accept(this) + " " + expr.operator + " " + expr.value.accept(this);
 	}
 
 	@Override
 	public String visitBinaryExpr(BinaryExpr expr) {
-		return "(" + expr.left.accept(this) + " " + expr.operator + " " + expr.right.accept(this) + ")";
+		return expr.left.accept(this) + " " + expr.operator + " " + expr.right.accept(this);
 	}
 
 	@Override
@@ -96,7 +102,8 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 		if (!expr.typeArguments.isEmpty()) {
 			sb.append("<");
 			for (int i = 0; i < expr.typeArguments.size(); i++) {
-				if (i > 0) sb.append(", ");
+				if (i > 0)
+					sb.append(", ");
 				sb.append(expr.typeArguments.get(i).getName());
 			}
 			sb.append(">");
@@ -104,7 +111,8 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 
 		sb.append("(");
 		for (int i = 0; i < expr.arguments.size(); i++) {
-			if (i > 0) sb.append(", ");
+			if (i > 0)
+				sb.append(", ");
 			sb.append(expr.arguments.get(i).accept(this));
 		}
 		sb.append(")");
@@ -145,7 +153,8 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 		if (stmt.hasTypeParameters()) {
 			sb.append("<");
 			for (int i = 0; i < stmt.typeParameters.size(); i++) {
-				if (i > 0) sb.append(", ");
+				if (i > 0)
+					sb.append(", ");
 				sb.append(stmt.typeParameters.get(i).accept(this));
 			}
 			sb.append(">");
@@ -153,7 +162,8 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 
 		sb.append("(");
 		for (int i = 0; i < stmt.parameters.size(); i++) {
-			if (i > 0) sb.append(", ");
+			if (i > 0)
+				sb.append(", ");
 			ParamDeclStmt param = stmt.parameters.get(i);
 			sb.append(param.accept(this));
 		}
@@ -191,8 +201,8 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 		if (!stmt.supertraits.isEmpty()) {
 			sb.append(" | ");
 			sb.append(String.join(", ", stmt.supertraits.stream()
-								  .map(Typed::getName)
-								  .toArray(String[]::new)));
+					.map(Typed::getName)
+					.toArray(String[]::new)));
 		}
 
 		return sb.toString();
@@ -208,7 +218,8 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 		if (stmt.hasTypeParameters()) {
 			sb.append("<");
 			for (int i = 0; i < stmt.typeParameters.size(); i++) {
-				if (i > 0) sb.append(", ");
+				if (i > 0)
+					sb.append(", ");
 				sb.append(stmt.typeParameters.get(i).accept(this));
 			}
 			sb.append(">");
@@ -225,7 +236,8 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 				sb.append(" | ");
 			}
 			for (int i = 0; i < stmt.supertraits.size(); i++) {
-				if (i > 0) sb.append(", ");
+				if (i > 0)
+					sb.append(", ");
 				sb.append(stmt.supertraits.get(i).getName());
 			}
 		}
