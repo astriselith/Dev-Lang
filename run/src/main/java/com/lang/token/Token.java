@@ -6,26 +6,20 @@ import com.lang.util.Positioned;
 public class Token implements Positioned {
 	public final Type type;
 	public final String lexeme;
-	public final Object literal;
 	public final Position position;
 
-	private Token(Type type, String lexeme, Object literal, Position position) {
+	private Token(Type type, String lexeme, Position position) {
 		this.type = type;
 		this.lexeme = lexeme;
-		this.literal = literal;
 		this.position = position;
 	}
 
-	public static Token of(Type type, String lexeme, Object literal, int line, int lineStart, int start, int end) {
-		return new Token(type, lexeme, literal, new Position(line, lineStart, start, end));
-	}
-
 	public static Token of(Type type, String lexeme, int line, int lineStart, int start, int end) {
-		return of(type, lexeme, null, line, lineStart, start, end);
+		return new Token(type, lexeme, new Position(line, lineStart, start, end));
 	}
 
 	public static Token eof(int line, int lineStart, int start, int end) {
-		return of(Type.EOF, "", null, line, lineStart, start, end);
+		return of(Type.EOF, "", line, lineStart, start, end);
 	}
 
 	public int getLine() {
@@ -64,10 +58,9 @@ public class Token implements Positioned {
 
 	public boolean isOperator() {
 		return typeEquals(
-				   Type.PLUS, Type.MINUS, Type.STAR, Type.SLASH, Type.PERCENT,
-				   Type.AMP, Type.BAR, Type.BANG, Type.EQUALS,
-				   Type.LANGLE, Type.RANGLE, Type.QUESTION, Type.COLON
-			   );
+				Type.PLUS, Type.MINUS, Type.STAR, Type.SLASH, Type.PERCENT,
+				Type.AMP, Type.BAR, Type.BANG, Type.EQUALS,
+				Type.LANGLE, Type.RANGLE, Type.QUESTION, Type.COLON);
 	}
 
 	public boolean isComparison() {
@@ -88,25 +81,22 @@ public class Token implements Positioned {
 
 	public boolean isLiteral() {
 		return typeEquals(
-				   Type.NULL, Type.BOOLEAN, Type.CHAR,
-				   Type.INT, Type.FLOAT, Type.STRING
-			   );
+				Type.NULL, Type.BOOL, Type.CHAR,
+				Type.INT, Type.FLOAT, Type.STRING);
 	}
 
 	public boolean isPunctuation() {
 		return typeEquals(
-				   Type.LPAREN, Type.RPAREN,
-				   Type.LBRACE, Type.RBRACE,
-				   Type.LBRACKET, Type.RBRACKET,
-				   Type.COMMA, Type.DOT, Type.SEMICOLON, Type.COLON
-			   );
+				Type.LPAREN, Type.RPAREN,
+				Type.LBRACE, Type.RBRACE,
+				Type.LBRACKET, Type.RBRACKET,
+				Type.COMMA, Type.DOT, Type.SEMICOLON, Type.COLON);
 	}
 
 	public boolean isClosing() {
 		return typeEquals(
-				   Type.RPAREN, Type.RBRACE, Type.RBRACKET,
-				   Type.SEMICOLON, Type.EOF
-			   );
+				Type.RPAREN, Type.RBRACE, Type.RBRACKET,
+				Type.SEMICOLON, Type.EOF);
 	}
 
 	public boolean isOpening() {
@@ -131,8 +121,10 @@ public class Token implements Positioned {
 
 	@Override
 	public boolean equals(Object other) {
-		if (this == other) return true;
-		if (other == null) return false;
+		if (this == other)
+			return true;
+		if (other == null)
+			return false;
 
 		if (other instanceof Token) {
 			Token that = (Token) other;
@@ -151,9 +143,6 @@ public class Token implements Positioned {
 		StringBuilder sb = new StringBuilder();
 		sb.append(type);
 		sb.append(" '").append(lexeme).append("'");
-		if (literal != null) {
-			sb.append(" = ").append(literal);
-		}
 		sb.append(" ").append(position);
 		return sb.toString();
 	}

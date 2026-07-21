@@ -3,13 +3,15 @@ package com.lang.token;
 public enum Type {
 
 	UNDEFINED("undefined"),
-	// Literais e Identificadores
+	// Literais
 	NULL("null"),
-	BOOLEAN("boolean"),
+	BOOL("bool"),
 	CHAR("char"),
 	INT("int"),
 	FLOAT("float"),
 	STRING("string"),
+
+	// Identificador
 	IDENTIFIER("identifier"),
 
 	// Comentários

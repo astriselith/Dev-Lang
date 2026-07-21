@@ -2,13 +2,12 @@ package com.lang.lexer;
 
 public enum LexingErrorCode {
 	UNEXPECTED_CHARACTER("Unexpected character: %s"),
-	UNTERMINATED_STRING("Unterminated string"),
 	INVALID_NUMBER("Invalid number: %s"),
 	UNKNOWN_ESCAPE_SEQUENCE("Unknown escape sequence: %s"),
 	MALFORMED_COMMENT("Malformed comment"),
 	UNTERMINATED_COMMENT("Unterminated comment"),
 	INVALID_CHARACTER_LITERAL("Invalid character literal"),
-	UNTERMINATED_CHARACTER("Unterminated character"),
+	UNTERMINATED_CHARACTER_OR_STRING("Unterminated character or string"),
 	INVALID_TOKEN("Invalid token: %s");
 
 	public static final String TAG = "LEXER";

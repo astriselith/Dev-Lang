@@ -36,8 +36,8 @@ public class Lexer extends TokenStream {
 		this.source = source;
 		this.unit = unit != null ? unit : new CompilationUnit();
 
-		addKeyword("true", BOOLEAN);
-		addKeyword("false", BOOLEAN);
+		addKeyword("true", BOOL);
+		addKeyword("false", BOOL);
 		addKeyword("null", NULL);
 
 		addSymbol('+', PLUS);
@@ -133,7 +133,7 @@ public class Lexer extends TokenStream {
 					comment.appendCodePoint(source.peek());
 					update();
 				}
-				return Token.of(COMMENT, comment.toString(), null, line, lineStart, start, current);
+				return Token.of(COMMENT, comment.toString(), line, lineStart, start, current);
 			} else if (next == '*') {
 				update(2);
 				boolean closed = false;
@@ -152,7 +152,7 @@ public class Lexer extends TokenStream {
 							UNTERMINATED_COMMENT.format(),
 							new Position(line, lineStart, start, current));
 				}
-				return Token.of(MULTILINE_COMMENT, comment.toString(), null, line, lineStart, start, current);
+				return Token.of(MULTILINE_COMMENT, comment.toString(), line, lineStart, start, current);
 			}
 		}
 		if (cp == -1) {
@@ -162,7 +162,7 @@ public class Lexer extends TokenStream {
 		Pair<Type, String> symbol = symbols.get(cp);
 		if (symbol != null) {
 			update();
-			return Token.of(symbol.getFirst(), symbol.getSecond(), null, line, lineStart, start, current);
+			return Token.of(symbol.getFirst(), symbol.getSecond(), line, lineStart, start, current);
 		}
 
 		if (Codepoint.isDigit(cp)) {
@@ -203,15 +203,15 @@ public class Lexer extends TokenStream {
 			Type type = keyword.getFirst();
 			String lexeme = keyword.getSecond();
 
-			if (type == BOOLEAN) {
-				return Token.of(type, lexeme, Boolean.parseBoolean(text), line, lineStart, start, current);
+			if (type == BOOL) {
+				return Token.of(type, lexeme, line, lineStart, start, current);
 			} else if (type == NULL) {
-				return Token.of(type, lexeme, null, line, lineStart, start, current);
+				return Token.of(type, lexeme, line, lineStart, start, current);
 			} else {
-				return Token.of(type, lexeme, null, line, lineStart, start, current);
+				return Token.of(type, lexeme, line, lineStart, start, current);
 			}
 		} else {
-			return Token.of(IDENTIFIER, text, null, line, lineStart, start, current);
+			return Token.of(IDENTIFIER, text, line, lineStart, start, current);
 		}
 	}
 
@@ -232,38 +232,19 @@ public class Lexer extends TokenStream {
 		String text = sb.toString();
 		String clean = text.replace("_", "");
 		if (clean.matches("^[0-9]+$")) {
-			try {
-				long value = Long.parseLong(clean);
-				return Token.of(INT, text, value, line, lineStart, start, current);
-			} catch (NumberFormatException e) {
-				unit.addError(unit.error(
-						TAG,
-						INVALID_NUMBER.format(text),
-						new Position(line, lineStart, start, current),
-						e));
-				return Token.of(UNDEFINED, text, null, line, lineStart, start, current);
-			}
+			return Token.of(INT, text, line, lineStart, start, current);
 		}
 
 		if (clean.matches("^[0-9]+(\\.[0-9]+)?([eE][+-]?[0-9]+)?$")) {
-			try {
-				double value = Double.parseDouble(clean);
-				return Token.of(FLOAT, text, value, line, lineStart, start, current);
-			} catch (NumberFormatException e) {
-				unit.addError(unit.error(
-						TAG,
-						INVALID_NUMBER.format(text),
-						new Position(line, lineStart, start, current),
-						e));
-				return Token.of(UNDEFINED, text, null, line, lineStart, start, current);
-			}
+			return Token.of(FLOAT, text, line, lineStart, start, current);
+
 		}
 
 		unit.addError(unit.error(
 				TAG,
 				INVALID_NUMBER.format(text),
 				new Position(line, lineStart, start, current)));
-		return Token.of(UNDEFINED, text, null, line, lineStart, start, current);
+		return Token.of(UNDEFINED, text, line, lineStart, start, current);
 	}
 
 	private Token quoted() {
@@ -287,37 +268,27 @@ public class Lexer extends TokenStream {
 				} else {
 					throw unit.error(
 							TAG,
-							UNTERMINATED_CHARACTER.format(),
+							UNTERMINATED_CHARACTER_OR_STRING.format(),
 							new Position(line, lineStart, start, current));
 				}
 			} else if (cp == '\\') {
 				lexemeBuilder.appendCodePoint(cp);
 				update();
+
 				if (source.isAtEnd())
 					break;
 
-				int escaped;
 				int next = source.peek();
-				lexemeBuilder.appendCodePoint(next);
 
 				switch (next) {
 					case 'n':
-						escaped = '\n';
-						break;
 					case 'r':
-						escaped = '\r';
-						break;
 					case 't':
-						escaped = '\t';
-						break;
 					case '\\':
-						escaped = '\\';
-						break;
 					case '"':
-						escaped = '"';
-						break;
 					case '\'':
-						escaped = '\'';
+						lexemeBuilder.appendCodePoint(next);
+						update();
 						break;
 					default:
 						throw unit.error(
@@ -325,10 +296,7 @@ public class Lexer extends TokenStream {
 								UNKNOWN_ESCAPE_SEQUENCE.format(String.valueOf((char) next)),
 								new Position(line, lineStart, start, current));
 				}
-				builder.appendCodePoint(escaped);
-				update();
 			} else {
-				builder.appendCodePoint(cp);
 				lexemeBuilder.appendCodePoint(cp);
 				update();
 			}
@@ -337,7 +305,7 @@ public class Lexer extends TokenStream {
 		if (source.isAtEnd()) {
 			throw unit.error(
 					TAG,
-					quote == '"' ? UNTERMINATED_STRING.format() : UNTERMINATED_CHARACTER.format(),
+					UNTERMINATED_CHARACTER_OR_STRING.format(),
 					new Position(line, lineStart, start, current));
 		}
 
@@ -348,21 +316,16 @@ public class Lexer extends TokenStream {
 		String lexeme = lexemeBuilder.toString();
 
 		if (quote == '\'') {
-			char charValue;
-			if (value.length() == 0) {
-				charValue = '\0';
-			} else if (value.length() == 1) {
-				charValue = value.charAt(0);
-			} else {
+			if (!(value.length() == 0) && !(value.length() == 1)) {
 				throw unit.error(
 						TAG,
 						INVALID_CHARACTER_LITERAL.format(),
 						new Position(line, lineStart, start, current));
 			}
-			return Token.of(CHAR, lexeme, charValue, line, lineStart, start, current);
+			return Token.of(CHAR, lexeme, line, lineStart, start, current);
 		}
 
-		return Token.of(STRING, lexeme, value, line, lineStart, start, current);
+		return Token.of(STRING, lexeme, line, lineStart, start, current);
 	}
 
 	public CompilationUnit getCompilationUnit() {

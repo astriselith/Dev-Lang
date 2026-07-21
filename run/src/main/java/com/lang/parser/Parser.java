@@ -727,14 +727,14 @@ public class Parser {
 
 		if (t.isLiteral()) {
 			int literalType;
-			Object value = t.literal;
+			String value = t.lexeme;
 
 			switch (t.type) {
 				case NULL:
 					literalType = LiteralExpr.NULL;
 					break;
-				case BOOLEAN:
-					literalType = LiteralExpr.BOOLEAN;
+				case BOOL:
+					literalType = LiteralExpr.BOOL;
 					break;
 				case CHAR:
 					literalType = LiteralExpr.CHAR;
@@ -755,11 +755,11 @@ public class Parser {
 			return new LiteralExpr(literalType, value, pos(t));
 		}
 
-		if (t.typeEquals(IDENTIFIER)) {
+		if (t.equals(IDENTIFIER)) {
 			return new RefExpr(t.lexeme, pos(t));
 		}
 
-		if (t.typeEquals(LPAREN)) {
+		if (t.equals(LPAREN)) {
 			Expr inner = expr();
 			stream.expect(RPAREN);
 			return new ParenthesisExpr(inner, pos(inner));

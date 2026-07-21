@@ -7,6 +7,7 @@ import com.lang.unit.CompilationUnit;
 
 import java.util.*;
 
+import static com.lang.json.JsonErrorCode.*;
 import static com.lang.token.Type.*;
 
 public class JsonParser {
@@ -42,24 +43,24 @@ public class JsonParser {
 			return new JsonNull(token.getPosition());
 		}
 
-		if (token.typeEquals(BOOLEAN)) {
+		if (token.typeEquals(BOOL)) {
 			stream.advance();
-			return new JsonBoolean((Boolean) token.literal, token.getPosition());
+			return new JsonBoolean(Boolean.parseBoolean(token.lexeme), token.getPosition());
 		}
 
 		if (token.typeEquals(INT)) {
 			stream.advance();
-			return new JsonNumber((Long) token.literal, token.getPosition());
+			return new JsonNumber(Long.parseLong(token.lexeme), token.getPosition());
 		}
 
 		if (token.typeEquals(FLOAT)) {
 			stream.advance();
-			return new JsonNumber((Double) token.literal, token.getPosition());
+			return new JsonNumber(Double.parseDouble(token.lexeme), token.getPosition());
 		}
 
 		if (token.typeEquals(STRING)) {
 			stream.advance();
-			return new JsonString((String) token.literal, token.getPosition());
+			return new JsonString(token.lexeme, token.getPosition());
 		}
 
 		if (token.typeEquals(LBRACE)) {
@@ -70,7 +71,7 @@ public class JsonParser {
 			return array();
 		}
 
-		throw unit.error("JSON", "Unexpected token: " + token.lexeme, token);
+		throw unit.error(TAG, UNEXPECTED_TOKEN.format(token.lexeme), token);
 	}
 
 	private JsonObject object() {
@@ -86,13 +87,13 @@ public class JsonParser {
 			Token keyToken = stream.peek();
 
 			if (!stream.match(STRING)) {
-				throw unit.error("JSON", "Expected string key", keyToken);
+				throw unit.error(TAG, EXPECTED_STRING_KEY.getMessage(), keyToken);
 			}
 
-			String key = (String) keyToken.literal;
+			String key = (String) keyToken.lexeme;
 
 			if (!stream.match(COLON)) {
-				throw unit.error("JSON", "Expected ':' after key", stream.previous());
+				throw unit.error(TAG, EXPECTED_COLON_AFTER_KEY.getMessage(), stream.previous());
 			}
 
 			fields.put(key, value());
@@ -100,7 +101,7 @@ public class JsonParser {
 		} while (stream.match(COMMA));
 
 		if (!stream.check(RBRACE)) {
-			throw unit.error("JSON", "Expected '}'", stream.peek());
+			throw unit.error(TAG, EXPECTED_RBRACE.getMessage(), stream.peek());
 		}
 		stream.advance();
 
@@ -121,7 +122,7 @@ public class JsonParser {
 		} while (stream.match(COMMA));
 
 		if (!stream.check(RBRACKET)) {
-			throw unit.error("JSON", "Expected ']'", stream.peek());
+			throw unit.error(TAG, EXPECTED_RBRACKET.getMessage(), stream.peek());
 		}
 		stream.advance();
 
