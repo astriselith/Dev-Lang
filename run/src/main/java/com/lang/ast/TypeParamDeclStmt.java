@@ -1,13 +1,16 @@
 package com.lang.ast;
 
-import com.lang.util.Position;
 import java.util.List;
 
-public class TypeParamDeclStmt extends Stmt {
+import com.lang.util.Position;
 
-	public final String name;
-	public final Typed  superclass;
-	public final List<Typed> supertraits;
+public class TypeParamDeclStmt extends Stmt {
+	public String name;
+	public Typed superclass;
+	public List<Typed> supertraits;
+
+	public TypeParamDeclStmt() {
+	}
 
 	public TypeParamDeclStmt(String name, Typed superclass, List<Typed> supertraits, Position position) {
 		super(position);
@@ -15,4 +18,5 @@ public class TypeParamDeclStmt extends Stmt {
 		this.superclass = superclass;
 		this.supertraits = supertraits;
 	}
+
 }

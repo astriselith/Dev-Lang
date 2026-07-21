@@ -4,7 +4,10 @@ import com.lang.util.Position;
 
 public class RefTyped extends Typed {
 
-	public final String name;
+	public String name;
+
+	public RefTyped() {
+	}
 
 	public RefTyped(String name, Position position) {
 		super(position);
@@ -14,10 +17,5 @@ public class RefTyped extends Typed {
 	@Override
 	public String getName() {
 		return name;
-	}
-
-	@Override
-	public String toString() {
-		return getName();
 	}
 }

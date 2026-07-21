@@ -3,8 +3,11 @@ package com.lang.ast;
 import com.lang.util.Position;
 
 public class Operator extends Node {
-	public final boolean strict;
-	public final String lexeme;
+	public boolean strict;
+	public String lexeme;
+
+	public Operator() {
+	}
 
 	public Operator(boolean strict, String lexeme, Position position) {
 		super(position);
@@ -18,14 +21,14 @@ public class Operator extends Node {
 
 	public boolean isArithmetic() {
 		return lexeme.equals("+") || lexeme.equals("-") ||
-			   lexeme.equals("*") || lexeme.equals("/") ||
-			   lexeme.equals("%");
+				lexeme.equals("*") || lexeme.equals("/") ||
+				lexeme.equals("%");
 	}
 
 	public boolean isComparison() {
 		return lexeme.equals("==") || lexeme.equals("!=") ||
-			   lexeme.equals("<") || lexeme.equals(">") ||
-			   lexeme.equals("<=") || lexeme.equals(">=");
+				lexeme.equals("<") || lexeme.equals(">") ||
+				lexeme.equals("<=") || lexeme.equals(">=");
 	}
 
 	public boolean isLogical() {
@@ -43,4 +46,14 @@ public class Operator extends Node {
 	public boolean isStrict() {
 		return strict;
 	}
+
+	@Override
+	public String toString() {
+		if (strict) {
+			return "$" + lexeme;
+		} else {
+			return lexeme;
+		}
+	}
+
 }

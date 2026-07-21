@@ -136,7 +136,7 @@ public class ClassBinder implements StmtVisitor<Void> {
 
 		Symbol returnType = null;
 
-		if (stmt.hasReturnType()) {
+		if (stmt.returnType != null) {
 			returnType = table.resolve(stmt.returnType, substitutions);
 		} else {
 			returnType = table.getVoid();

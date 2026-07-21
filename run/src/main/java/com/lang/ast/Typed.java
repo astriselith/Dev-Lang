@@ -3,7 +3,11 @@ package com.lang.ast;
 import com.lang.util.Position;
 
 public abstract class Typed extends Node {
-	protected Typed(Position position) {
+
+	public Typed() {
+	}
+
+	public Typed(Position position) {
 		super(position);
 	}
 

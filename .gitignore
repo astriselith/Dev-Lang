@@ -1,6 +1,9 @@
 # PAT key
 .pat
 
+# TXT files
+.txt
+
 # Clang formatter
 .clang-format
 

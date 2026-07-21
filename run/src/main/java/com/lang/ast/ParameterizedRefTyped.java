@@ -1,18 +1,21 @@
 package com.lang.ast;
 
-import com.lang.util.Position;
-import java.util.ArrayList;
 import java.util.List;
+
+import com.lang.util.Position;
 
 public class ParameterizedRefTyped extends Typed {
 
-	public final String name;
-	public final List<Typed> typeArguments;
+	public String name;
+	public List<Typed> typeArguments;
+
+	public ParameterizedRefTyped() {
+	}
 
 	public ParameterizedRefTyped(String name, List<Typed> typeArguments, Position position) {
 		super(position);
 		this.name = name;
-		this.typeArguments = typeArguments != null ? typeArguments : new ArrayList<>();
+		this.typeArguments = typeArguments;
 	}
 
 	@Override
@@ -22,7 +25,8 @@ public class ParameterizedRefTyped extends Typed {
 		if (!typeArguments.isEmpty()) {
 			sb.append("<");
 			for (int i = 0; i < typeArguments.size(); i++) {
-				if (i > 0) sb.append(", ");
+				if (i > 0)
+					sb.append(", ");
 				sb.append(typeArguments.get(i).getName());
 			}
 			sb.append(">");

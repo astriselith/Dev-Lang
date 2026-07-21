@@ -1,33 +1,22 @@
 package com.lang.ast;
 
-import com.lang.util.Position;
 import java.util.List;
 
+import com.lang.util.Position;
+
 public class CallExpr extends Expr {
-	public final Expr callee;
-	public final List<Typed> typeArguments;
-	public final List<Expr> arguments;
+	public Expr callee;
+	public List<Typed> typeArguments;
+	public List<Expr> arguments;
+
+	public CallExpr() {
+	}
 
 	public CallExpr(Expr callee, List<Typed> typeArguments, List<Expr> arguments, Position position) {
 		super(position);
 		this.callee = callee;
-		this.typeArguments = typeArguments != null ? typeArguments : List.of();
-		this.arguments = arguments != null ? arguments : List.of();
+		this.typeArguments = typeArguments;
+		this.arguments = arguments;
 	}
 
-	public boolean isGeneric() {
-		return !typeArguments.isEmpty();
-	}
-
-	public boolean hasArguments() {
-		return !arguments.isEmpty();
-	}
-
-	public int getArity() {
-		return arguments.size();
-	}
-
-	public int getTypeArity() {
-		return typeArguments.size();
-	}
 }

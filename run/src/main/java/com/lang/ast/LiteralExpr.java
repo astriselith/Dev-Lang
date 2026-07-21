@@ -11,8 +11,11 @@ public class LiteralExpr extends Expr {
 	public static final int FLOAT = 4;
 	public static final int STRING = 5;
 
-	public final int type;
-	public final String value;
+	public int type;
+	public String value;
+
+	public LiteralExpr() {
+	}
 
 	public LiteralExpr(int type, String value, Position position) {
 		super(position);

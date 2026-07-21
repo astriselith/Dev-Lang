@@ -37,31 +37,9 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 
 	@Override
 	public String visitLiteralExpr(LiteralExpr expr) {
-		if (expr.value == null || expr.isNull()) {
+		if (expr.value == null)
 			return "null";
-		}
-
-		if (expr.isString()) {
-			return "\"" + expr.value.toString()
-					.replace("\\", "\\\\")
-					.replace("\"", "\\\"")
-					.replace("\n", "\\n")
-					.replace("\t", "\\t")
-					+ "\"";
-		}
-
-		if (expr.isChar()) {
-			return "'" + expr.value.toString()
-					.replace("\\", "\\\\")
-					.replace("'", "\\'")
-					+ "'";
-		}
-
-		if (expr.isBoolean() || expr.isInt() || expr.isFloat()) {
-			return expr.value.toString();
-		}
-
-		return expr.value.toString();
+		return expr.value;
 	}
 
 	@Override
@@ -134,10 +112,10 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 		StringBuilder sb = new StringBuilder();
 
 		sb.append("var ").append(stmt.name);
-		if (stmt.hasType()) {
+		if (stmt.type != null) {
 			sb.append(": ").append(stmt.type.getName());
 		}
-		if (stmt.hasValue()) {
+		if (stmt.value != null) {
 			sb.append(" = ").append(stmt.value.accept(this));
 		}
 		sb.append(";");
@@ -150,7 +128,7 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 
 		sb.append("fun ").append(stmt.name);
 
-		if (stmt.hasTypeParameters()) {
+		if (stmt.typeParameters != null) {
 			sb.append("<");
 			for (int i = 0; i < stmt.typeParameters.size(); i++) {
 				if (i > 0)
@@ -169,11 +147,11 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 		}
 		sb.append(")");
 
-		if (stmt.hasReturnType()) {
+		if (stmt.returnType != null) {
 			sb.append(": ").append(stmt.returnType.getName());
 		}
 
-		if (stmt.hasBody()) {
+		if (stmt.body != null) {
 			sb.append(" ");
 			sb.append(stmt.body.accept(this));
 		} else {
@@ -198,9 +176,9 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 			sb.append(": ").append(stmt.superclass.getName());
 		}
 
-		if (!stmt.supertraits.isEmpty()) {
+		if (stmt.supertraits != null && !stmt.supertraits.isEmpty()) {
 			sb.append(" | ");
-			sb.append(String.join(", ", stmt.supertraits.stream()
+			sb.append(String.join("& ", stmt.supertraits.stream()
 					.map(Typed::getName)
 					.toArray(String[]::new)));
 		}
@@ -215,7 +193,7 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 		sb.append("class ");
 		sb.append(stmt.name);
 
-		if (stmt.hasTypeParameters()) {
+		if (stmt.typeParameters != null) {
 			sb.append("<");
 			for (int i = 0; i < stmt.typeParameters.size(); i++) {
 				if (i > 0)
@@ -225,21 +203,16 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 			sb.append(">");
 		}
 
-		if (stmt.hasSuperclass()) {
+		if (stmt.superclass != null) {
 			sb.append(" : ").append(stmt.superclass.getName());
 		}
 
-		if (stmt.hasSupertraits()) {
-			if (!stmt.hasSuperclass()) {
-				sb.append(" : ");
-			} else {
-				sb.append(" | ");
-			}
-			for (int i = 0; i < stmt.supertraits.size(); i++) {
-				if (i > 0)
-					sb.append(", ");
-				sb.append(stmt.supertraits.get(i).getName());
-			}
+		if (stmt.supertraits != null && !stmt.supertraits.isEmpty()) {
+			sb.append(" | ");
+
+			sb.append(String.join("& ", stmt.supertraits.stream()
+					.map(Typed::getName)
+					.toArray(String[]::new)));
 		}
 
 		sb.append(" ");
@@ -272,10 +245,10 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 	public String visitLetDeclStmt(LetDeclStmt stmt) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("let ").append(stmt.name);
-		if (stmt.hasType()) {
+		if (stmt.type != null) {
 			sb.append(": ").append(stmt.type.getName());
 		}
-		if (stmt.hasValue()) {
+		if (stmt.value != null) {
 			sb.append(" = ").append(stmt.value.accept(this));
 		}
 		sb.append(";");

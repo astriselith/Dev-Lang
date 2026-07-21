@@ -3,11 +3,11 @@ package com.lang.ast;
 import com.lang.util.Position;
 
 public abstract class Expr extends Node {
-	protected Expr() {
-		super();
+
+	public Expr() {
 	}
 
-	protected Expr(Position position) {
+	public Expr(Position position) {
 		super(position);
 	}
 

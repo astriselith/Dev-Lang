@@ -30,7 +30,7 @@ public class ClassRegister implements StmtVisitor<Void> {
 			typeParameterTypes.add(param.name);
 		}
 
-		Typed superclassType = stmt.hasSuperclass() ? stmt.superclass : null;
+		Typed superclassType = stmt.superclass;
 		List<Typed> supertraitTypes = new ArrayList<>(stmt.supertraits);
 
 		ClassSymbol classSymbol = new ClassSymbol(

@@ -101,6 +101,7 @@ public class Parser {
 
 	private BlockStmt block() {
 		stream.expect(LBRACE);
+
 		Token start = stream.previous();
 		List<Stmt> statements = new ArrayList<>();
 
@@ -122,7 +123,9 @@ public class Parser {
 			}
 		}
 		Token end = stream.expect(RBRACE);
+
 		return new BlockStmt(statements, between(start, end));
+
 	}
 
 	private VarDeclStmt varDecl() {
@@ -140,7 +143,12 @@ public class Parser {
 
 		semicolon();
 
-		return new VarDeclStmt(nameToken.lexeme, type, value, between(start, stream.previous()));
+		VarDeclStmt var = new VarDeclStmt();
+		var.name = nameToken.lexeme;
+		var.type = type;
+		var.value = value;
+		var.position = between(start, stream.previous());
+		return var;
 	}
 
 	private FunDeclStmt funDecl() {

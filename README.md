@@ -23,8 +23,8 @@ fun opt() = ?;                     # empty body
 - Variable declarations
 
 ```
-var x: Int = 10;
-let y = 20;                        # immutable (let)
+var x: Int = 10; // only in member scope
+let y = 20; // only in body scope
 ```
 - Control flow
 ```
@@ -46,10 +46,10 @@ return expr;                        # return with value
 ```
 # arithmetic, comparisons, logicals, ternary
 1 + 2 * 3
-foo<T1, T2>(arg1, arg2)         # calls with optional type arguments
+foo<T1, T2>(arg1, arg2)               # calls with optional type arguments
 obj.field                             # member access
-arr[index]                            # index access
-cond ? a : b                          # ternary
+arr[index]                            # index access (needs implement Indexable<K, V>)
+cond ? a : b                          # ternary 
 ```
 - Operators support a strict form using $ before operator
 ```
@@ -60,6 +60,6 @@ a $== b   # strict equality
 
 Identifier or parameterized: `Type, Map<String, Int>`
 
-Literals: null, booleans, chars, ints, floats, strings
+Literals: null, bools, chars, ints, floats, strings
 
 This reference covers the concrete syntax expected by the parser.
