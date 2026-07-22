@@ -1,3 +1,6 @@
 class Main {
-    fun add(a, a);
+    fun add(a, a) {
+        return a + b;
+        return (a + b);
+    }
 }

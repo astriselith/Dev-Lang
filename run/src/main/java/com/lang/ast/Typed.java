@@ -20,4 +20,13 @@ public abstract class Typed extends Node {
 	public boolean isParameterizedRef() {
 		return this instanceof ParameterizedRefTyped;
 	}
+
+	public <T> T accept(TypedVisitor<T> visitor) {
+		if (this instanceof RefTyped)
+			visitor.visitRefTyped((RefTyped) this);
+		if (this instanceof ParameterizedRefTyped)
+			visitor.visitParameterizedRefTyped((ParameterizedRefTyped) this);
+
+		throw new UnsupportedOperationException("Unknown typed type: " + this.getClass().getName());
+	}
 }

@@ -6,8 +6,8 @@ import com.lang.buffer.ObjectHandler;
 public abstract class TokenStream extends ObjectBuffer<Token> {
 
 	@Override
-	public TokenHandler getHandler() {
-		return (TokenHandler) handler;
+	public ObjectHandler<Token> getHandler() {
+		return handler;
 	}
 
 	@Override
@@ -90,21 +90,27 @@ public abstract class TokenStream extends ObjectBuffer<Token> {
 	}
 
 	public boolean checkAny(Type... types) {
-		if (types == null || types.length == 0) return false;
+		if (types == null || types.length == 0)
+			return false;
 		Token t = offset(0);
-		if (t == null) return false;
+		if (t == null)
+			return false;
 		for (Type type : types) {
-			if (t.type == type) return true;
+			if (t.type == type)
+				return true;
 		}
 		return false;
 	}
 
 	public boolean checkAny(int index, Type... types) {
-		if (types == null || types.length == 0) return false;
+		if (types == null || types.length == 0)
+			return false;
 		Token t = offset(index);
-		if (t == null) return false;
+		if (t == null)
+			return false;
 		for (Type type : types) {
-			if (t.type == type) return true;
+			if (t.type == type)
+				return true;
 		}
 		return false;
 	}
@@ -126,7 +132,8 @@ public abstract class TokenStream extends ObjectBuffer<Token> {
 	}
 
 	public boolean checkSequence(int index, Type... types) {
-		if (types == null || types.length == 0) return true;
+		if (types == null || types.length == 0)
+			return true;
 		for (int i = 0; i < types.length; i++) {
 			if (!check(index + i, types[i])) {
 				return false;
@@ -168,21 +175,27 @@ public abstract class TokenStream extends ObjectBuffer<Token> {
 	}
 
 	public boolean checkAny(String... lexemes) {
-		if (lexemes == null || lexemes.length == 0) return false;
+		if (lexemes == null || lexemes.length == 0)
+			return false;
 		Token t = offset(0);
-		if (t == null || t.lexeme == null) return false;
+		if (t == null || t.lexeme == null)
+			return false;
 		for (String lexeme : lexemes) {
-			if (t.lexeme.equals(lexeme)) return true;
+			if (t.lexeme.equals(lexeme))
+				return true;
 		}
 		return false;
 	}
 
 	public boolean checkAny(int index, String... lexemes) {
-		if (lexemes == null || lexemes.length == 0) return false;
+		if (lexemes == null || lexemes.length == 0)
+			return false;
 		Token t = offset(index);
-		if (t == null || t.lexeme == null) return false;
+		if (t == null || t.lexeme == null)
+			return false;
 		for (String lexeme : lexemes) {
-			if (t.lexeme.equals(lexeme)) return true;
+			if (t.lexeme.equals(lexeme))
+				return true;
 		}
 		return false;
 	}
@@ -204,7 +217,8 @@ public abstract class TokenStream extends ObjectBuffer<Token> {
 	}
 
 	public boolean checkSequence(int index, String... lexemes) {
-		if (lexemes == null || lexemes.length == 0) return true;
+		if (lexemes == null || lexemes.length == 0)
+			return true;
 		for (int i = 0; i < lexemes.length; i++) {
 			if (!check(index + i, lexemes[i])) {
 				return false;
@@ -236,7 +250,8 @@ public abstract class TokenStream extends ObjectBuffer<Token> {
 	}
 
 	public boolean matchAny(Type... types) {
-		if (types == null || types.length == 0) return false;
+		if (types == null || types.length == 0)
+			return false;
 		for (Type type : types) {
 			if (check(type)) {
 				next();
@@ -247,7 +262,8 @@ public abstract class TokenStream extends ObjectBuffer<Token> {
 	}
 
 	public boolean matchAny(String... lexemes) {
-		if (lexemes == null || lexemes.length == 0) return false;
+		if (lexemes == null || lexemes.length == 0)
+			return false;
 		for (String lexeme : lexemes) {
 			if (check(lexeme)) {
 				next();
@@ -258,7 +274,8 @@ public abstract class TokenStream extends ObjectBuffer<Token> {
 	}
 
 	public boolean matchSequence(Type... types) {
-		if (types == null || types.length == 0) return true;
+		if (types == null || types.length == 0)
+			return true;
 		if (!checkSequence(types)) {
 			return false;
 		}
@@ -269,7 +286,8 @@ public abstract class TokenStream extends ObjectBuffer<Token> {
 	}
 
 	public boolean matchSequence(String... lexemes) {
-		if (lexemes == null || lexemes.length == 0) return true;
+		if (lexemes == null || lexemes.length == 0)
+			return true;
 		if (!checkSequence(lexemes)) {
 			return false;
 		}
@@ -286,10 +304,9 @@ public abstract class TokenStream extends ObjectBuffer<Token> {
 
 		if (token == null || token.type != type) {
 			throw new IllegalStateException(
-				"Expected " + type +
-				" but found " +
-				(token != null ? token.type : "EOF")
-			);
+					"Expected " + type +
+							" but found " +
+							(token != null ? token.type : "EOF"));
 		}
 
 		next();
@@ -304,11 +321,10 @@ public abstract class TokenStream extends ObjectBuffer<Token> {
 				!token.lexeme.equals(lexeme)) {
 
 			throw new IllegalStateException(
-				"Expected \"" + lexeme +
-				"\" but found \"" +
-				(token != null ? token.lexeme : "EOF") +
-				"\""
-			);
+					"Expected \"" + lexeme +
+							"\" but found \"" +
+							(token != null ? token.lexeme : "EOF") +
+							"\"");
 		}
 
 		next();
@@ -332,9 +348,8 @@ public abstract class TokenStream extends ObjectBuffer<Token> {
 		}
 
 		throw new IllegalStateException(
-			"Unexpected token: " +
-			(token != null ? token.type : "EOF")
-		);
+				"Unexpected token: " +
+						(token != null ? token.type : "EOF"));
 	}
 
 	public Token expectAny(String... lexemes) {
@@ -354,10 +369,9 @@ public abstract class TokenStream extends ObjectBuffer<Token> {
 		}
 
 		throw new IllegalStateException(
-			"Unexpected token: \"" +
-			(token != null ? token.lexeme : "EOF") +
-			"\""
-		);
+				"Unexpected token: \"" +
+						(token != null ? token.lexeme : "EOF") +
+						"\"");
 	}
 
 	public Token[] expectSequence(Type... types) {
@@ -368,9 +382,8 @@ public abstract class TokenStream extends ObjectBuffer<Token> {
 		if (!checkSequence(types)) {
 			Token token = offset(0);
 			throw new IllegalStateException(
-				"Expected sequence of types starting with " + types[0] +
-				" but found " + (token != null ? token.type : "EOF")
-			);
+					"Expected sequence of types starting with " + types[0] +
+							" but found " + (token != null ? token.type : "EOF"));
 		}
 
 		Token[] tokens = new Token[types.length];
@@ -388,9 +401,8 @@ public abstract class TokenStream extends ObjectBuffer<Token> {
 		if (!checkSequence(lexemes)) {
 			Token token = offset(0);
 			throw new IllegalStateException(
-				"Expected sequence of lexemes starting with \"" + lexemes[0] +
-				"\" but found \"" + (token != null ? token.lexeme : "EOF") + "\""
-			);
+					"Expected sequence of lexemes starting with \"" + lexemes[0] +
+							"\" but found \"" + (token != null ? token.lexeme : "EOF") + "\"");
 		}
 
 		Token[] tokens = new Token[lexemes.length];
