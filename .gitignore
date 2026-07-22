@@ -2,7 +2,7 @@
 .pat
 
 # TXT files
-.txt
+*.txt
 
 # Clang formatter
 .clang-format
