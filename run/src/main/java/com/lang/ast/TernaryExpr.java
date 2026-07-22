@@ -16,5 +16,4 @@ public class TernaryExpr extends Expr {
 		this.thenExpr = thenExpr;
 		this.elseExpr = elseExpr;
 	}
-
 }

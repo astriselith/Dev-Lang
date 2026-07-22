@@ -57,25 +57,20 @@ public class Parser {
 		}
 	}
 
-	private void synchronizeAfterTypes(Set<Type> recoveryPoints) {
+	@SuppressWarnings("rawtypes")
+	private void synchronizeAfter(Set recoveryPoints) {
 		while (!stream.isAtEnd() && !stream.check(EOF)) {
 			if (stream.match(SEMICOLON))
 				return;
-			for (Type type : recoveryPoints) {
-				if (stream.check(type))
-					return;
-			}
-			stream.advance();
-		}
-	}
-
-	private void synchronizeAfterStrings(Set<String> recoveryPoints) {
-		while (!stream.isAtEnd() && !stream.check(EOF)) {
-			if (stream.match(SEMICOLON))
-				return;
-			for (String keyword : recoveryPoints) {
-				if (stream.check(keyword))
-					return;
+			for (Object type : recoveryPoints) {
+				if (type instanceof Type) {
+					if (stream.check((Type) type))
+						return;
+				}
+				if (type instanceof String) {
+					if (stream.check((String) type))
+						return;
+				}
 			}
 			stream.advance();
 		}
@@ -112,14 +107,14 @@ public class Parser {
 					statements.add(s);
 			} catch (CompilationException e) {
 				unit.addError(e);
-				synchronizeAfterStrings(DEFAULT_STMT_RECOVERY);
+				synchronizeAfter(DEFAULT_STMT_RECOVERY);
 			} catch (IllegalStateException e) {
 				unit.addError(
 						unit.error(
 								TAG,
 								e.getMessage(),
 								stream.peek()));
-				synchronizeAfterStrings(DEFAULT_STMT_RECOVERY);
+				synchronizeAfter(DEFAULT_STMT_RECOVERY);
 			}
 		}
 		Token end = stream.expect(RBRACE);
@@ -323,7 +318,7 @@ public class Parser {
 
 		} catch (CompilationException e) {
 			unit.addError(e);
-			synchronizeAfterStrings(stmtRecovery);
+			synchronizeAfter(stmtRecovery);
 			return null;
 		} catch (IllegalStateException e) {
 			unit.addError(
@@ -331,7 +326,7 @@ public class Parser {
 							TAG,
 							e.getMessage(),
 							stream.peek()));
-			synchronizeAfterStrings(stmtRecovery);
+			synchronizeAfter(stmtRecovery);
 			return null;
 		}
 	}
@@ -373,14 +368,14 @@ public class Parser {
 					}
 				} catch (CompilationException e) {
 					unit.addError(e);
-					synchronizeAfterStrings(DEFAULT_MEMBER_RECOVERY);
+					synchronizeAfter(DEFAULT_MEMBER_RECOVERY);
 				} catch (IllegalStateException e) {
 					unit.addError(
 							unit.error(
 									TAG,
 									e.getMessage(),
 									stream.peek()));
-					synchronizeAfterStrings(DEFAULT_MEMBER_RECOVERY);
+					synchronizeAfter(DEFAULT_MEMBER_RECOVERY);
 				}
 			}
 

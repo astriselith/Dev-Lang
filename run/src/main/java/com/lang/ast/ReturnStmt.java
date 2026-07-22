@@ -12,5 +12,4 @@ public class ReturnStmt extends Stmt {
 		super(position);
 		this.value = value;
 	}
-
 }

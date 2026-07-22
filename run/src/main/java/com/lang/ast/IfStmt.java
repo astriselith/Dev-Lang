@@ -16,5 +16,4 @@ public class IfStmt extends Stmt {
 		this.thenBranch = thenBranch;
 		this.elseBranch = elseBranch;
 	}
-
 }

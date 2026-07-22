@@ -23,5 +23,4 @@ public class FunDeclStmt extends Stmt {
 		this.returnType = returnType;
 		this.body = body;
 	}
-
 }

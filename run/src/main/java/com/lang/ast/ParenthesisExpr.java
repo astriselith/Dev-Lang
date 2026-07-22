@@ -12,5 +12,4 @@ public class ParenthesisExpr extends Expr {
         super(position);
         this.inner = inner;
     }
-
 }

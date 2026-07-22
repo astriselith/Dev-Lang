@@ -18,14 +18,14 @@ public abstract class ObjectBuffer<T> {
 	protected ObjectBuffer(int forwardWindow, int backwardWindow, int capacityMultiplier) {
 		if (forwardWindow < 0 || backwardWindow < 0 || capacityMultiplier <= 0) {
 			throw new IllegalArgumentException(
-				"forwardWindow, backwardWindow must be >= 0 and capacityMultiplier > 0"
-			);
+					"forwardWindow, backwardWindow must be >= 0 and capacityMultiplier > 0");
 		}
 		this.forwardWindow = forwardWindow;
 		this.backwardWindow = backwardWindow;
 
-		int windowSize = backwardWindow + forwardWindow + 1;
-		int capacity = windowSize * capacityMultiplier;
+		int windowSize = backwardWindow + forwardWindow;
+		int capacity = (windowSize * capacityMultiplier) + 1;
+
 		this.buffer = new Object[Math.max(capacity, windowSize)];
 	}
 
@@ -47,7 +47,8 @@ public abstract class ObjectBuffer<T> {
 			int displacement = startCopySource;
 			this.head -= displacement;
 			this.tail -= displacement;
-			if (eofIndex >= 0) eofIndex -= displacement;
+			if (eofIndex >= 0)
+				eofIndex -= displacement;
 
 			for (int i = Math.max(0, elementsToKeep); i < buffer.length; i++) {
 				buffer[i] = null;
@@ -61,9 +62,9 @@ public abstract class ObjectBuffer<T> {
 
 			T next = fetchNext();
 
-			if (handler != null && !isEOF(next)) {	
+			if (handler != null && !isEOF(next)) {
 				if (!handler.handle(next)) {
-					continue; // Skip this object and fetch the next one
+					continue;
 				}
 			}
 
@@ -84,9 +85,8 @@ public abstract class ObjectBuffer<T> {
 	public T offset(int index) {
 		if (index < -backwardWindow || index > forwardWindow) {
 			throw new IndexOutOfBoundsException(
-				"Index " + index + " out of allowed window ["
-				+ (-backwardWindow) + ", " + forwardWindow + "]"
-			);
+					"Index " + index + " out of allowed window ["
+							+ (-backwardWindow) + ", " + forwardWindow + "]");
 		}
 
 		maintainWindow();
@@ -102,8 +102,7 @@ public abstract class ObjectBuffer<T> {
 				return null;
 			}
 			throw new IndexOutOfBoundsException(
-				"Index " + target + " not yet loaded or out of bounds. Tail: " + tail
-			);
+					"Index " + target + " not yet loaded or out of bounds. Tail: " + tail);
 		}
 
 		return (T) buffer[target];

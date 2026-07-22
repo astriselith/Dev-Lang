@@ -10,5 +10,4 @@ public class BreakStmt extends Stmt {
     public BreakStmt(Position position) {
         super(position);
     }
-
 }

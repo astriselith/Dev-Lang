@@ -14,5 +14,4 @@ public class ParamDeclStmt extends Stmt {
 		this.name = name;
 		this.type = type;
 	}
-
 }

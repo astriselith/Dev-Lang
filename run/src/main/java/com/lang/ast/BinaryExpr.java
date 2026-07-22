@@ -16,5 +16,4 @@ public class BinaryExpr extends Expr {
 		this.operator = operator;
 		this.right = right;
 	}
-
 }

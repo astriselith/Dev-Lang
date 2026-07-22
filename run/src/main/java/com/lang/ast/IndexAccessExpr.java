@@ -14,5 +14,4 @@ public class IndexAccessExpr extends Expr {
 		this.target = target;
 		this.index = index;
 	}
-
 }

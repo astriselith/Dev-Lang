@@ -25,5 +25,4 @@ public class ClassDeclStmt extends Stmt {
 		this.funs = funs;
 		this.vars = vars;
 	}
-
 }

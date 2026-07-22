@@ -173,8 +173,8 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 		StringBuilder sb = new StringBuilder(stmt.name);
 
 		if (stmt.superclasses != null && !stmt.superclasses.isEmpty()) {
-			sb.append(" | ");
-			sb.append(String.join("& ", stmt.superclasses.stream()
+			sb.append(" : ");
+			sb.append(String.join(" & ", stmt.superclasses.stream()
 					.map(Typed::getName)
 					.toArray(String[]::new)));
 		}
@@ -186,23 +186,20 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 	public String visitClassDeclStmt(ClassDeclStmt stmt) {
 		StringBuilder sb = new StringBuilder();
 
-		sb.append("class ");
-		sb.append(stmt.name);
+		sb.append("class ").append(stmt.name);
 
 		if (stmt.typeParameters != null) {
 			sb.append("<");
-			for (int i = 0; i < stmt.typeParameters.size(); i++) {
-				if (i > 0)
-					sb.append(", ");
-				sb.append(stmt.typeParameters.get(i).accept(this));
-			}
+			sb.append(String.join(", ", stmt.typeParameters.stream()
+					.map(p -> p.accept(this))
+					.toArray(String[]::new)));
 			sb.append(">");
 		}
 
 		if (stmt.superclasses != null && !stmt.superclasses.isEmpty()) {
-			sb.append(" | ");
+			sb.append(" : ");
 
-			sb.append(String.join("& ", stmt.superclasses.stream()
+			sb.append(String.join(" & ", stmt.superclasses.stream()
 					.map(Typed::getName)
 					.toArray(String[]::new)));
 		}

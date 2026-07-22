@@ -14,5 +14,4 @@ public class WhileStmt extends Stmt {
 		this.condition = condition;
 		this.body = body;
 	}
-
 }

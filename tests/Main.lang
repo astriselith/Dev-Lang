@@ -1,4 +1,8 @@
-class Main {
+class A;
+class B;
+class C;
+
+class Main<A, B, C> : A & B & C {
     fun add(a, a) {
         return a + b;
         return (a + b);

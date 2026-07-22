@@ -18,5 +18,4 @@ public class CallExpr extends Expr {
 		this.typeArguments = typeArguments;
 		this.arguments = arguments;
 	}
-
 }

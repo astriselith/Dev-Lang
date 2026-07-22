@@ -14,5 +14,4 @@ public class MemberAccessExpr extends Expr {
 		this.object = object;
 		this.name = name;
 	}
-
 }

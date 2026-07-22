@@ -20,5 +20,4 @@ public class Comment extends Node {
     public String getText() {
         return text;
     }
-
 }

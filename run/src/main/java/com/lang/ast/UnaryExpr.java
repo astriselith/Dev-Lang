@@ -14,5 +14,4 @@ public class UnaryExpr extends Expr {
 		this.operator = operator;
 		this.operand = operand;
 	}
-
 }

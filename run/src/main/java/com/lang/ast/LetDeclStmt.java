@@ -16,5 +16,4 @@ public class LetDeclStmt extends Stmt {
 		this.type = type;
 		this.value = value;
 	}
-
 }

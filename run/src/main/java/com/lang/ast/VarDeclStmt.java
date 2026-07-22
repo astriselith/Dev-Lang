@@ -16,5 +16,4 @@ public class VarDeclStmt extends Stmt {
 		this.type = type;
 		this.value = value;
 	}
-
 }
