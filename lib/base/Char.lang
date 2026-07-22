@@ -1,4 +1,4 @@
-readonly class Char | Equality {
+class Char | Equality {
 	fun code(): Int = 0;
 
 	fun toUpper(): Char = '';

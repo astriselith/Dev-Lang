@@ -1,6 +1,5 @@
 package com.lang.json;
 
-import com.lang.ast.Comment;
 import com.lang.token.Token;
 import com.lang.token.TokenStream;
 import com.lang.unit.CompilationUnit;
@@ -24,10 +23,9 @@ public class JsonParser {
 
 		this.stream.setHandler((token) -> {
 			if (token.isComment()) {
-				this.unit.addComment(new Comment(token.lexeme, token.position));
-				return false; // Skip comments
+				return false;
 			}
-			return true; // Process other tokens
+			return true;
 		});
 	}
 
@@ -36,50 +34,45 @@ public class JsonParser {
 	}
 
 	private Json value() {
-		Token token = stream.peek();
+
+		if (stream.check(LBRACE)) {
+			return object();
+		}
+
+		if (stream.check(LBRACKET)) {
+			return array();
+		}
+
+		Token token = stream.advance();
 
 		if (token.typeEquals(NULL)) {
-			stream.advance();
 			return new JsonNull(token.getPosition());
 		}
 
 		if (token.typeEquals(BOOL)) {
-			stream.advance();
 			return new JsonBoolean(Boolean.parseBoolean(token.lexeme), token.getPosition());
 		}
 
 		if (token.typeEquals(INT)) {
-			stream.advance();
 			return new JsonNumber(Long.parseLong(token.lexeme), token.getPosition());
 		}
 
 		if (token.typeEquals(FLOAT)) {
-			stream.advance();
 			return new JsonNumber(Double.parseDouble(token.lexeme), token.getPosition());
 		}
 
 		if (token.typeEquals(STRING)) {
-			stream.advance();
-			return new JsonString(token.lexeme, token.getPosition());
-		}
-
-		if (token.typeEquals(LBRACE)) {
-			return object();
-		}
-
-		if (token.typeEquals(LBRACKET)) {
-			return array();
+			return new JsonString(token.lexeme.substring(1, token.lexeme.length() - 1), token.getPosition());
 		}
 
 		throw unit.error(TAG, UNEXPECTED_TOKEN.format(token.lexeme), token);
 	}
 
 	private JsonObject object() {
-		Token start = stream.advance();
+		Token start = stream.expect(LBRACE);
 		Map<String, Json> fields = new LinkedHashMap<>();
 
-		if (stream.check(RBRACE)) {
-			stream.advance();
+		if (stream.match(RBRACE)) {
 			return new JsonObject(fields, start.getPosition());
 		}
 
@@ -90,7 +83,7 @@ public class JsonParser {
 				throw unit.error(TAG, EXPECTED_STRING_KEY.getMessage(), keyToken);
 			}
 
-			String key = (String) keyToken.lexeme;
+			String key = keyToken.lexeme.substring(1, keyToken.lexeme.length() - 1);
 
 			if (!stream.match(COLON)) {
 				throw unit.error(TAG, EXPECTED_COLON_AFTER_KEY.getMessage(), stream.previous());
@@ -100,20 +93,18 @@ public class JsonParser {
 
 		} while (stream.match(COMMA));
 
-		if (!stream.check(RBRACE)) {
+		if (!stream.match(RBRACE)) {
 			throw unit.error(TAG, EXPECTED_RBRACE.getMessage(), stream.peek());
 		}
-		stream.advance();
 
 		return new JsonObject(fields, start.getPosition());
 	}
 
 	private JsonArray array() {
-		Token start = stream.advance();
+		Token start = stream.expect(LBRACKET);
 		List<Json> elements = new ArrayList<>();
 
-		if (stream.check(RBRACKET)) {
-			stream.advance();
+		if (stream.match(RBRACKET)) {
 			return new JsonArray(elements, start.getPosition());
 		}
 
@@ -121,10 +112,9 @@ public class JsonParser {
 			elements.add(value());
 		} while (stream.match(COMMA));
 
-		if (!stream.check(RBRACKET)) {
+		if (!stream.match(RBRACKET)) {
 			throw unit.error(TAG, EXPECTED_RBRACKET.getMessage(), stream.peek());
 		}
-		stream.advance();
 
 		return new JsonArray(elements, start.getPosition());
 	}

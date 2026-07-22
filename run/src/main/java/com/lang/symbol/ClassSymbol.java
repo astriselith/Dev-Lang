@@ -7,12 +7,10 @@ public class ClassSymbol extends Symbol {
 	private final String name;
 
 	private final List<String> typeParameterTypes;
-	private final List<Typed> supertraitTypes;
-	private final Typed superclassType;
+	private final List<Typed> superclassTypes;
 
 	private List<TypeParamSymbol> typeParameters;
-	private List<Symbol> supertraits;
-	private Symbol superclass;
+	private List<Symbol> superclasses;
 	private Map<String, FunSymbol> funs;
 	private Map<String, VarSymbol> vars;
 
@@ -20,17 +18,14 @@ public class ClassSymbol extends Symbol {
 
 	public ClassSymbol(String name,
 			List<String> typeParameterTypes,
-			Typed superclassType,
-			List<Typed> supertraitTypes) {
+			List<Typed> superclassTypes) {
 		this.name = name;
 
 		this.typeParameterTypes = typeParameterTypes != null ? new ArrayList<>(typeParameterTypes) : new ArrayList<>();
-		this.supertraitTypes = supertraitTypes != null ? new ArrayList<>(supertraitTypes) : new ArrayList<>();
-		this.superclassType = superclassType;
+		this.superclassTypes = superclassTypes != null ? new ArrayList<>(superclassTypes) : new ArrayList<>();
 
 		this.typeParameters = new ArrayList<>();
-		this.superclass = null;
-		this.supertraits = new ArrayList<>();
+		this.superclasses = new ArrayList<>();
 		this.funs = new HashMap<>();
 		this.vars = new HashMap<>();
 	}
@@ -43,12 +38,8 @@ public class ClassSymbol extends Symbol {
 		return Collections.unmodifiableList(typeParameterTypes);
 	}
 
-	public List<Typed> getSupertraitTypes() {
-		return Collections.unmodifiableList(supertraitTypes);
-	}
-
-	public Typed getSuperclassType() {
-		return superclassType;
+	public List<Typed> getSuperclassTypes() {
+		return Collections.unmodifiableList(superclassTypes);
 	}
 
 	public List<TypeParamSymbol> getTypeParameters() {
@@ -66,72 +57,45 @@ public class ClassSymbol extends Symbol {
 		return !typeParameters.isEmpty();
 	}
 
-	public Symbol getSuperclass() {
-		return superclass;
+	public List<Symbol> getSuperclasses() {
+		return Collections.unmodifiableList(superclasses);
 	}
 
-	public ClassSymbol getBaseSuperclass() {
-		if (superclass == null)
-			return null;
-
-		if (superclass.isClass()) {
-			return superclass.asClass();
-		}
-
-		if (superclass.isParameterized()) {
-			return superclass.asParameterized().getBase();
-		}
-
-		return null;
-	}
-
-	public void setSuperclass(Symbol superclass) {
-		this.superclass = superclass;
-	}
-
-	public boolean hasSuperclass() {
-		return superclass != null;
-	}
-
-	public List<Symbol> getSupertraits() {
-		return Collections.unmodifiableList(supertraits);
-	}
-
-	public List<ClassSymbol> getBaseSupertraits() {
+	public List<ClassSymbol> getBaseSuperclasses() {
 		List<ClassSymbol> result = new ArrayList<>();
-		for (Symbol trait : supertraits) {
-			if (trait.isClass()) {
-				result.add(trait.asClass());
-			} else if (trait.isParameterized()) {
-				result.add(trait.asParameterized().getBase());
+		for (Symbol clazz : superclasses) {
+			if (clazz.isClass()) {
+				result.add(clazz.asClass());
+			} else if (clazz.isParameterized()) {
+				result.add(clazz.asParameterized().getBase());
 			}
 		}
 		return Collections.unmodifiableList(result);
 	}
 
-	public void addSupertrait(Symbol trait) {
-		if (trait == null)
+	public void addSuperclass(Symbol clazz) {
+		if (clazz == null)
 			return;
-		if (supertraits.contains(trait))
+		if (superclasses.contains(clazz))
 			return;
-		supertraits.add(trait);
+		superclasses.add(clazz);
 	}
 
-	public void setSupertraits(List<Symbol> traits) {
-		this.supertraits.clear();
-		if (traits != null) {
-			for (Symbol trait : traits) {
-				if (trait != null) {
-					if (this.supertraits.contains(trait))
+	public void setSuperclasses(List<Symbol> classes) {
+		this.superclasses.clear();
+		if (classes != null) {
+			for (Symbol clazz : classes) {
+				if (clazz != null) {
+					if (this.superclasses.contains(clazz))
 						continue;
-					this.supertraits.add(trait);
+					this.superclasses.add(clazz);
 				}
 			}
 		}
 	}
 
-	public boolean hasSupertraits() {
-		return !supertraits.isEmpty();
+	public boolean hasSuperclasses() {
+		return !superclasses.isEmpty();
 	}
 
 	public void addFun(FunSymbol fun) {
@@ -153,16 +117,9 @@ public class ClassSymbol extends Symbol {
 		if (fun != null)
 			return fun;
 
-		ClassSymbol baseSuperclass = getBaseSuperclass();
-		if (baseSuperclass != null) {
-			fun = baseSuperclass.getFun(name);
-			if (fun != null)
-				return fun;
-		}
-
-		List<ClassSymbol> baseSupertraits = getBaseSupertraits();
-		for (ClassSymbol trait : baseSupertraits) {
-			fun = trait.getFun(name);
+		List<ClassSymbol> baseSuperclasss = getBaseSuperclasses();
+		for (ClassSymbol clazz : baseSuperclasss) {
+			fun = clazz.getFun(name);
 			if (fun != null)
 				return fun;
 		}
@@ -174,16 +131,9 @@ public class ClassSymbol extends Symbol {
 		if (var != null)
 			return var;
 
-		ClassSymbol baseSuperclass = getBaseSuperclass();
-		if (baseSuperclass != null) {
-			var = baseSuperclass.getVar(name);
-			if (var != null)
-				return var;
-		}
-
-		List<ClassSymbol> baseSupertraits = getBaseSupertraits();
-		for (ClassSymbol trait : baseSupertraits) {
-			var = trait.getVar(name);
+		List<ClassSymbol> baseSuperclasss = getBaseSuperclasses();
+		for (ClassSymbol clazz : baseSuperclasss) {
+			var = clazz.getVar(name);
 			if (var != null)
 				return var;
 		}
@@ -198,7 +148,6 @@ public class ClassSymbol extends Symbol {
 		return getVar(name) != null;
 	}
 
-	
 	public Map<String, FunSymbol> getDeclaredFuns() {
 		return Collections.unmodifiableMap(funs);
 	}
@@ -215,7 +164,7 @@ public class ClassSymbol extends Symbol {
 		return vars.get(name);
 	}
 
-	public void setPure(boolean pure) {	
+	public void setPure(boolean pure) {
 		this.pure = pure;
 	}
 

@@ -7,8 +7,7 @@ import com.lang.util.Position;
 public class ClassDeclStmt extends Stmt {
 	public String name;
 
-	public Typed superclass;
-	public List<Typed> supertraits;
+	public List<Typed> superclasses;
 	public List<TypeParamDeclStmt> typeParameters;
 
 	public List<FunDeclStmt> funs;
@@ -17,12 +16,11 @@ public class ClassDeclStmt extends Stmt {
 	public ClassDeclStmt() {
 	}
 
-	public ClassDeclStmt(String name, Typed superclass, List<Typed> supertraits, List<TypeParamDeclStmt> typeParameters,
+	public ClassDeclStmt(String name, List<Typed> superclasses, List<TypeParamDeclStmt> typeParameters,
 			List<FunDeclStmt> funs, List<VarDeclStmt> vars, Position position) {
 		super(position);
 		this.name = name;
-		this.superclass = superclass;
-		this.supertraits = supertraits;
+		this.superclasses = superclasses;
 		this.typeParameters = typeParameters;
 		this.funs = funs;
 		this.vars = vars;

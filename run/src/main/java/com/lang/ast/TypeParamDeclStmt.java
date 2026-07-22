@@ -6,17 +6,14 @@ import com.lang.util.Position;
 
 public class TypeParamDeclStmt extends Stmt {
 	public String name;
-	public Typed superclass;
-	public List<Typed> supertraits;
+	public List<Typed> superclasses;
 
 	public TypeParamDeclStmt() {
 	}
 
-	public TypeParamDeclStmt(String name, Typed superclass, List<Typed> supertraits, Position position) {
+	public TypeParamDeclStmt(String name, List<Typed> superclasses, Position position) {
 		super(position);
 		this.name = name;
-		this.superclass = superclass;
-		this.supertraits = supertraits;
+		this.superclasses = superclasses;
 	}
-
 }

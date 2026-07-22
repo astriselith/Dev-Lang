@@ -1,6 +1,6 @@
 class Any {
-	readonly var pointer: Int = 0;
+	var pointer: Int = 0;
 
-	fun print < T | Stringifiable > (content: T) = ?;
-	fun println < T | Stringifiable > (content: T) = ?;
+	fun print <T | Stringifiable> (content: T) = ?;
+	fun println <T | Stringifiable> (content: T) = ?;
 }

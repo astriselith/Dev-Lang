@@ -272,12 +272,7 @@ public class SymbolTable {
 		if (sub.isTypeParam() && sup.isClass()) {
 			TypeParamSymbol tp = sub.asTypeParam();
 
-			Symbol superclass = tp.getSuperclass();
-			if (superclass != null && isSubtype(superclass, sup)) {
-				return true;
-			}
-
-			for (Symbol trait : tp.getSupertraits()) {
+			for (Symbol trait : tp.getSuperclasses()) {
 				if (isSubtype(trait, sup)) {
 					return true;
 				}
@@ -332,16 +327,9 @@ public class SymbolTable {
 
 				if (currentBase == null) continue;
 
-				for (Symbol trait : currentBase.getSupertraits()) {
+				for (Symbol trait : currentBase.getSuperclasses()) {
 					if (trait != null && !visited.contains(trait)) {
 						stack.push(trait);
-					}
-				}
-
-				if (currentBase.hasSuperclass()) {
-					Symbol superclass = currentBase.getSuperclass();
-					if (superclass != null && !visited.contains(superclass)) {
-						stack.push(superclass);
 					}
 				}
 			}

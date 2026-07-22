@@ -213,21 +213,16 @@ public class Parser {
 		return params;
 	}
 
-	private Pair<Typed, List<Typed>> inheritance() {
-		Typed superclass = null;
-		List<Typed> supertraits = new ArrayList<>();
+	private List<Typed> superclasses() {
+		List<Typed> superclasses = new ArrayList<>();
 
 		if (stream.match(COLON)) {
-			superclass = type();
-		}
-
-		if (stream.match(BAR)) {
 			do {
-				supertraits.add(type());
+				superclasses.add(type());
 			} while (stream.match(AMP));
 		}
 
-		return Pair.of(superclass, supertraits);
+		return superclasses;
 	}
 
 	private List<TypeParamDeclStmt> typeParameters() {
@@ -238,22 +233,16 @@ public class Parser {
 		do {
 			Token nameToken = stream.expect(IDENTIFIER);
 
-			Pair<Typed, List<Typed>> inherit = inheritance();
+			List<Typed> superclasses = superclasses();
 
-			Typed superclass = inherit.first;
-			List<Typed> supertraits = inherit.second;
-
-			Positioned end = !supertraits.isEmpty()
-					? supertraits.get(supertraits.size() - 1)
-					: superclass != null
-							? superclass
-							: nameToken;
+			Positioned end = !superclasses.isEmpty()
+					? superclasses.get(superclasses.size() - 1)
+					: nameToken;
 
 			params.add(
 					new TypeParamDeclStmt(
 							nameToken.lexeme,
-							superclass,
-							supertraits,
+							superclasses,
 							between(nameToken, end)));
 		} while (stream.match(COMMA));
 
@@ -352,14 +341,11 @@ public class Parser {
 
 		Token nameToken = stream.expect(IDENTIFIER);
 
-		List<TypeParamDeclStmt> typeParams = null;
+		List<TypeParamDeclStmt> typeParameters = null;
 		if (stream.check(LANGLE))
-			typeParams = typeParameters();
+			typeParameters = typeParameters();
 
-		Pair<Typed, List<Typed>> inherit = inheritance();
-
-		Typed superclass = inherit.first;
-		List<Typed> supertraits = inherit.second;
+		List<Typed> superclasses = superclasses();
 
 		List<FunDeclStmt> funs = new ArrayList<>();
 		List<VarDeclStmt> vars = new ArrayList<>();
@@ -402,8 +388,8 @@ public class Parser {
 			end = stream.previous();
 		}
 
-		return new ClassDeclStmt(nameToken.lexeme, superclass, supertraits,
-				typeParams, funs, vars, between(start, end));
+		return new ClassDeclStmt(nameToken.lexeme, superclasses,
+				typeParameters, funs, vars, between(start, end));
 	}
 
 	private LetDeclStmt letDecl() {

@@ -1,1 +1,1 @@
-readonly class Bool;
+class Bool;

@@ -1,1 +1,1 @@
-readonly class Float : Number;
+class Float : Number;

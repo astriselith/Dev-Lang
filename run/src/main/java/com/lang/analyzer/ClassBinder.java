@@ -53,41 +53,24 @@ public class ClassBinder implements StmtVisitor<Void> {
 			selfSubstitutions.put(tp.getName(), tp);
 		}
 
-		Typed superclassType = classSymbol.getSuperclassType();
-		if (superclassType != null) {
-			Symbol resolved = table.resolve(superclassType, selfSubstitutions);
+		List<Typed> superclassTypes = classSymbol.getSuperclassTypes();
+		if (!superclassTypes.isEmpty()) {
+			List<Symbol> superclasses = new ArrayList<>();
 
-			if (resolved != null) {
-				if (resolved == classSymbol) {
-					unit.error(TAG, CIRCULAR_INHERITANCE.format(stmt.name), stmt);
-				} else {
-					classSymbol.setSuperclass(resolved.asClass());
-				}
-			} else {
-				unit.error(TAG, UNDEFINED_CLASS.format(superclassType.getName()), stmt);
-			}
-		} else {
-			classSymbol.setSuperclass(table.getAny());
-		}
-
-		List<Typed> supertraitTypes = classSymbol.getSupertraitTypes();
-		if (!supertraitTypes.isEmpty()) {
-			List<Symbol> supertraits = new ArrayList<>();
-
-			for (Typed traitType : supertraitTypes) {
+			for (Typed traitType : superclassTypes) {
 				Symbol resolved = table.resolve(traitType, selfSubstitutions);
 
 				if (resolved != null) {
 					if (resolved == classSymbol) {
 						unit.error(TAG, CIRCULAR_INHERITANCE.format(stmt.name), stmt);
 					} else {
-						supertraits.add(resolved);
+						superclasses.add(resolved);
 					}
 				} else {
 					unit.error(TAG, UNDEFINED_CLASS.format(traitType.getName()), stmt);
 				}
 			}
-			classSymbol.setSupertraits(supertraits);
+			classSymbol.setSuperclasses(superclasses);
 		}
 
 		currentClass = classSymbol;
@@ -216,8 +199,7 @@ public class ClassBinder implements StmtVisitor<Void> {
 			return null;
 		}
 
-		Symbol superclass = null;
-		List<Symbol> supertraits = new ArrayList<>();
+		List<Symbol> superclasses = new ArrayList<>();
 
 		Map<String, Symbol> substitutions = new LinkedHashMap<>();
 		if (currentClass != null) {
@@ -232,31 +214,16 @@ public class ClassBinder implements StmtVisitor<Void> {
 			}
 		}
 
-		Typed superclassType = stmt.superclass;
-		if (superclassType != null) {
-			Symbol resolved = table.resolve(superclassType, substitutions);
-
-			if (resolved != null) {
-				if (resolved == currentClass) {
-					unit.error(TAG, CIRCULAR_INHERITANCE.format(stmt.name), stmt);
-				} else {
-					superclass = resolved;
-				}
-			} else {
-				unit.error(TAG, UNRESOLVED_SUPERTYPE.format(superclassType.getName()), stmt);
-			}
-		}
-
-		List<Typed> supertraitTypes = stmt.supertraits;
-		if (!supertraitTypes.isEmpty()) {
-			for (Typed traitType : supertraitTypes) {
+		List<Typed> superclassTypes = stmt.superclasses;
+		if (!superclassTypes.isEmpty()) {
+			for (Typed traitType : superclassTypes) {
 				Symbol resolved = table.resolve(traitType, substitutions);
 
 				if (resolved != null) {
 					if (resolved == currentClass) {
 						unit.error(TAG, CIRCULAR_INHERITANCE.format(stmt.name), stmt);
 					} else {
-						supertraits.add(resolved);
+						superclasses.add(resolved);
 					}
 				} else {
 					unit.error(TAG, UNRESOLVED_SUPERTYPE.format(traitType.getName()), stmt);
@@ -264,7 +231,7 @@ public class ClassBinder implements StmtVisitor<Void> {
 			}
 		}
 
-		TypeParamSymbol typeParamSymbol = new TypeParamSymbol(stmt.name, superclass, supertraits);
+		TypeParamSymbol typeParamSymbol = new TypeParamSymbol(stmt.name, superclasses);
 		currentTypeParameters.put(stmt.name, typeParamSymbol);
 
 		return null;

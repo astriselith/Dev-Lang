@@ -1,4 +1,4 @@
-trait Indexable<K, V> {
+class Indexable<K, V> {
 	fun get(k: K): V;
 	fun set(k: K, v: V);
 }

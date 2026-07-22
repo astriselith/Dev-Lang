@@ -172,13 +172,9 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 	public String visitTypeParamDeclStmt(TypeParamDeclStmt stmt) {
 		StringBuilder sb = new StringBuilder(stmt.name);
 
-		if (stmt.superclass != null) {
-			sb.append(": ").append(stmt.superclass.getName());
-		}
-
-		if (stmt.supertraits != null && !stmt.supertraits.isEmpty()) {
+		if (stmt.superclasses != null && !stmt.superclasses.isEmpty()) {
 			sb.append(" | ");
-			sb.append(String.join("& ", stmt.supertraits.stream()
+			sb.append(String.join("& ", stmt.superclasses.stream()
 					.map(Typed::getName)
 					.toArray(String[]::new)));
 		}
@@ -203,14 +199,10 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 			sb.append(">");
 		}
 
-		if (stmt.superclass != null) {
-			sb.append(" : ").append(stmt.superclass.getName());
-		}
-
-		if (stmt.supertraits != null && !stmt.supertraits.isEmpty()) {
+		if (stmt.superclasses != null && !stmt.superclasses.isEmpty()) {
 			sb.append(" | ");
 
-			sb.append(String.join("& ", stmt.supertraits.stream()
+			sb.append(String.join("& ", stmt.superclasses.stream()
 					.map(Typed::getName)
 					.toArray(String[]::new)));
 		}

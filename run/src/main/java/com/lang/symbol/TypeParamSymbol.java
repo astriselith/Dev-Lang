@@ -5,14 +5,12 @@ import java.util.List;
 
 public class TypeParamSymbol extends Symbol {
 	private final String name;
-	private final Symbol superclass;
-	private final List<Symbol> supertraits;
+	private final List<Symbol> superclasses;
 
-	public TypeParamSymbol(String name, Symbol superclass, List<Symbol> supertraits) {
+	public TypeParamSymbol(String name, List<Symbol> superclasses) {
 		this.name = name;
-		this.superclass = superclass;
-		this.supertraits = supertraits != null
-				? Collections.unmodifiableList(supertraits)
+		this.superclasses = superclasses != null
+				? Collections.unmodifiableList(superclasses)
 				: Collections.emptyList();
 	}
 
@@ -20,43 +18,20 @@ public class TypeParamSymbol extends Symbol {
 		return name;
 	}
 
-	public Symbol getSuperclass() {
-		return superclass;
+	public List<Symbol> getSuperclasses() {
+		return superclasses;
 	}
 
-	public List<Symbol> getSupertraits() {
-		return supertraits;
+	public boolean hasSuperclasses() {
+		return !superclasses.isEmpty();
 	}
 
-	public boolean hasSuperclass() {
-		return superclass != null;
-	}
-
-	public boolean hasSupertraits() {
-		return !supertraits.isEmpty();
-	}
-
-	private ClassSymbol getBaseSuperclass() {
-		if (superclass == null)
-			return null;
-
-		if (superclass.isClass()) {
-			return superclass.asClass();
-		}
-
-		if (superclass.isParameterized()) {
-			return superclass.asParameterized().getBase();
-		}
-
-		return null;
-	}
-
-	private List<ClassSymbol> getBaseSupertraits() {
-		if (supertraits.isEmpty())
+	private List<ClassSymbol> getBaseSuperclasses() {
+		if (superclasses.isEmpty())
 			return Collections.emptyList();
 
 		List<ClassSymbol> result = new java.util.ArrayList<>();
-		for (Symbol trait : supertraits) {
+		for (Symbol trait : superclasses) {
 			if (trait.isClass()) {
 				result.add(trait.asClass());
 			} else if (trait.isParameterized()) {
@@ -67,14 +42,7 @@ public class TypeParamSymbol extends Symbol {
 	}
 
 	public FunSymbol getFun(String name) {
-		ClassSymbol baseSuperclass = getBaseSuperclass();
-		if (baseSuperclass != null) {
-			FunSymbol result = baseSuperclass.getFun(name);
-			if (result != null)
-				return result;
-		}
-
-		for (ClassSymbol trait : getBaseSupertraits()) {
+		for (ClassSymbol trait : getBaseSuperclasses()) {
 			FunSymbol result = trait.getFun(name);
 			if (result != null)
 				return result;
@@ -84,14 +52,7 @@ public class TypeParamSymbol extends Symbol {
 	}
 
 	public VarSymbol getVar(String name) {
-		ClassSymbol baseSuperclass = getBaseSuperclass();
-		if (baseSuperclass != null) {
-			VarSymbol result = baseSuperclass.getVar(name);
-			if (result != null)
-				return result;
-		}
-
-		for (ClassSymbol trait : getBaseSupertraits()) {
+		for (ClassSymbol trait : getBaseSuperclasses()) {
 			VarSymbol result = trait.getVar(name);
 			if (result != null)
 				return result;
