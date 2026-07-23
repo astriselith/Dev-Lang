@@ -16,11 +16,11 @@ public abstract class TokenStream extends ObjectBuffer<Token> {
 	}
 
 	protected TokenStream() {
-		this(10, 10, 4);
+		this(10);
 	}
 
-	protected TokenStream(int forwardWindow, int backwardWindow, int capacityMultiplier) {
-		super(forwardWindow, backwardWindow, capacityMultiplier);
+	protected TokenStream(int sidedWindow) {
+		super(sidedWindow);
 	}
 
 	@Override

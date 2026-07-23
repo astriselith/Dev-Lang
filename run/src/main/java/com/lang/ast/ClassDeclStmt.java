@@ -5,7 +5,7 @@ import java.util.List;
 import com.lang.util.Position;
 
 public class ClassDeclStmt extends Stmt {
-	public String name;
+	public Identifier name;
 
 	public List<Typed> superclasses;
 	public List<TypeParamDeclStmt> typeParameters;
@@ -16,7 +16,7 @@ public class ClassDeclStmt extends Stmt {
 	public ClassDeclStmt() {
 	}
 
-	public ClassDeclStmt(String name, List<Typed> superclasses, List<TypeParamDeclStmt> typeParameters,
+	public ClassDeclStmt(Identifier name, List<Typed> superclasses, List<TypeParamDeclStmt> typeParameters,
 			List<FunDeclStmt> funs, List<VarDeclStmt> vars, Position position) {
 		super(position);
 		this.name = name;

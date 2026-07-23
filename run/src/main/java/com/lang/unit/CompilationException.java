@@ -37,7 +37,7 @@ public class CompilationException extends RuntimeException {
 		if (position == null) {
 			return String.format("[%s] %s", tag, message);
 		}
-		return String.format("[%s] %s [line %d, lineStart %d]", tag, message, position.getLine(), position.getLineStart());
+		return String.format("[%s] %s [line %d, lineStart %d]", tag, message, position.getLine(), position.getColumn());
 	}
 
 	public String getTag() {

@@ -6,11 +6,11 @@ import java.io.IOException;
 public abstract class CodepointStream extends ObjectBuffer<Integer> {
 
 	protected CodepointStream() {
-		this(10, 10, 4);
+		this(10);
 	}
 
-	protected CodepointStream(int forwardWindow, int backwardWindow, int capacityMultiplier) {
-		super(forwardWindow, backwardWindow, capacityMultiplier);
+	protected CodepointStream(int sidedWindow) {
+		super(sidedWindow);
 	}
 
 	@Override
@@ -67,9 +67,11 @@ public abstract class CodepointStream extends ObjectBuffer<Integer> {
 
 	public boolean checkAny(int... values) {
 		Integer current = offset(0);
-		if (current == null) return false;
+		if (current == null)
+			return false;
 		for (int v : values) {
-			if (current == v) return true;
+			if (current == v)
+				return true;
 		}
 		return false;
 	}
@@ -97,12 +99,11 @@ public abstract class CodepointStream extends ObjectBuffer<Integer> {
 
 		if (current != value) {
 			throw new IllegalStateException(
-				"Expected '" +
-				Codepoint.toString(value) +
-				"' but found '" +
-				Codepoint.toString(current) +
-				"'"
-			);
+					"Expected '" +
+							Codepoint.toString(value) +
+							"' but found '" +
+							Codepoint.toString(current) +
+							"'");
 		}
 
 		advance();
@@ -126,17 +127,16 @@ public abstract class CodepointStream extends ObjectBuffer<Integer> {
 				expected.append(", ");
 			}
 			expected.append('\'')
-			.append(Codepoint.toString(values[i]))
-			.append('\'');
+					.append(Codepoint.toString(values[i]))
+					.append('\'');
 		}
 
 		throw new IllegalStateException(
-			"Expected one of [" +
-			expected +
-			"] but found '" +
-			Codepoint.toString(current) +
-			"'"
-		);
+				"Expected one of [" +
+						expected +
+						"] but found '" +
+						Codepoint.toString(current) +
+						"'");
 	}
 
 	public boolean isAtEnd() {

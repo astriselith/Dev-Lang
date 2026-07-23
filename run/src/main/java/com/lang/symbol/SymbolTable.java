@@ -7,7 +7,7 @@ import java.util.*;
 
 public class SymbolTable {
 	private final Map<String, ClassSymbol> classes = new LinkedHashMap<>();
-	
+
 	private final Map<String, Symbol> globals = new LinkedHashMap<>();
 	private final Map<String, FunSymbol> funs = new LinkedHashMap<>();
 	private final Map<String, VarSymbol> vars = new LinkedHashMap<>();
@@ -84,7 +84,8 @@ public class SymbolTable {
 		if (left.isClass()) {
 			ClassSymbol cls = left.asClass();
 			Symbol result = cls.getFun(name);
-			if (result != null) return result;
+			if (result != null)
+				return result;
 			return cls.getVar(name);
 		}
 
@@ -92,7 +93,8 @@ public class SymbolTable {
 			ParameterizedClassSymbol param = left.asParameterized();
 			ClassSymbol base = param.getBase();
 			Symbol result = base.getFun(name);
-			if (result != null) return result;
+			if (result != null)
+				return result;
 			return base.getVar(name);
 		}
 
@@ -110,7 +112,7 @@ public class SymbolTable {
 
 		if (type.isRef()) {
 			RefTyped ref = (RefTyped) type;
-			String name = ref.name;
+			String name = ref.name.source;
 
 			if (substitutions != null && substitutions.containsKey(name)) {
 				return substitutions.get(name);
@@ -121,7 +123,7 @@ public class SymbolTable {
 
 		if (type.isParameterizedRef()) {
 			ParameterizedRefTyped param = (ParameterizedRefTyped) type;
-			String name = param.name;
+			String name = param.name.source;
 
 			ClassSymbol baseClass = this.get(name);
 			if (baseClass == null) {
@@ -184,9 +186,12 @@ public class SymbolTable {
 	}
 
 	public boolean isSameType(Symbol sym1, Symbol sym2) {
-		if (sym1 == null && sym2 == null) return true;
-		if (sym1 == null || sym2 == null) return false;
-		if (sym1 == sym2) return true;
+		if (sym1 == null && sym2 == null)
+			return true;
+		if (sym1 == null || sym2 == null)
+			return false;
+		if (sym1 == sym2)
+			return true;
 
 		if (sym1.isTypeParam() && sym2.isTypeParam()) {
 			return sym1 == sym2;
@@ -207,12 +212,15 @@ public class SymbolTable {
 			Map<String, Symbol> args1 = p1.getTypeArguments();
 			Map<String, Symbol> args2 = p2.getTypeArguments();
 
-			if (args1.size() != args2.size()) return false;
+			if (args1.size() != args2.size())
+				return false;
 
 			for (Map.Entry<String, Symbol> entry : args1.entrySet()) {
 				String key = entry.getKey();
-				if (!args2.containsKey(key)) return false;
-				if (!isSameType(entry.getValue(), args2.get(key))) return false;
+				if (!args2.containsKey(key))
+					return false;
+				if (!isSameType(entry.getValue(), args2.get(key)))
+					return false;
 			}
 
 			return true;
@@ -254,14 +262,18 @@ public class SymbolTable {
 	}
 
 	public boolean isNumeric(Symbol sym) {
-		if (sym == null) return false;
+		if (sym == null)
+			return false;
 		return isSubtype(sym, getNumber());
 	}
 
 	public boolean isSubtype(Symbol sub, Symbol sup) {
-		if (sub == null || sup == null) return false;
-		if (sub == sup) return true;
-		if (isSameType(sub, sup)) return true;
+		if (sub == null || sup == null)
+			return false;
+		if (sub == sup)
+			return true;
+		if (isSameType(sub, sup))
+			return true;
 
 		if (sub.isTypeParam() && sup.isTypeParam()) {
 			return sub == sup;
@@ -293,12 +305,15 @@ public class SymbolTable {
 				Map<String, Symbol> argsSub = pSub.getTypeArguments();
 				Map<String, Symbol> argsSup = pSup.getTypeArguments();
 
-				if (argsSub.size() != argsSup.size()) return false;
+				if (argsSub.size() != argsSup.size())
+					return false;
 
 				for (Map.Entry<String, Symbol> entry : argsSub.entrySet()) {
 					String key = entry.getKey();
-					if (!argsSup.containsKey(key)) return false;
-					if (!isSubtype(entry.getValue(), argsSup.get(key))) return false;
+					if (!argsSup.containsKey(key))
+						return false;
+					if (!isSubtype(entry.getValue(), argsSup.get(key)))
+						return false;
 				}
 				return true;
 			}
@@ -313,8 +328,10 @@ public class SymbolTable {
 
 			while (!stack.isEmpty()) {
 				Symbol current = stack.pop();
-				if (current == null) continue;
-				if (visited.contains(current)) continue;
+				if (current == null)
+					continue;
+				if (visited.contains(current))
+					continue;
 				visited.add(current);
 
 				if (isSameType(current, sup)) {
@@ -322,10 +339,11 @@ public class SymbolTable {
 				}
 
 				ClassSymbol currentBase = current.isParameterized()
-												 ? current.asParameterized().getBase()
-												 : current.isClass() ? current.asClass() : null;
+						? current.asParameterized().getBase()
+						: current.isClass() ? current.asClass() : null;
 
-				if (currentBase == null) continue;
+				if (currentBase == null)
+					continue;
 
 				for (Symbol trait : currentBase.getSuperclasses()) {
 					if (trait != null && !visited.contains(trait)) {
@@ -352,9 +370,12 @@ public class SymbolTable {
 	}
 
 	public boolean isAssignable(Symbol source, Symbol target) {
-		if (source == null || target == null) return false;
-		if (source == target) return true;
-		if (isSameType(source, target)) return true;
+		if (source == null || target == null)
+			return false;
+		if (source == target)
+			return true;
+		if (isSameType(source, target))
+			return true;
 
 		if (isNull(source)) {
 			return !isVoid(target);
@@ -364,12 +385,17 @@ public class SymbolTable {
 	}
 
 	public Symbol getCommonSupertype(Symbol a, Symbol b) {
-		if (a == null) return b;
-		if (b == null) return a;
+		if (a == null)
+			return b;
+		if (b == null)
+			return a;
 
-		if (isSameType(a, b)) return a;
-		if (isSubtype(a, b)) return b;
-		if (isSubtype(b, a)) return a;
+		if (isSameType(a, b))
+			return a;
+		if (isSubtype(a, b))
+			return b;
+		if (isSubtype(b, a))
+			return a;
 
 		if (isNumeric(a) && isNumeric(b)) {
 			return getNumber();
@@ -379,10 +405,11 @@ public class SymbolTable {
 	}
 
 	public Symbol getArithmeticResultType(Symbol a, Symbol b) {
-		if (!isNumeric(a) || !isNumeric(b)) return null;
+		if (!isNumeric(a) || !isNumeric(b))
+			return null;
 
 		boolean hasFloat = (a != null && isSameType(a, getFloat())) ||
-						   (b != null && isSameType(b, getFloat()));
+				(b != null && isSameType(b, getFloat()));
 
 		if (hasFloat) {
 			return getFloat();

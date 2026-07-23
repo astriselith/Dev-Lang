@@ -8,7 +8,7 @@ public class Position implements Positioned {
 
 	public static final Position ZERO = new Position(0, 0, 0, 0);
 	public static final Position UNKNOWN = new Position(-1, -1, -1, -1);
-	
+
 	public Position(int line, int lineStart, int start, int end) {
 		this.line = line;
 		this.lineStart = lineStart;
@@ -32,6 +32,10 @@ public class Position implements Positioned {
 		return end;
 	}
 
+	public int getColumn() {
+		return start - lineStart;
+	}
+
 	public int length() {
 		return end - start;
 	}
@@ -47,13 +51,15 @@ public class Position implements Positioned {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) return true;
-		if (obj == null || getClass() != obj.getClass()) return false;
+		if (this == obj)
+			return true;
+		if (obj == null || getClass() != obj.getClass())
+			return false;
 		Position that = (Position) obj;
 		return line == that.line &&
-			   lineStart == that.lineStart &&
-			   start == that.start &&
-			   end == that.end;
+				lineStart == that.lineStart &&
+				start == that.start &&
+				end == that.end;
 	}
 
 	@Override

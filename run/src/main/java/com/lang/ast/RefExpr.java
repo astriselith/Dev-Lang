@@ -3,12 +3,12 @@ package com.lang.ast;
 import com.lang.util.Position;
 
 public class RefExpr extends Expr {
-	public String name;
+	public Identifier name;
 
 	public RefExpr() {
 	}
 
-	public RefExpr(String name, Position position) {
+	public RefExpr(Identifier name, Position position) {
 		super(position);
 		this.name = name;
 	}

@@ -6,13 +6,13 @@ import com.lang.util.Position;
 
 public class ParameterizedRefTyped extends Typed {
 
-	public String name;
+	public Identifier name;
 	public List<Typed> typeArguments;
 
 	public ParameterizedRefTyped() {
 	}
 
-	public ParameterizedRefTyped(String name, List<Typed> typeArguments, Position position) {
+	public ParameterizedRefTyped(Identifier name, List<Typed> typeArguments, Position position) {
 		super(position);
 		this.name = name;
 		this.typeArguments = typeArguments;
@@ -20,7 +20,7 @@ public class ParameterizedRefTyped extends Typed {
 
 	@Override
 	public String getName() {
-		StringBuilder sb = new StringBuilder(name);
+		StringBuilder sb = new StringBuilder(name.source);
 
 		if (!typeArguments.isEmpty()) {
 			sb.append("<");

@@ -44,7 +44,7 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 
 	@Override
 	public String visitRefExpr(RefExpr expr) {
-		return expr.name;
+		return expr.name.source;
 	}
 
 	@Override
@@ -77,7 +77,7 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 		StringBuilder sb = new StringBuilder();
 		sb.append(expr.callee.accept(this));
 
-		if (!expr.typeArguments.isEmpty()) {
+		if (expr.typeArguments != null && !expr.typeArguments.isEmpty()) {
 			sb.append("<");
 			for (int i = 0; i < expr.typeArguments.size(); i++) {
 				if (i > 0)
@@ -165,12 +165,12 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 		if (stmt.type != null) {
 			return stmt.name + ": " + stmt.type.getName();
 		}
-		return stmt.name;
+		return stmt.name.source;
 	}
 
 	@Override
 	public String visitTypeParamDeclStmt(TypeParamDeclStmt stmt) {
-		StringBuilder sb = new StringBuilder(stmt.name);
+		StringBuilder sb = new StringBuilder(stmt.name.source);
 
 		if (stmt.superclasses != null && !stmt.superclasses.isEmpty()) {
 			sb.append(" : ");

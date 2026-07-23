@@ -139,7 +139,7 @@ public class Parser {
 		semicolon();
 
 		VarDeclStmt var = new VarDeclStmt();
-		var.name = nameToken.lexeme;
+		var.name = new Identifier(nameToken.lexeme, nameToken.position);
 		var.type = type;
 		var.value = value;
 		var.position = between(start, stream.previous());
@@ -184,7 +184,8 @@ public class Parser {
 					stream.peek());
 		}
 
-		return new FunDeclStmt(nameToken.lexeme, typeParameters, params, returnType, body,
+		return new FunDeclStmt(new Identifier(nameToken.lexeme, nameToken.position), typeParameters, params, returnType,
+				body,
 				between(start, body != null ? body : stream.previous()));
 	}
 
@@ -200,7 +201,8 @@ public class Parser {
 				if (stream.match(COLON))
 					type = type();
 
-				params.add(new ParamDeclStmt(nameToken.lexeme, type, pos(nameToken)));
+				params.add(
+						new ParamDeclStmt(new Identifier(nameToken.lexeme, nameToken.position), type, pos(nameToken)));
 			} while (stream.match(COMMA));
 		}
 
@@ -236,7 +238,7 @@ public class Parser {
 
 			params.add(
 					new TypeParamDeclStmt(
-							nameToken.lexeme,
+							new Identifier(nameToken.lexeme, nameToken.position),
 							superclasses,
 							between(nameToken, end)));
 		} while (stream.match(COMMA));
@@ -267,12 +269,12 @@ public class Parser {
 		if (stream.check(LANGLE)) {
 			List<Typed> types = typeArguments();
 			return new ParameterizedRefTyped(
-					nameToken.lexeme,
+					new Identifier(nameToken.lexeme, nameToken.position),
 					types,
 					between(nameToken, stream.previous()));
 		}
 
-		return new RefTyped(nameToken.lexeme, pos(nameToken));
+		return new RefTyped(new Identifier(nameToken.lexeme, nameToken.position), pos(nameToken));
 	}
 
 	private Stmt stmt() {
@@ -383,7 +385,7 @@ public class Parser {
 			end = stream.previous();
 		}
 
-		return new ClassDeclStmt(nameToken.lexeme, superclasses,
+		return new ClassDeclStmt(new Identifier(nameToken.lexeme, nameToken.position), superclasses,
 				typeParameters, funs, vars, between(start, end));
 	}
 
@@ -402,7 +404,8 @@ public class Parser {
 
 		semicolon();
 
-		return new LetDeclStmt(nameToken.lexeme, type, value, between(start, stream.previous()));
+		return new LetDeclStmt(new Identifier(nameToken.lexeme, nameToken.position), type, value,
+				between(start, stream.previous()));
 	}
 
 	private IfStmt ifStmt() {
@@ -687,7 +690,8 @@ public class Parser {
 
 			if (stream.match(DOT)) {
 				Token nameToken = stream.expect(IDENTIFIER);
-				expr = new MemberAccessExpr(expr, nameToken.lexeme, between(expr, nameToken));
+				expr = new MemberAccessExpr(expr, new Identifier(nameToken.lexeme, nameToken.position),
+						between(expr, nameToken));
 				continue;
 			}
 
@@ -744,11 +748,11 @@ public class Parser {
 			return new LiteralExpr(literalType, value, pos(t));
 		}
 
-		if (t.equals(IDENTIFIER)) {
-			return new RefExpr(t.lexeme, pos(t));
+		if (t.typeEquals(IDENTIFIER)) {
+			return new RefExpr(new Identifier(t.lexeme, pos(t)), pos(t));
 		}
 
-		if (t.equals(LPAREN)) {
+		if (t.typeEquals(LPAREN)) {
 			Expr inner = expr();
 			stream.expect(RPAREN);
 			return new ParenthesisExpr(inner, pos(inner));

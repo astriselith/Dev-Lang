@@ -137,7 +137,7 @@ public class CompilationUnit {
 
 	public boolean hasClass(String name) {
 		for (ClassDeclStmt cls : classes) {
-			if (cls.name.equals(name)) {
+			if (cls.name.sourceEquals(name)) {
 				return true;
 			}
 		}
@@ -146,7 +146,7 @@ public class CompilationUnit {
 
 	public ClassDeclStmt getClass(String name) {
 		for (ClassDeclStmt cls : classes) {
-			if (cls.name.equals(name)) {
+			if (cls.name.sourceEquals(name)) {
 				return cls;
 			}
 		}

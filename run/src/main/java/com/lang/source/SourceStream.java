@@ -25,7 +25,7 @@ public class SourceStream extends CodepointStream {
     }
 
     public SourceStream(InputStream inputStream, long length) {
-        super(10, 10, 4);
+        super(10);
         this.channel = Channels.newChannel(inputStream);
         this.length = length;
         this.buffer = ByteBuffer.allocate(BUFFER_SIZE);

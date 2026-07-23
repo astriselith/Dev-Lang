@@ -32,7 +32,7 @@ public class Lexer extends TokenStream {
 	}
 
 	public Lexer(CodepointStream source, CompilationUnit unit) {
-		super(10, 10, 4);
+		super(10);
 		this.source = source;
 		this.unit = unit != null ? unit : new CompilationUnit();
 

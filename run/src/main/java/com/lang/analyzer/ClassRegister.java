@@ -20,22 +20,22 @@ public class ClassRegister implements StmtVisitor<Void> {
 
 	@Override
 	public Void visitClassDeclStmt(ClassDeclStmt stmt) {
-		if (symbolTable.get(stmt.name) != null) {
+		if (symbolTable.get(stmt.name.source) != null) {
 			compilationUnit.error(TAG, REDEFINED_CLASS.format(stmt.name), stmt);
 			return null;
 		}
 
 		List<String> typeParameterTypes = new ArrayList<>();
 		for (TypeParamDeclStmt param : stmt.typeParameters) {
-			typeParameterTypes.add(param.name);
+			typeParameterTypes.add(param.name.source);
 		}
 
 		List<Typed> superclassTypes = new ArrayList<>(stmt.superclasses);
 
 		ClassSymbol classSymbol = new ClassSymbol(
-				stmt.name, typeParameterTypes, superclassTypes);
+				stmt.name.source, typeParameterTypes, superclassTypes);
 
-		symbolTable.register(stmt.name, classSymbol);
+		symbolTable.register(stmt.name.source, classSymbol);
 
 		return null;
 	}

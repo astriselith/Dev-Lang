@@ -5,8 +5,7 @@ import java.util.Arrays;
 public abstract class ObjectBuffer<T> {
 
 	private final Object[] buffer;
-	private final int forwardWindow;
-	private final int backwardWindow;
+	private final int sideWindow;
 
 	protected ObjectHandler<T> handler;
 
@@ -15,18 +14,15 @@ public abstract class ObjectBuffer<T> {
 	private boolean hitEof = false;
 	private int eofIndex = -1;
 
-	protected ObjectBuffer(int forwardWindow, int backwardWindow, int capacityMultiplier) {
-		if (forwardWindow < 0 || backwardWindow < 0 || capacityMultiplier <= 0) {
+	protected ObjectBuffer(int sideWindow) {
+		if (sideWindow <= 0) {
 			throw new IllegalArgumentException(
-					"forwardWindow, backwardWindow must be >= 0 and capacityMultiplier > 0");
+					"sidedWindow must be > 0");
 		}
-		this.forwardWindow = forwardWindow;
-		this.backwardWindow = backwardWindow;
+		this.sideWindow = Math.max(sideWindow, 3);
+		int capacity = (this.sideWindow * 2) + 1;
 
-		int windowSize = backwardWindow + forwardWindow;
-		int capacity = (windowSize * capacityMultiplier) + 1;
-
-		this.buffer = new Object[Math.max(capacity, windowSize)];
+		this.buffer = new Object[capacity];
 	}
 
 	protected abstract T fetchNext();
@@ -34,10 +30,10 @@ public abstract class ObjectBuffer<T> {
 	protected abstract boolean isEOF(T element);
 
 	protected void maintainWindow() {
-		int neededPhysicalIndex = head + forwardWindow;
+		int neededPhysicalIndex = head + sideWindow;
 
 		if (neededPhysicalIndex >= buffer.length && !hitEof) {
-			int startCopySource = Math.max(0, head - backwardWindow);
+			int startCopySource = Math.max(0, head - sideWindow);
 			int elementsToKeep = (tail - startCopySource) + 1;
 
 			if (elementsToKeep > 0) {
@@ -55,7 +51,7 @@ public abstract class ObjectBuffer<T> {
 			}
 		}
 
-		while (tail < (head + forwardWindow) && !hitEof) {
+		while (tail < (head + sideWindow) && !hitEof) {
 			if (tail + 1 >= buffer.length) {
 				break;
 			}
@@ -83,10 +79,10 @@ public abstract class ObjectBuffer<T> {
 
 	@SuppressWarnings("unchecked")
 	public T offset(int index) {
-		if (index < -backwardWindow || index > forwardWindow) {
+		if (index < -sideWindow || index > sideWindow) {
 			throw new IndexOutOfBoundsException(
 					"Index " + index + " out of allowed window ["
-							+ (-backwardWindow) + ", " + forwardWindow + "]");
+							+ (-sideWindow) + ", " + sideWindow + "]");
 		}
 
 		maintainWindow();

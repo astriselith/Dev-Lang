@@ -38,7 +38,7 @@ public class ClassBinder implements StmtVisitor<Void> {
 
 	@Override
 	public Void visitClassDeclStmt(ClassDeclStmt stmt) {
-		ClassSymbol classSymbol = table.get(stmt.name);
+		ClassSymbol classSymbol = table.get(stmt.name.source);
 
 		for (TypeParamDeclStmt typeParam : stmt.typeParameters) {
 			typeParam.accept(this);
@@ -62,7 +62,7 @@ public class ClassBinder implements StmtVisitor<Void> {
 
 				if (resolved != null) {
 					if (resolved == classSymbol) {
-						unit.error(TAG, CIRCULAR_INHERITANCE.format(stmt.name), stmt);
+						unit.error(TAG, CIRCULAR_INHERITANCE.format(stmt.name.source), stmt);
 					} else {
 						superclasses.add(resolved);
 					}
@@ -89,8 +89,8 @@ public class ClassBinder implements StmtVisitor<Void> {
 
 	@Override
 	public Void visitFunDeclStmt(FunDeclStmt stmt) {
-		if (currentClass.hasFun(stmt.name)) {
-			unit.error(TAG, REDEFINED_FUNCTION.format(stmt.name), stmt);
+		if (currentClass.hasFun(stmt.name.source)) {
+			unit.error(TAG, REDEFINED_FUNCTION.format(stmt.name.source), stmt);
 			return null;
 		}
 
@@ -126,7 +126,7 @@ public class ClassBinder implements StmtVisitor<Void> {
 		}
 
 		FunSymbol funSymbol = new FunSymbol(
-				stmt.name, params, returnType,
+				stmt.name.source, params, returnType,
 				typeParameters);
 
 		funSymbol.setBody(stmt.body);
@@ -137,8 +137,8 @@ public class ClassBinder implements StmtVisitor<Void> {
 
 	@Override
 	public Void visitVarDeclStmt(VarDeclStmt stmt) {
-		if (currentClass.hasVar(stmt.name)) {
-			unit.error(TAG, REDEFINED_VARIABLE.format(stmt.name), stmt);
+		if (currentClass.hasVar(stmt.name.source)) {
+			unit.error(TAG, REDEFINED_VARIABLE.format(stmt.name.source), stmt);
 			return null;
 		}
 
@@ -158,15 +158,15 @@ public class ClassBinder implements StmtVisitor<Void> {
 			}
 		}
 
-		VarSymbol varSymbol = new VarSymbol(stmt.name, varTypeSymbol);
+		VarSymbol varSymbol = new VarSymbol(stmt.name.source, varTypeSymbol);
 		currentClass.addVar(varSymbol);
 		return null;
 	}
 
 	@Override
 	public Void visitParamDeclStmt(ParamDeclStmt stmt) {
-		if (currentParameters.containsKey(stmt.name)) {
-			unit.error(TAG, REDEFINED_PARAMETER.format(stmt.name), stmt);
+		if (currentParameters.containsKey(stmt.name.source)) {
+			unit.error(TAG, REDEFINED_PARAMETER.format(stmt.name.source), stmt);
 			return null;
 		}
 
@@ -186,16 +186,16 @@ public class ClassBinder implements StmtVisitor<Void> {
 			}
 		}
 
-		ParamSymbol paramSymbol = new ParamSymbol(stmt.name, paramTypeSymbol);
-		currentParameters.put(stmt.name, paramSymbol);
+		ParamSymbol paramSymbol = new ParamSymbol(stmt.name.source, paramTypeSymbol);
+		currentParameters.put(stmt.name.source, paramSymbol);
 		return null;
 	}
 
 	@Override
 	public Void visitTypeParamDeclStmt(TypeParamDeclStmt stmt) {
 
-		if (currentTypeParameters.containsKey(stmt.name)) {
-			unit.error(TAG, REDEFINED_PARAMETER.format(stmt.name), stmt);
+		if (currentTypeParameters.containsKey(stmt.name.source)) {
+			unit.error(TAG, REDEFINED_PARAMETER.format(stmt.name.source), stmt);
 			return null;
 		}
 
@@ -221,7 +221,7 @@ public class ClassBinder implements StmtVisitor<Void> {
 
 				if (resolved != null) {
 					if (resolved == currentClass) {
-						unit.error(TAG, CIRCULAR_INHERITANCE.format(stmt.name), stmt);
+						unit.error(TAG, CIRCULAR_INHERITANCE.format(stmt.name.source), stmt);
 					} else {
 						superclasses.add(resolved);
 					}
@@ -231,8 +231,8 @@ public class ClassBinder implements StmtVisitor<Void> {
 			}
 		}
 
-		TypeParamSymbol typeParamSymbol = new TypeParamSymbol(stmt.name, superclasses);
-		currentTypeParameters.put(stmt.name, typeParamSymbol);
+		TypeParamSymbol typeParamSymbol = new TypeParamSymbol(stmt.name.source, superclasses);
+		currentTypeParameters.put(stmt.name.source, typeParamSymbol);
 
 		return null;
 	}

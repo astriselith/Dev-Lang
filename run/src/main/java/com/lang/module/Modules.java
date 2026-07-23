@@ -16,7 +16,6 @@ public final class Modules {
 	private static final String TAG = "MODULE";
 	private static final String MODULE_EXTENSION = ".module";
 	private static final String LANG_EXTENSION = ".lang";
-	private static final String MODULE_JSON = "module.json";
 
 	private final List<Module> modules;
 	private final Map<String, Map<String, Map<String, Module>>> index;
@@ -98,16 +97,6 @@ public final class Modules {
 					continue;
 				}
 
-				if (name.endsWith(MODULE_JSON)) {
-					// Use ModuleParser to parse the JSON
-					SourceStream source = new SourceStream(zis, entry.getSize());
-					Lexer lexer = new Lexer(source, unit);
-					ModuleParser parser = new ModuleParser(lexer, unit);
-					module = parser.parse();
-					zis.closeEntry();
-					continue;
-				}
-
 				if (name.endsWith(LANG_EXTENSION)) {
 					String fileName = name.contains("/") ? name.substring(name.lastIndexOf("/") + 1) : name;
 					System.out.println("  Loading: " + fileName + " (" + entry.getSize() + " bytes)");
@@ -127,7 +116,8 @@ public final class Modules {
 			}
 
 			if (module == null) {
-				unit.addWarning(unit.warn(TAG, "No module-info.json found in module: " + modulePath.getFileName(), (Positioned) null));
+				unit.addWarning(unit.warn(TAG, "No module-info.json found in module: " + modulePath.getFileName(),
+						(Positioned) null));
 				module = Module.empty(unit, modulePath);
 			}
 
@@ -229,16 +219,14 @@ public final class Modules {
 
 			for (Module dep : module.getDependencies()) {
 				Module resolved = findByIndex(
-									  dep.getPackageName(),
-									  dep.getArtifactId(),
-									  dep.getVersion()
-								  );
+						dep.getPackageName(),
+						dep.getArtifactId(),
+						dep.getVersion());
 
 				if (resolved == null) {
 					resolved = findByIndex(
-								   dep.getPackageName(),
-								   dep.getArtifactId()
-							   );
+							dep.getPackageName(),
+							dep.getArtifactId());
 				}
 
 				if (resolved != null) {
@@ -366,15 +354,13 @@ public final class Modules {
 		for (Module module : modules) {
 			for (Module dep : module.getDependencies()) {
 				Module resolved = findByIndex(
-									  dep.getPackageName(),
-									  dep.getArtifactId(),
-									  dep.getVersion()
-								  );
+						dep.getPackageName(),
+						dep.getArtifactId(),
+						dep.getVersion());
 				if (resolved == null) {
 					resolved = findByIndex(
-								   dep.getPackageName(),
-								   dep.getArtifactId()
-							   );
+							dep.getPackageName(),
+							dep.getArtifactId());
 				}
 				if (resolved == null) {
 					return true;
@@ -389,15 +375,13 @@ public final class Modules {
 		for (Module module : modules) {
 			for (Module dep : module.getDependencies()) {
 				Module resolved = findByIndex(
-									  dep.getPackageName(),
-									  dep.getArtifactId(),
-									  dep.getVersion()
-								  );
+						dep.getPackageName(),
+						dep.getArtifactId(),
+						dep.getVersion());
 				if (resolved == null) {
 					resolved = findByIndex(
-								   dep.getPackageName(),
-								   dep.getArtifactId()
-							   );
+							dep.getPackageName(),
+							dep.getArtifactId());
 				}
 				if (resolved == null) {
 					missing.add(dep);
