@@ -9,8 +9,8 @@ public class ParameterizedClassSymbol extends Symbol {
 	public ParameterizedClassSymbol(ClassSymbol base, Map<String, Symbol> typeArguments) {
 		this.base = base;
 		this.typeArguments = typeArguments != null
-							 ? Collections.unmodifiableMap(typeArguments)
-							 : Collections.emptyMap();
+				? Collections.unmodifiableMap(typeArguments)
+				: Collections.emptyMap();
 	}
 
 	public ClassSymbol getBase() {

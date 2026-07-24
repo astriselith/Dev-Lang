@@ -9,7 +9,7 @@ public class WarningException extends Exception {
 	private final Position position;
 
 	public WarningException(String tag, String message, Position position) {
-		super(formatMessage(tag, message, position));
+		super(formatMessage(message, position));
 		this.tag = tag;
 		this.message = message;
 		this.position = position;
@@ -20,14 +20,14 @@ public class WarningException extends Exception {
 	}
 
 	public WarningException(String tag, String message) {
-		super(formatMessage(tag, message, null));
+		super(formatMessage(message, null));
 		this.tag = tag;
 		this.message = message;
 		this.position = null;
 	}
 
 	public WarningException(String tag, String message, Position position, Throwable cause) {
-		super(formatMessage(tag, message, position), cause);
+		super(formatMessage(message, position), cause);
 		this.tag = tag;
 		this.message = message;
 		this.position = position;
@@ -38,17 +38,17 @@ public class WarningException extends Exception {
 	}
 
 	public WarningException(String tag, String message, Throwable cause) {
-		super(formatMessage(tag, message, null), cause);
+		super(formatMessage(message, null), cause);
 		this.tag = tag;
 		this.message = message;
 		this.position = null;
 	}
 
-	private static String formatMessage(String tag, String message, Position position) {
+	private static String formatMessage(String message, Position position) {
 		if (position == null) {
-			return String.format("[%s] %s", tag, message);
+			return String.format("%s", message);
 		}
-		return String.format("[%s] %s [line %d, lineStart %d]", tag, message, position.getLine(), position.getColumn());
+		return String.format("%s [line %d, column %d]", message, position.getLine(), position.getColumn());
 	}
 
 	public String getTag() {

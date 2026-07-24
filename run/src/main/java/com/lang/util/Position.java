@@ -36,6 +36,14 @@ public class Position implements Positioned {
 		return start - lineStart;
 	}
 
+	public int getColumnStart() {
+		return start - lineStart;
+	}
+
+	public int getColumnEnd() {
+		return end - lineStart;
+	}
+
 	public int length() {
 		return end - start;
 	}

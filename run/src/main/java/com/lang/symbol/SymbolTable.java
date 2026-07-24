@@ -4,9 +4,10 @@ import com.lang.ast.Typed;
 import com.lang.ast.RefTyped;
 import com.lang.ast.ParameterizedRefTyped;
 import java.util.*;
+import java.util.function.Consumer;
 
 public class SymbolTable {
-	public final Map<String, ClassSymbol> classes = new LinkedHashMap<>();
+	private final Map<String, ClassSymbol> classes = new LinkedHashMap<>();
 
 	private final Map<String, Symbol> globals = new LinkedHashMap<>();
 	private final Map<String, FunSymbol> funs = new LinkedHashMap<>();
@@ -15,8 +16,8 @@ public class SymbolTable {
 	public SymbolTable() {
 	}
 
-	public void register(String name, ClassSymbol cs) {
-		classes.put(name, cs);
+	public void add(ClassSymbol cs) {
+		classes.put(cs.getName(), cs);
 	}
 
 	public ClassSymbol get(String name) {
@@ -102,10 +103,10 @@ public class SymbolTable {
 	}
 
 	public Symbol resolve(Typed type) {
-		return resolve(type, new HashMap<>());
+		return resolve(type, new HashMap<>(), null);
 	}
 
-	public Symbol resolve(Typed type, Map<String, Symbol> substitutions) {
+	public Symbol resolve(Typed type, Map<String, Symbol> substitutions, Consumer<Typed> report) {
 		if (type == null) {
 			return null;
 		}
@@ -118,15 +119,30 @@ public class SymbolTable {
 				return substitutions.get(name);
 			}
 
-			return this.get(name);
+			if (this.has(name)) {
+				return this.get(name);
+			} else {
+				if (report != null)
+					report.accept(ref);
+			}
+
+			return null;
+
 		}
 
 		if (type.isParameterizedRef()) {
 			ParameterizedRefTyped param = (ParameterizedRefTyped) type;
 			String name = param.name.source;
 
-			ClassSymbol baseClass = this.get(name);
-			if (baseClass == null) {
+			ClassSymbol baseClass = null;
+			if (this.has(name)) {
+				baseClass = this.get(name);
+			} else {
+				if (report != null)
+					report.accept(param);
+
+				if (param.typeArguments != null)
+					param.typeArguments.forEach(t -> this.resolve(t, substitutions, report));
 				return null;
 			}
 
@@ -141,7 +157,7 @@ public class SymbolTable {
 				String paramName = typeParameterTypes.get(i);
 				Typed arg = param.typeArguments.get(i);
 
-				Symbol resolvedArg = resolve(arg, substitutions);
+				Symbol resolvedArg = resolve(arg, substitutions, report);
 				if (resolvedArg != null) {
 					typeArgs.put(paramName, resolvedArg);
 				}
@@ -185,50 +201,6 @@ public class SymbolTable {
 		return get("Null");
 	}
 
-	public boolean isSameType(Symbol sym1, Symbol sym2) {
-		if (sym1 == null && sym2 == null)
-			return true;
-		if (sym1 == null || sym2 == null)
-			return false;
-		if (sym1 == sym2)
-			return true;
-
-		if (sym1.isTypeParam() && sym2.isTypeParam()) {
-			return sym1 == sym2;
-		}
-
-		if (sym1.isClass() && sym2.isClass()) {
-			return sym1 == sym2;
-		}
-
-		if (sym1.isParameterized() && sym2.isParameterized()) {
-			ParameterizedClassSymbol p1 = sym1.asParameterized();
-			ParameterizedClassSymbol p2 = sym2.asParameterized();
-
-			if (p1.getBase() != p2.getBase()) {
-				return false;
-			}
-
-			Map<String, Symbol> args1 = p1.getTypeArguments();
-			Map<String, Symbol> args2 = p2.getTypeArguments();
-
-			if (args1.size() != args2.size())
-				return false;
-
-			for (Map.Entry<String, Symbol> entry : args1.entrySet()) {
-				String key = entry.getKey();
-				if (!args2.containsKey(key))
-					return false;
-				if (!isSameType(entry.getValue(), args2.get(key)))
-					return false;
-			}
-
-			return true;
-		}
-
-		return false;
-	}
-
 	public boolean isBool(Symbol sym) {
 		return sym != null && sym == getBool();
 	}
@@ -259,162 +231,5 @@ public class SymbolTable {
 
 	public boolean isAny(Symbol sym) {
 		return sym != null && sym == getAny();
-	}
-
-	public boolean isNumeric(Symbol sym) {
-		if (sym == null)
-			return false;
-		return isSubtype(sym, getNumber());
-	}
-
-	public boolean isSubtype(Symbol sub, Symbol sup) {
-		if (sub == null || sup == null)
-			return false;
-		if (sub == sup)
-			return true;
-		if (isSameType(sub, sup))
-			return true;
-
-		if (sub.isTypeParam() && sup.isTypeParam()) {
-			return sub == sup;
-		}
-
-		ClassSymbol any = getAny();
-
-		if (sub.isTypeParam() && sup.isClass()) {
-			TypeParamSymbol tp = sub.asTypeParam();
-
-			for (Symbol superclass : tp.getSuperclasses().values()) {
-				if (isSubtype(superclass, sup)) {
-					return true;
-				}
-			}
-
-			return sup == any;
-		}
-
-		if (sub.isClass() && sup.isTypeParam()) {
-			return sub == any;
-		}
-
-		if (sub.isParameterized() && sup.isParameterized()) {
-			ParameterizedClassSymbol pSub = sub.asParameterized();
-			ParameterizedClassSymbol pSup = sup.asParameterized();
-
-			if (pSub.getBase() == pSup.getBase()) {
-				Map<String, Symbol> argsSub = pSub.getTypeArguments();
-				Map<String, Symbol> argsSup = pSup.getTypeArguments();
-
-				if (argsSub.size() != argsSup.size())
-					return false;
-
-				for (Map.Entry<String, Symbol> entry : argsSub.entrySet()) {
-					String key = entry.getKey();
-					if (!argsSup.containsKey(key))
-						return false;
-					if (!isSubtype(entry.getValue(), argsSup.get(key)))
-						return false;
-				}
-				return true;
-			}
-		}
-
-		if ((sub.isClass() || sub.isParameterized()) &&
-				(sup.isClass() || sup.isParameterized())) {
-
-			Set<Symbol> visited = new HashSet<>();
-			Deque<Symbol> stack = new ArrayDeque<>();
-			stack.push(sub);
-
-			while (!stack.isEmpty()) {
-				Symbol current = stack.pop();
-				if (current == null)
-					continue;
-				if (visited.contains(current))
-					continue;
-				visited.add(current);
-
-				if (isSameType(current, sup)) {
-					return true;
-				}
-
-				ClassSymbol currentBase = current.isParameterized()
-						? current.asParameterized().getBase()
-						: current.isClass() ? current.asClass() : null;
-
-				if (currentBase == null)
-					continue;
-
-				for (Symbol superclass : currentBase.getSuperclasses().values()) {
-					if (superclass != null && !visited.contains(superclass)) {
-						stack.push(superclass);
-					}
-				}
-			}
-			return false;
-		}
-
-		if (isNull(sub)) {
-			return !isVoid(sup);
-		}
-
-		if (sup == getNumber() && (sub == getInt() || sub == getFloat())) {
-			return true;
-		}
-
-		if (sup == any) {
-			return true;
-		}
-
-		return false;
-	}
-
-	public boolean isAssignable(Symbol source, Symbol target) {
-		if (source == null || target == null)
-			return false;
-		if (source == target)
-			return true;
-		if (isSameType(source, target))
-			return true;
-
-		if (isNull(source)) {
-			return !isVoid(target);
-		}
-
-		return isSubtype(source, target);
-	}
-
-	public Symbol getCommonSupertype(Symbol a, Symbol b) {
-		if (a == null)
-			return b;
-		if (b == null)
-			return a;
-
-		if (isSameType(a, b))
-			return a;
-		if (isSubtype(a, b))
-			return b;
-		if (isSubtype(b, a))
-			return a;
-
-		if (isNumeric(a) && isNumeric(b)) {
-			return getNumber();
-		}
-
-		return getAny();
-	}
-
-	public Symbol getArithmeticResultType(Symbol a, Symbol b) {
-		if (!isNumeric(a) || !isNumeric(b))
-			return null;
-
-		boolean hasFloat = (a != null && isSameType(a, getFloat())) ||
-				(b != null && isSameType(b, getFloat()));
-
-		if (hasFloat) {
-			return getFloat();
-		}
-
-		return getInt();
 	}
 }

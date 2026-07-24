@@ -230,7 +230,14 @@ public class Parser {
 		do {
 			Token nameToken = stream.expect(IDENTIFIER);
 
-			List<Typed> superclasses = superclasses();
+			List<TypeParamDeclStmt> typeParameters = null;
+
+			if (stream.check(RANGLE))
+				typeParameters = typeParameters();
+
+			List<Typed> superclasses = null;
+			if (stream.check(COLON))
+				superclasses = superclasses();
 
 			Positioned end = !superclasses.isEmpty()
 					? superclasses.get(superclasses.size() - 1)
@@ -239,6 +246,7 @@ public class Parser {
 			params.add(
 					new TypeParamDeclStmt(
 							new Identifier(nameToken.lexeme, nameToken.position),
+							typeParameters,
 							superclasses,
 							between(nameToken, end)));
 		} while (stream.match(COMMA));

@@ -44,8 +44,8 @@ public class ClassSymbol extends Symbol {
 
 	// TypeParameters
 
-	public void addTypeParameter(String tpName, TypeParamSymbol tpSymbol) {
-		this.typeParameters.put(tpName, tpSymbol);
+	public void addTypeParameter(TypeParamSymbol tpSymbol) {
+		this.typeParameters.put(tpSymbol.getName(), tpSymbol);
 	}
 
 	public void setTypeParameters(Map<String, TypeParamSymbol> typeParameters) {

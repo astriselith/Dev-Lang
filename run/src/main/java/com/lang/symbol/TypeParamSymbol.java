@@ -15,7 +15,7 @@ public class TypeParamSymbol extends Symbol {
 
 	public TypeParamSymbol(String name, List<Typed> superclassTypes) {
 		this.name = name;
-		this.superclassTypes = superclassTypes;
+		this.superclassTypes = superclassTypes != null ? superclassTypes : new ArrayList<>();
 
 		this.superclasses = new LinkedHashMap<>();
 	}

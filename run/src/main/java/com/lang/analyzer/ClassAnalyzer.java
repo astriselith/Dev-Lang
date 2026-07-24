@@ -24,88 +24,138 @@ public class ClassAnalyzer implements StmtVisitor<Void>, ExprVisitor<Void> {
     public void analyze() {
         unit.classes.forEach(cls -> {
             String className = cls.name.source;
-            List<String> typeParameterTypes = cls.typeParameters.stream().map(tp -> tp.name.source).toList();
-            List<Typed> superclassTypes = cls.superclasses;
 
-            if (table.classes.containsKey(className)) {
-                unit.error(TAG, REDEFINED_CLASS.format(className), cls);
+            if (table.has(className)) {
+                unit.addError(unit.error(TAG, REDEFINED_CLASS.format(className), cls));
                 return;
             }
 
-            table.classes.put(className, new ClassSymbol(className, typeParameterTypes, superclassTypes));
+            System.out.println("Registering class " + className);
+
+            table.add(new ClassSymbol(className,
+                    cls.typeParameters != null ? cls.typeParameters.stream().map(tp -> tp.name.source).toList()
+                            : new ArrayList<>(),
+                    cls.superclasses));
         });
 
         unit.classes.forEach(cls -> {
             String className = cls.name.source;
+            System.out.println("Additing structure to class " + className);
 
             ClassSymbol classSymbol = table.get(className);
+            if (cls.typeParameters != null) {
+                cls.typeParameters.forEach(tp -> {
+                    String tpName = tp.name.source;
 
-            cls.typeParameters.forEach(tp -> {
-                String tpName = tp.name.source;
-                List<Typed> superclassTypes = tp.superclasses;
-
-                if (classSymbol.hasTypeParameter(tpName)) {
-                    unit.error(TAG, REDEFINED_PARAMETER.format(tp.name.source), tp);
-                    return;
-                }
-
-                classSymbol.addTypeParameter(tpName, new TypeParamSymbol(tpName, superclassTypes));
-            });
-
-            cls.typeParameters.forEach(tp -> {
-                String tpName = tp.name.source;
-
-                TypeParamSymbol tpSymbol = classSymbol.getTypeParameter(tpName);
-
-                Map<String, Symbol> tpSubstituitions = new LinkedHashMap<>();
-                tpSubstituitions.put(className, classSymbol);
-                tpSubstituitions.putAll(classSymbol.getTypeParameters());
-
-                tp.superclasses.forEach(cls0 -> {
-                    if (tpSymbol.hasSuperclass(cls0.getName())) {
-                        unit.error(TAG, DUPLICATE_SUPERCLASS.format(cls0.getName()), cls0);
+                    if (classSymbol.hasTypeParameter(tpName)) {
+                        unit.addError(unit.error(TAG, REDEFINED_PARAMETER.format(tpName), tp));
                         return;
                     }
 
-                    Symbol resolved = table.resolve(cls0, tpSubstituitions);
-
-                    if (resolved != null) {
-                        if (resolved.isTypeParam() && resolved == tpSymbol) {
-                            unit.error(TAG, SELF_REFERENTIAL_TYPE_PARAMETER.format(tpName), tp);
-                        } else {
-                            tpSymbol.addSuperclass(resolved);
-                        }
-                    } else {
-                        unit.error(TAG, UNRESOLVED_SUPERCLASS.format(cls0.getName()), cls0);
-                    }
+                    classSymbol.addTypeParameter(new TypeParamSymbol(tpName, tp.superclasses));
                 });
 
-            });
+                cls.typeParameters.forEach(tp -> {
+                    String tpName = tp.name.source;
 
+                    TypeParamSymbol tpSymbol = classSymbol.getTypeParameter(tpName);
+
+                    Map<String, Symbol> tpSubstituitions = new LinkedHashMap<>();
+                    tpSubstituitions.put(className, classSymbol);
+                    tpSubstituitions.putAll(classSymbol.getTypeParameters());
+
+                    tp.superclasses.forEach(cls0 -> {
+                        if (tpSymbol.hasSuperclass(cls0.getName())) {
+                            unit.addError(unit.error(TAG, DUPLICATE_SUPERCLASS.format(cls0.getName()), cls0));
+                            return;
+                        }
+
+                        Symbol resolved = table.resolve(cls0, tpSubstituitions,
+                                t -> unit.addError(unit.error(TAG, UNRESOLVED_TYPE.format(t.getName()), t)));
+
+                        if (resolved != null) {
+                            if (resolved.isTypeParam() && resolved == tpSymbol || resolved.isParameterized()) {
+                                unit.addError(unit.error(TAG, SELF_REFERENTIAL_TYPE_PARAMETER.format(tpName), tp));
+                            } else {
+                                tpSymbol.addSuperclass(resolved);
+                            }
+                        }
+                    });
+
+                });
+            }
             Map<String, Symbol> clsSubstituitions = new LinkedHashMap<>();
             clsSubstituitions.put(className, classSymbol);
             clsSubstituitions.putAll(classSymbol.getTypeParameters());
 
-            cls.superclasses.forEach(cls0 -> {
-                if (classSymbol.hasSuperclass(cls0.getName())) {
-                    unit.error(TAG, DUPLICATE_SUPERCLASS.format(cls0.getName()), cls0);
-                    return;
-                }
-
-                Symbol resolved = table.resolve(cls0, clsSubstituitions);
-                if (resolved != null) {
-                    if (resolved.isClass() && resolved == classSymbol
-                            || resolved.isParameterized() && resolved.asParameterized().getBase() == classSymbol) {
-                        unit.error(TAG, CIRCULAR_INHERITANCE.format(className), cls0);
-                    } else {
-                        classSymbol.addSuperclass(resolved);
+            if (cls.superclasses != null) {
+                cls.superclasses.forEach(cls0 -> {
+                    if (classSymbol.hasSuperclass(cls0.getName())) {
+                        unit.addError(unit.error(TAG, DUPLICATE_SUPERCLASS.format(cls0.getName()), cls0));
+                        return;
                     }
-                } else {
-                    unit.error(TAG, UNRESOLVED_SUPERCLASS.format(cls0.getName()), cls0);
-                }
-            });
+
+                    Symbol resolved = table.resolve(cls0, clsSubstituitions,
+                            t -> unit.addError(unit.error(TAG, UNRESOLVED_TYPE.format(t.getName()), t)));
+
+                    if (resolved != null) {
+                        if (resolved.isClass() && resolved == classSymbol
+                                || resolved.isParameterized() && resolved.asParameterized().getBase() == classSymbol) {
+                            unit.addError(unit.error(TAG, CIRCULAR_INHERITANCE.format(className), cls0));
+                        } else {
+                            classSymbol.addSuperclass(resolved);
+                        }
+                    }
+                });
+            }
+
+            if (cls.vars != null) {
+                cls.vars.forEach(var -> {
+                    String varName = var.name.source;
+                    Typed typeType = var.type;
+
+                    if (classSymbol.hasDeclaredVar(varName)) {
+                        unit.addError(unit.error(TAG, REDEFINED_VARIABLE.format(varName), var));
+                        return;
+                    }
+
+                    classSymbol.addDeclaredVar(new VarSymbol(varName, typeType));
+                });
+
+                cls.vars.forEach(var -> {
+                    String varName = var.name.source;
+                    Typed typeType = var.type;
+
+                    VarSymbol varSymbol = classSymbol.getDeclaredVar(varName);
+
+                    varSymbol.setType(table.resolve(typeType, clsSubstituitions,
+                            t -> unit.addError(unit.error(TAG, UNRESOLVED_TYPE.format(t.getName()), t))));
+                });
+            }
+
+            if (cls.funs != null) {
+                cls.funs.forEach(fun -> {
+                    String funName = fun.name.source;
+                    List<String> typeParameterTypes = fun.typeParameters != null
+                            ? fun.typeParameters.stream().map(tp -> tp.name.source).toList()
+                            : new ArrayList<>();
+                    List<String> parameterTypes = fun.parameters != null
+                            ? fun.parameters.stream().map(p -> p.name.source).toList()
+                            : new ArrayList<>();
+                    Typed returnTypeType = fun.returnType;
+
+                    if (classSymbol.hasDeclaredFun(funName)) {
+                        unit.addError(unit.error(TAG, REDEFINED_FUNCTION.format(funName), fun));
+                    }
+
+                    classSymbol
+                            .addDeclaredFun(new FunSymbol(funName, typeParameterTypes, parameterTypes, returnTypeType));
+
+                });
+            }
 
         });
+
     }
 
     @Override

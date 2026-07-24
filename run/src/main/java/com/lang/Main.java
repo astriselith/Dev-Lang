@@ -1,5 +1,6 @@
 package com.lang;
 
+import com.lang.analyzer.ClassAnalyzer;
 import com.lang.lexer.Lexer;
 import com.lang.parser.Parser;
 import com.lang.source.SourceFile;
@@ -8,215 +9,292 @@ import com.lang.tools.Printer;
 import com.lang.unit.CompilationUnit;
 import com.lang.unit.CompilationException;
 import com.lang.unit.WarningException;
-import com.lang.module.Module;
-import com.lang.module.Modules;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Main {
 	private static boolean verbose = true;
 	private static CompilationUnit sharedUnit = new CompilationUnit();
+	private static SymbolTable symbolTable = new SymbolTable();
+	private static ClassAnalyzer analyzer = new ClassAnalyzer(symbolTable, sharedUnit);
 	private static String currentDir = System.getProperty("user.dir");
-	private static final Modules modules = new Modules();
+	private static final List<CommandHandler> commandHandlers = new ArrayList<>();
 
 	public static void main(String[] args) {
 		currentDir += "/tests";
+		registerCommandHandlers();
+
 		try {
-			if (args.length == 0) {
-				runInteractive();
-			} else {
-				for (String arg : args) {
-					if (arg.equals("-v")) {
-						verbose = true;
-					} else {
-						processFile(arg);
-					}
-				}
-			}
+			runInteractive();
 		} catch (Exception e) {
 			System.err.println("Erro: " + e.getMessage());
-			if (verbose) e.printStackTrace();
+			if (verbose)
+				e.printStackTrace();
 			System.exit(1);
 		}
 	}
 
+	private static void registerCommandHandlers() {
+		commandHandlers.add(new ParseCommand());
+		commandHandlers.add(new AnalyzeCommand());
+		commandHandlers.add(new ClassesCommand());
+		commandHandlers.add(new StatusCommand());
+		commandHandlers.add(new ResetCommand());
+		commandHandlers.add(new VerboseCommand());
+		commandHandlers.add(new HelpCommand());
+		commandHandlers.add(new ExitCommand());
+	}
+
 	private static void runInteractive() throws Exception {
-		System.out.println("Lang CLI - Testes de Módulos");
-		System.out.println("Comandos: parse, module, modules, resolve, status, reset, verbose, exit");
+		System.out.println("Lang CLI - Analisador de Classes");
+		System.out.println("Comandos: parse, analyze, classes, status, reset, verbose, help, exit");
 		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
 		while (true) {
 			System.out.print("> ");
 			String line = reader.readLine();
-			if (line == null) break;
+			if (line == null)
+				break;
 
 			line = line.trim();
-			if (line.isEmpty()) continue;
+			if (line.isEmpty())
+				continue;
 
-			if (line.equals("exit") || line.equals("quit")) {
-				if (!modules.isEmpty()) {
-					System.out.println("\n--- Módulos Carregados ---");
-					for (Module module : modules.getAll()) {
-						System.out.println("  " + module.toDependencyString());
-						if (module.hasErrors()) {
-							System.out.println("    ⚠ Erros");
-						}
-					}
+			boolean handled = false;
+			for (CommandHandler handler : commandHandlers) {
+				if (handler.canHandle(line)) {
+					handled = handler.execute(line);
+					break;
 				}
-				break;
 			}
 
-			if (line.equals("help")) {
-				System.out.println("Comandos:");
-				System.out.println("  parse <file>              - Parseia arquivo .lang");
-				System.out.println("  module <path>             - Carrega módulo .module");
-				System.out.println("  modules                   - Lista módulos");
-				System.out.println("  resolve                   - Resolve dependências");
-				System.out.println("  status                    - Mostra status");
-				System.out.println("  reset                     - Reseta tudo");
-				System.out.println("  verbose                   - Verbose mode");
-				System.out.println("  exit                      - Sai");
-				continue;
+			if (!handled) {
+				System.out.println("Comando inválido. Use 'help'");
 			}
-
-			if (line.equals("verbose")) {
-				verbose = !verbose;
-				System.out.println("verbose = " + verbose);
-				continue;
-			}
-
-			if (line.equals("status")) {
-				System.out.println("Classes: " + sharedUnit.getClassCount());
-				System.out.println("Módulos: " + modules.size());
-				System.out.println("Erros: " + sharedUnit.getErrorCount());
-				System.out.println("Dependências faltantes: " + (modules.hasMissingDependencies() ? "Sim" : "Não"));
-				continue;
-			}
-
-			if (line.equals("reset")) {
-				sharedUnit = new CompilationUnit();
-				new SymbolTable();
-				modules.clear();
-				System.out.println("Resetado");
-				continue;
-			}
-
-			if (line.equals("modules")) {
-				handleModules();
-				continue;
-			}
-
-			if (line.equals("resolve")) {
-				handleResolve();
-				continue;
-			}
-
-			if (line.startsWith("parse ")) {
-				String file = line.substring(6).trim();
-				processFile(file);
-				continue;
-			}
-
-			if (line.startsWith("module ")) {
-				String path = line.substring(7).trim();
-				handleModuleAdd(path);
-				continue;
-			}
-
-			System.out.println("Comando inválido. Use 'help'");
 		}
 	}
 
-	private static void handleModules() {
-		if (modules.isEmpty()) {
-			System.out.println("Nenhum módulo carregado.");
+	// Command Handler Interface
+	interface CommandHandler {
+		boolean canHandle(String input);
+
+		boolean execute(String input);
+
+		default void help(StringBuilder sb) {
+			sb.append("  ").append(getDescription()).append("\n");
+		}
+
+		String getDescription();
+	}
+
+	// Command Implementations
+	static class ParseCommand implements CommandHandler {
+		@Override
+		public boolean canHandle(String input) {
+			return input.startsWith("parse ");
+		}
+
+		@Override
+		public boolean execute(String input) {
+			String file = input.substring(6).trim();
+			processFile(file);
+			return true;
+		}
+
+		@Override
+		public String getDescription() {
+			return "parse <file> - Parseia arquivo .lang";
+		}
+	}
+
+	static class AnalyzeCommand implements CommandHandler {
+		@Override
+		public boolean canHandle(String input) {
+			return input.equals("analyze");
+		}
+
+		@Override
+		public boolean execute(String input) {
+			runAnalysis();
+			return true;
+		}
+
+		@Override
+		public String getDescription() {
+			return "analyze - Analisa classes carregadas";
+		}
+	}
+
+	static class ClassesCommand implements CommandHandler {
+		@Override
+		public boolean canHandle(String input) {
+			return input.equals("classes");
+		}
+
+		@Override
+		public boolean execute(String input) {
+			printClasses();
+			return true;
+		}
+
+		@Override
+		public String getDescription() {
+			return "classes - Lista classes carregadas";
+		}
+	}
+
+	static class StatusCommand implements CommandHandler {
+		@Override
+		public boolean canHandle(String input) {
+			return input.equals("status");
+		}
+
+		@Override
+		public boolean execute(String input) {
+			printStatus();
+			return true;
+		}
+
+		@Override
+		public String getDescription() {
+			return "status - Mostra status atual";
+		}
+	}
+
+	static class ResetCommand implements CommandHandler {
+		@Override
+		public boolean canHandle(String input) {
+			return input.equals("reset");
+		}
+
+		@Override
+		public boolean execute(String input) {
+			reset();
+			return true;
+		}
+
+		@Override
+		public String getDescription() {
+			return "reset - Reseta tudo";
+		}
+	}
+
+	static class VerboseCommand implements CommandHandler {
+		@Override
+		public boolean canHandle(String input) {
+			return input.equals("verbose");
+		}
+
+		@Override
+		public boolean execute(String input) {
+			verbose = !verbose;
+			System.out.println("verbose = " + verbose);
+			return true;
+		}
+
+		@Override
+		public String getDescription() {
+			return "verbose - Alterna modo verbose";
+		}
+	}
+
+	static class HelpCommand implements CommandHandler {
+		@Override
+		public boolean canHandle(String input) {
+			return input.equals("help") || input.equals("?");
+		}
+
+		@Override
+		public boolean execute(String input) {
+			StringBuilder sb = new StringBuilder();
+			sb.append("\nComandos disponíveis:\n");
+			for (CommandHandler handler : commandHandlers) {
+				handler.help(sb);
+			}
+			sb.append("\n");
+			System.out.print(sb.toString());
+			return true;
+		}
+
+		@Override
+		public String getDescription() {
+			return "help - Mostra esta ajuda";
+		}
+	}
+
+	static class ExitCommand implements CommandHandler {
+		@Override
+		public boolean canHandle(String input) {
+			return input.equals("exit") || input.equals("quit");
+		}
+
+		@Override
+		public boolean execute(String input) {
+			System.exit(0);
+			return true;
+		}
+
+		@Override
+		public String getDescription() {
+			return "exit - Sai do programa";
+		}
+	}
+
+	// Helper Methods
+	private static void printStatus() {
+		System.out.println("Classes: " + sharedUnit.getClassCount());
+		System.out.println("Erros: " + sharedUnit.getErrorCount());
+		System.out.println("Avisos: " + sharedUnit.getWarningCount());
+	}
+
+	private static void printClasses() {
+		if (sharedUnit.getClassCount() == 0) {
+			System.out.println("Nenhuma classe carregada.");
 			return;
 		}
 
-		System.out.println("\n=== Módulos (" + modules.size() + ") ===");
-		for (int i = 0; i < modules.getAll().size(); i++) {
-			Module m = modules.getAll().get(i);
-			System.out.printf("%d. %s %s%n", i + 1, m.toDependencyString(), m.isValid() ? "✓" : "✗");
-
-			if (!m.getDependencies().isEmpty()) {
-				String deps = m.getDependencies().stream()
-							  .map(Module::toDependencyString)
-							  .collect(Collectors.joining(", "));
-				System.out.println("   Deps: " + deps);
+		System.out.println("\n=== Classes Carregadas (" + sharedUnit.getClassCount() + ") ===");
+		sharedUnit.forEachClass(classDecl -> {
+			System.out.println("  " + classDecl.name.source);
+			if (verbose) {
+				Printer printer = new Printer();
+				System.out.println(printer.print(classDecl));
 			}
-		}
-
-		if (modules.hasMissingDependencies()) {
-			System.out.println("\n⚠ Dependências faltantes:");
-			for (Module dep : modules.getMissingDependencies()) {
-				System.out.println("  " + dep.toDependencyString());
-			}
-		}
+		});
 	}
 
-	private static void handleResolve() {
-		if (modules.isEmpty()) {
-			System.out.println("Nenhum módulo.");
+	private static void runAnalysis() {
+		if (sharedUnit.getClassCount() == 0) {
+			System.out.println("Nenhuma classe para analisar.");
 			return;
 		}
 
-		modules.resolve();
-		System.out.println("✓ Resolvido!");
+		System.out.println("Executando análise...");
+		analyzer.analyze();
 
-		if (modules.hasMissingDependencies()) {
-			System.out.println("⚠ Dependências faltantes:");
-			for (Module dep : modules.getMissingDependencies()) {
-				System.out.println("  " + dep.toDependencyString());
+		if (sharedUnit.hasErrors("ANALYZER")) {
+			System.out.println("✗ Análise falhou:");
+			for (CompilationException e : sharedUnit.getErrors("ANALYZER")) {
+				System.err.println("  " + e.getMessage());
 			}
+		} else {
+			System.out.println("Análise completa, nenhum erro encontrado");
 		}
+
+		sharedUnit.printReport();
 	}
 
-	private static void handleModuleAdd(String modulePath) {
-		try {
-			Path path = Paths.get(currentDir).resolve(modulePath).normalize();
-
-			if (!Files.exists(path)) {
-				System.err.println("Módulo não encontrado: " + path);
-				return;
-			}
-
-			if (!path.toString().endsWith(".module")) {
-				System.err.println("Arquivoe ter extensão .module");
-				return;
-			}
-
-			if (verbose) System.out.println("Carregando: " + path);
-
-			Module module = modules.load(path);
-
-			if (module.hasErrors()) {
-				System.out.println("✗ Falha ao carregar módulo");
-				module.getCompilationUnit().printReport();
-				return;
-			}
-
-			CompilationUnit unit = module.getCompilationUnit();
-			if (unit != null) {
-				unit.forEachClass(classDecl -> sharedUnit.addClass(classDecl));
-				for (CompilationException e : unit.getErrors()) {
-					sharedUnit.addError(e);
-				}
-				for (WarningException w : unit.getWarnings()) {
-					sharedUnit.addWarning(w);
-				}
-			}
-
-			System.out.println("✓ " + module.toDependencyString() + " carregado!");
-
-		} catch (Exception e) {
-			System.err.println("Erro: " + e.getMessage());
-			if (verbose) e.printStackTrace();
-		}
+	private static void reset() {
+		sharedUnit = new CompilationUnit();
+		symbolTable = new SymbolTable();
+		analyzer = new ClassAnalyzer(symbolTable, sharedUnit);
+		System.out.println("Resetado");
 	}
 
 	private static void processFile(String path) {
@@ -229,11 +307,12 @@ public class Main {
 			}
 
 			if (!input.toString().endsWith(".lang")) {
-				System.err.println("Arquivoe ter extensão .lang");
+				System.err.println("Arquivo deve ter extensão .lang");
 				return;
 			}
 
-			if (verbose) System.out.println("Parsing: " + input);
+			if (verbose)
+				System.out.println("Parsing: " + input);
 
 			SourceFile source = new SourceFile(input);
 			Lexer lexer = new Lexer(source, sharedUnit);
@@ -261,7 +340,8 @@ public class Main {
 
 		} catch (Exception e) {
 			System.err.println("Erro ao processar: " + e.getMessage());
-			if (verbose) e.printStackTrace();
+			if (verbose)
+				e.printStackTrace();
 		}
 	}
 }

@@ -82,7 +82,7 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 			for (int i = 0; i < expr.typeArguments.size(); i++) {
 				if (i > 0)
 					sb.append(", ");
-				sb.append(expr.typeArguments.get(i).getName());
+				sb.append(expr.typeArguments.get(i).getSignature());
 			}
 			sb.append(">");
 		}
@@ -113,7 +113,7 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 
 		sb.append("var ").append(stmt.name);
 		if (stmt.type != null) {
-			sb.append(": ").append(stmt.type.getName());
+			sb.append(": ").append(stmt.type.getSignature());
 		}
 		if (stmt.value != null) {
 			sb.append(" = ").append(stmt.value.accept(this));
@@ -148,7 +148,7 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 		sb.append(")");
 
 		if (stmt.returnType != null) {
-			sb.append(": ").append(stmt.returnType.getName());
+			sb.append(": ").append(stmt.returnType.getSignature());
 		}
 
 		if (stmt.body != null) {
@@ -175,7 +175,7 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 		if (stmt.superclasses != null && !stmt.superclasses.isEmpty()) {
 			sb.append(" : ");
 			sb.append(String.join(" & ", stmt.superclasses.stream()
-					.map(Typed::getName)
+					.map(Typed::getSignature)
 					.toArray(String[]::new)));
 		}
 
@@ -200,7 +200,7 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 			sb.append(" : ");
 
 			sb.append(String.join(" & ", stmt.superclasses.stream()
-					.map(Typed::getName)
+					.map(Typed::getSignature)
 					.toArray(String[]::new)));
 		}
 
@@ -235,7 +235,7 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 		StringBuilder sb = new StringBuilder();
 		sb.append("let ").append(stmt.name);
 		if (stmt.type != null) {
-			sb.append(": ").append(stmt.type.getName());
+			sb.append(": ").append(stmt.type.getSignature());
 		}
 		if (stmt.value != null) {
 			sb.append(" = ").append(stmt.value.accept(this));
