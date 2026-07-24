@@ -1,41 +1,78 @@
 package com.lang.symbol;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+
+import com.lang.ast.Typed;
 
 public class TypeParamSymbol extends Symbol {
 	private final String name;
-	private final List<Symbol> superclasses;
+	private final List<Typed> superclassTypes;
+	private Map<String, Symbol> superclasses;
 
-	public TypeParamSymbol(String name, List<Symbol> superclasses) {
+	public TypeParamSymbol(String name, List<Typed> superclassTypes) {
 		this.name = name;
-		this.superclasses = superclasses != null
-				? Collections.unmodifiableList(superclasses)
-				: Collections.emptyList();
+		this.superclassTypes = superclassTypes;
+
+		this.superclasses = new LinkedHashMap<>();
 	}
 
 	public String getName() {
 		return name;
 	}
 
-	public List<Symbol> getSuperclasses() {
-		return superclasses;
+	public List<Typed> getSuperclassTypes() {
+		return Collections.unmodifiableList(superclassTypes);
+	}
+
+	// Superclasses
+
+	public void addSuperclass(Symbol symbol) {
+		String className = null;
+		if (symbol.isClass()) {
+			className = symbol.asClass().getName();
+		}
+		if (symbol.isParameterized()) {
+			className = symbol.asParameterized().getBase().getName();
+		}
+		if (className != null)
+			this.superclasses.put(className, symbol);
+	}
+
+	public void setSuperclasses(Map<String, Symbol> superclasses) {
+		this.superclasses.clear();
+		if (superclasses != null)
+			this.superclasses.putAll(superclasses);
+	}
+
+	public boolean hasSuperclass(String className) {
+		return this.superclasses.containsKey(className);
+	}
+
+	public Symbol getSuperclass(String className) {
+		return this.superclasses.get(className);
+	}
+
+	public Map<String, Symbol> getSuperclasses() {
+		return Collections.unmodifiableMap(superclasses);
 	}
 
 	public boolean hasSuperclasses() {
 		return !superclasses.isEmpty();
 	}
 
-	private List<ClassSymbol> getBaseSuperclasses() {
-		if (superclasses.isEmpty())
-			return Collections.emptyList();
+	// Superclasses (util)
 
-		List<ClassSymbol> result = new java.util.ArrayList<>();
-		for (Symbol trait : superclasses) {
-			if (trait.isClass()) {
-				result.add(trait.asClass());
-			} else if (trait.isParameterized()) {
-				result.add(trait.asParameterized().getBase());
+	public List<ClassSymbol> getBaseSuperclasses() {
+		List<ClassSymbol> result = new ArrayList<>();
+		for (Symbol clazz : superclasses.values()) {
+			if (clazz.isClass()) {
+				result.add(clazz.asClass());
+			} else if (clazz.isParameterized()) {
+				result.add(clazz.asParameterized().getBase());
 			}
 		}
 		return Collections.unmodifiableList(result);
@@ -60,4 +97,5 @@ public class TypeParamSymbol extends Symbol {
 
 		return null;
 	}
+
 }

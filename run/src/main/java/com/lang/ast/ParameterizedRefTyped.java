@@ -20,6 +20,11 @@ public class ParameterizedRefTyped extends Typed {
 
 	@Override
 	public String getName() {
+		return name.source;
+	}
+
+	@Override
+	public String getSignature() {
 		StringBuilder sb = new StringBuilder(name.source);
 
 		if (!typeArguments.isEmpty()) {
@@ -34,4 +39,5 @@ public class ParameterizedRefTyped extends Typed {
 
 		return sb.toString();
 	}
+
 }

@@ -18,4 +18,9 @@ public class RefTyped extends Typed {
 	public String getName() {
 		return name.source;
 	}
+
+	@Override
+	public String getSignature() {
+		return name.source;
+	}
 }

@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class CompilationUnit {
-	private final List<ClassDeclStmt> classes;
+	public final List<ClassDeclStmt> classes;
 	private final List<Comment> comments;
 
 	private final List<CompilationException> errors;

@@ -6,7 +6,7 @@ import com.lang.ast.ParameterizedRefTyped;
 import java.util.*;
 
 public class SymbolTable {
-	private final Map<String, ClassSymbol> classes = new LinkedHashMap<>();
+	public final Map<String, ClassSymbol> classes = new LinkedHashMap<>();
 
 	private final Map<String, Symbol> globals = new LinkedHashMap<>();
 	private final Map<String, FunSymbol> funs = new LinkedHashMap<>();
@@ -284,8 +284,8 @@ public class SymbolTable {
 		if (sub.isTypeParam() && sup.isClass()) {
 			TypeParamSymbol tp = sub.asTypeParam();
 
-			for (Symbol trait : tp.getSuperclasses()) {
-				if (isSubtype(trait, sup)) {
+			for (Symbol superclass : tp.getSuperclasses().values()) {
+				if (isSubtype(superclass, sup)) {
 					return true;
 				}
 			}
@@ -345,9 +345,9 @@ public class SymbolTable {
 				if (currentBase == null)
 					continue;
 
-				for (Symbol trait : currentBase.getSuperclasses()) {
-					if (trait != null && !visited.contains(trait)) {
-						stack.push(trait);
+				for (Symbol superclass : currentBase.getSuperclasses().values()) {
+					if (superclass != null && !visited.contains(superclass)) {
+						stack.push(superclass);
 					}
 				}
 			}

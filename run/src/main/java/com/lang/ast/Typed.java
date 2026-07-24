@@ -13,6 +13,8 @@ public abstract class Typed extends Node {
 
 	public abstract String getName();
 
+	public abstract String getSignature();
+
 	public boolean isRef() {
 		return this instanceof RefTyped;
 	}
