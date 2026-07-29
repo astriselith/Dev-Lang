@@ -8,6 +8,7 @@ public enum ParsingErrorCode {
 	INVALID_EXPR_STMT("Expression cannot be used as a statement"),
 	UNEXPECTED_CONTENT("Unexpected content"),
 	NO_CLASS("No class declared in file"),
+	EXPECTED_CLASS_BODY("Expected class body"),
 	EXPECTED_FUNCTION_BODY("Expected function body"),
 	EXPECTED_MEMBER("Expected member"),
 	EXPECTED_PARAM("Expected parameter"),

@@ -127,7 +127,7 @@ public class Analyzer implements DefaultStmtVisitor<Void>, DefaultExprVisitor<Sy
             stmt.value.accept(this);
         }
 
-        Symbol varSymbol = currentScope().resolveLocal(stmt.name.source);
+        VarSymbol varSymbol = (VarSymbol) currentClass.getDeclaredMember(stmt.name.source);
         if (varSymbol == null) {
             unit.addError(unit.error(TAG, UNDEFINED_VARIABLE.format(stmt.name.source), stmt));
         }

@@ -29,8 +29,9 @@ public class Parser {
 		if (this.stream == null) {
 			throw new IllegalArgumentException("TokenStream cannot be null");
 		}
+
 		this.stream.setHandler((token) -> {
-			return token.isComment() ? false : true;
+			return !token.isComment();
 		});
 
 	}
@@ -119,6 +120,39 @@ public class Parser {
 
 	}
 
+	private List<MemberDeclStmt> members() {
+		stream.expect(LBRACE);
+
+		List<MemberDeclStmt> members = new ArrayList<>();
+		while (!stream.isAtEnd() && !stream.check(RBRACE)) {
+			try {
+				if (stream.check("fun"))
+					members.add(funDecl());
+				else if (stream.check("var"))
+					members.add(varDecl());
+				else
+					throw unit.error(
+							TAG,
+							EXPECTED_MEMBER.format(),
+							stream.peek());
+
+			} catch (CompilationException e) {
+				unit.addError(e);
+				synchronizeAfter(DEFAULT_MEMBER_RECOVERY);
+			} catch (IllegalStateException e) {
+				unit.addError(
+						unit.error(
+								TAG,
+								e.getMessage(),
+								stream.peek()));
+				synchronizeAfter(DEFAULT_MEMBER_RECOVERY);
+			}
+		}
+
+		stream.expect(RBRACE);
+		return members;
+	}
+
 	private VarDeclStmt varDecl() {
 		Token start = stream.expect("var");
 
@@ -159,16 +193,6 @@ public class Parser {
 
 		if (stream.match(SEMICOLON)) {
 			body = null;
-		} else if (stream.match(EQUALS)) {
-			if (stream.match(QUESTION)) {
-				semicolon();
-				body = new BlockStmt(List.of(), pos(stream.previous()));
-			} else {
-				Expr value = expr();
-				semicolon();
-				ReturnStmt ret = new ReturnStmt(value, pos(value));
-				body = new BlockStmt(List.of(ret), pos(ret));
-			}
 		} else if (stream.check(LBRACE)) {
 			body = block();
 		} else {
@@ -341,48 +365,18 @@ public class Parser {
 		if (stream.check(LANGLE))
 			typeParameters = typeParameters();
 
-		List<Typed> superclasses = superclasses();
+		List<Typed> superclasses = null;
+		if (stream.check(COLON))
+			superclasses = superclasses();
 
 		List<MemberDeclStmt> members = new ArrayList<>();
 		Positioned end = null;
-
-		if (stream.match(SEMICOLON)) {
-			end = stream.previous();
-		} else {
-			stream.expect(LBRACE);
-
-			while (!stream.isAtEnd() && !stream.check(RBRACE)) {
-				try {
-					if (stream.check("fun")) {
-						FunDeclStmt fun = funDecl();
-						members.add(fun);
-					} else if (stream.check("var")) {
-						VarDeclStmt var = varDecl();
-						members.add(var);
-
-					} else {
-						throw unit.error(
-								TAG,
-								EXPECTED_MEMBER.format(),
-								stream.peek());
-					}
-				} catch (CompilationException e) {
-					unit.addError(e);
-					synchronizeAfter(DEFAULT_MEMBER_RECOVERY);
-				} catch (IllegalStateException e) {
-					unit.addError(
-							unit.error(
-									TAG,
-									e.getMessage(),
-									stream.peek()));
-					synchronizeAfter(DEFAULT_MEMBER_RECOVERY);
-				}
-			}
-
-			stream.expect(RBRACE);
+		if (stream.check(SEMICOLON)) {
+			end = stream.advance();
+		} else if (stream.check(LBRACE)) {
+			members = members();
 			end = stream.previous();
 		}
-
 		return new ClassDeclStmt(new Identifier(nameToken.lexeme, nameToken.position), superclasses,
 				typeParameters, members, between(start, end));
 	}
