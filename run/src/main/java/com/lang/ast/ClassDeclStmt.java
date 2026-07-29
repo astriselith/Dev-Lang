@@ -10,19 +10,17 @@ public class ClassDeclStmt extends Stmt {
 	public List<Typed> superclasses;
 	public List<TypeParamDeclStmt> typeParameters;
 
-	public List<FunDeclStmt> funs;
-	public List<VarDeclStmt> vars;
+	public List<MemberDeclStmt> members;
 
 	public ClassDeclStmt() {
 	}
 
 	public ClassDeclStmt(Identifier name, List<Typed> superclasses, List<TypeParamDeclStmt> typeParameters,
-			List<FunDeclStmt> funs, List<VarDeclStmt> vars, Position position) {
+			List<MemberDeclStmt> members, Position position) {
 		super(position);
 		this.name = name;
 		this.superclasses = superclasses;
 		this.typeParameters = typeParameters;
-		this.funs = funs;
-		this.vars = vars;
+		this.members = members;
 	}
 }

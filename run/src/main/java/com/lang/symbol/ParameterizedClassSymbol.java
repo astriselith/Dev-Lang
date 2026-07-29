@@ -7,6 +7,7 @@ public class ParameterizedClassSymbol extends Symbol {
 	private final Map<String, Symbol> typeArguments;
 
 	public ParameterizedClassSymbol(ClassSymbol base, Map<String, Symbol> typeArguments) {
+		super(base.getName());
 		this.base = base;
 		this.typeArguments = typeArguments != null
 				? Collections.unmodifiableMap(typeArguments)

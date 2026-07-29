@@ -1,16 +1,12 @@
 package com.lang.symbol;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import com.lang.ast.BlockStmt;
-import com.lang.ast.Typed;
 
-import java.util.*;
-
-public class FunSymbol extends Symbol {
-	private final String name;
-
-	private final List<String> typeParameterTypes;
-	private final List<String> parameterTypes;
-	private final Typed returnTypeType;
+public class FunSymbol extends MemberSymbol {
 
 	private Map<String, TypeParamSymbol> typeParameters;
 	private Map<String, ParamSymbol> parameters;
@@ -19,47 +15,12 @@ public class FunSymbol extends Symbol {
 
 	private BlockStmt body;
 
-	public FunSymbol(String name, List<String> typeParameterTypes, List<String> parameterTypes, Typed returnTypeType) {
-		this.name = name;
-		this.typeParameterTypes = typeParameterTypes != null ? typeParameterTypes : new ArrayList<>();
-		this.parameterTypes = parameterTypes != null ? parameterTypes : new ArrayList<>();
-		this.returnTypeType = returnTypeType;
+	public FunSymbol(String name) {
+		super(name);
 
 		this.typeParameters = new LinkedHashMap<>();
 		this.parameters = new LinkedHashMap<>();
 		this.returnType = null;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public List<String> getTypeParameterTypes() {
-		return typeParameterTypes;
-	}
-
-	public List<String> getParameterTypes() {
-		return parameterTypes;
-	}
-
-	public Typed getReturnTypeType() {
-		return returnTypeType;
-	}
-
-	public Map<String, ParamSymbol> getParameters() {
-		return parameters;
-	}
-
-	public Symbol getReturnType() {
-		return returnType;
-	}
-
-	public BlockStmt getBody() {
-		return body;
-	}
-
-	public void setBody(BlockStmt body) {
-		this.body = body;
 	}
 
 	// TypeParameters
@@ -88,6 +49,50 @@ public class FunSymbol extends Symbol {
 
 	public boolean hasTypeParameters() {
 		return !typeParameters.isEmpty();
+	}
+
+	// Parameters
+
+	public void addParameter(ParamSymbol pSymbol) {
+		this.parameters.put(pSymbol.getName(), pSymbol);
+	}
+
+	public void setParameters(Map<String, ParamSymbol> parameters) {
+		this.parameters.clear();
+		if (parameters != null)
+			this.parameters.putAll(parameters);
+	}
+
+	public ParamSymbol getParameter(String pName) {
+		return this.parameters.get(pName);
+	}
+
+	public Map<String, ParamSymbol> getParameters() {
+		return Collections.unmodifiableMap(parameters);
+	}
+
+	public boolean hasParameter(String tpName) {
+		return this.parameters.containsKey(tpName);
+	}
+
+	public boolean hasParameters() {
+		return !parameters.isEmpty();
+	}
+
+	public void setReturnType(Symbol returnType) {
+		this.returnType = returnType;
+	}
+
+	public Symbol getReturnType() {
+		return returnType;
+	}
+
+	public BlockStmt getBody() {
+		return body;
+	}
+
+	public void setBody(BlockStmt body) {
+		this.body = body;
 	}
 
 	public boolean isPure() {

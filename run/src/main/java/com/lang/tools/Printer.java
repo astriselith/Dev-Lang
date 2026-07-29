@@ -206,21 +206,15 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 
 		sb.append(" ");
 
-		if (stmt.funs.isEmpty() && stmt.vars.isEmpty()) {
+		if (stmt.members.isEmpty()) {
 			sb.append("{}");
 		} else {
 			sb.append("{\n");
 			indent++;
 
-			for (VarDeclStmt var : stmt.vars) {
-				if (var != null) {
-					sb.append(indent()).append(var.accept(this)).append("\n");
-				}
-			}
-
-			for (FunDeclStmt fun : stmt.funs) {
-				if (fun != null) {
-					sb.append(indent()).append(fun.accept(this)).append("\n");
+			for (Stmt member : stmt.members) {
+				if (member != null) {
+					sb.append(indent()).append(member.accept(this)).append("\n");
 				}
 			}
 

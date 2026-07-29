@@ -1,11 +1,19 @@
 package com.lang.symbol;
 
 public abstract class Symbol {
+
+	private final String name;
+
 	public final int declarationOrder;
 	private static int globalCounter = 0;
 
-	protected Symbol() {
+	protected Symbol(String name) {
+		this.name = name;
 		this.declarationOrder = ++globalCounter;
+	}
+
+	public String getName() {
+		return name;
 	}
 
 	public boolean isClass() {
@@ -28,7 +36,7 @@ public abstract class Symbol {
 		return this instanceof TypeParamSymbol;
 	}
 
-	public boolean isParameterized() {
+	public boolean isParameterizedClass() {
 		return this instanceof ParameterizedClassSymbol;
 	}
 
@@ -52,8 +60,8 @@ public abstract class Symbol {
 		return isTypeParam() ? (TypeParamSymbol) this : null;
 	}
 
-	public ParameterizedClassSymbol asParameterized() {
-		return isParameterized() ? (ParameterizedClassSymbol) this : null;
+	public ParameterizedClassSymbol asParameterizedClass() {
+		return isParameterizedClass() ? (ParameterizedClassSymbol) this : null;
 	}
 
 	public static void resetCounter() {

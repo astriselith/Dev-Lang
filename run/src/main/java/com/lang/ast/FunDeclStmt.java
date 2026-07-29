@@ -4,8 +4,7 @@ import java.util.List;
 
 import com.lang.util.Position;
 
-public class FunDeclStmt extends Stmt {
-	public Identifier name;
+public class FunDeclStmt extends MemberDeclStmt {
 	public List<TypeParamDeclStmt> typeParameters;
 	public List<ParamDeclStmt> parameters;
 	public Typed returnType;
@@ -16,8 +15,7 @@ public class FunDeclStmt extends Stmt {
 
 	public FunDeclStmt(Identifier name, List<TypeParamDeclStmt> typeParameters, List<ParamDeclStmt> parameters,
 			Typed returnType, BlockStmt body, Position position) {
-		super(position);
-		this.name = name;
+		super(name, position);
 		this.typeParameters = typeParameters;
 		this.parameters = parameters;
 		this.returnType = returnType;

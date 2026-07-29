@@ -77,31 +77,6 @@ public class SymbolTable {
 		return Collections.unmodifiableMap(vars);
 	}
 
-	public Symbol lookup(Symbol left, String name) {
-		if (left == null) {
-			return getGlobal(name);
-		}
-
-		if (left.isClass()) {
-			ClassSymbol cls = left.asClass();
-			Symbol result = cls.getFun(name);
-			if (result != null)
-				return result;
-			return cls.getVar(name);
-		}
-
-		if (left.isParameterized()) {
-			ParameterizedClassSymbol param = left.asParameterized();
-			ClassSymbol base = param.getBase();
-			Symbol result = base.getFun(name);
-			if (result != null)
-				return result;
-			return base.getVar(name);
-		}
-
-		return null;
-	}
-
 	public Symbol resolve(Typed type) {
 		return resolve(type, new HashMap<>(), null);
 	}
@@ -119,45 +94,54 @@ public class SymbolTable {
 				return substitutions.get(name);
 			}
 
-			if (this.has(name)) {
-				return this.get(name);
-			} else {
-				if (report != null)
-					report.accept(ref);
+			Symbol symbol = this.get(name);
+
+			if (symbol != null) {
+				return symbol;
+			}
+
+			if (report != null) {
+				report.accept(ref);
 			}
 
 			return null;
-
 		}
 
 		if (type.isParameterizedRef()) {
 			ParameterizedRefTyped param = (ParameterizedRefTyped) type;
 			String name = param.name.source;
 
-			ClassSymbol baseClass = null;
-			if (this.has(name)) {
-				baseClass = this.get(name);
-			} else {
-				if (report != null)
-					report.accept(param);
+			Symbol symbol = this.get(name);
 
-				if (param.typeArguments != null)
-					param.typeArguments.forEach(t -> this.resolve(t, substitutions, report));
+			if (!(symbol instanceof ClassSymbol baseClass)) {
+				if (report != null) {
+					report.accept(param);
+				}
+
+				if (param.typeArguments != null) {
+					param.typeArguments.forEach(t -> resolve(t, substitutions, report));
+				}
+
 				return null;
 			}
 
-			List<String> typeParameterTypes = baseClass.getTypeParameterTypes();
+			Map<String, TypeParamSymbol> typeParameters = baseClass.getTypeParameters();
 
-			if (typeParameterTypes.size() != param.typeArguments.size()) {
-				return baseClass;
+			if (typeParameters.size() != param.typeArguments.size()) {
+				if (report != null) {
+					report.accept(param);
+				}
+				return null;
 			}
 
 			Map<String, Symbol> typeArgs = new LinkedHashMap<>();
-			for (int i = 0; i < typeParameterTypes.size(); i++) {
-				String paramName = typeParameterTypes.get(i);
-				Typed arg = param.typeArguments.get(i);
+
+			int index = 0;
+			for (String paramName : typeParameters.keySet()) {
+				Typed arg = param.typeArguments.get(index++);
 
 				Symbol resolvedArg = resolve(arg, substitutions, report);
+
 				if (resolvedArg != null) {
 					typeArgs.put(paramName, resolvedArg);
 				}

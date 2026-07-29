@@ -1,45 +1,25 @@
 package com.lang.symbol;
 
-import java.util.*;
-import com.lang.ast.Typed;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ClassSymbol extends Symbol {
-	private final String name;
 
-	private final List<String> typeParameterTypes;
-	private final List<Typed> superclassTypes;
-
-	private Map<String, TypeParamSymbol> typeParameters;
-	private Map<String, Symbol> superclasses;
-	private Map<String, FunSymbol> declaredFuns;
-	private Map<String, VarSymbol> declaredVars;
+	private final Map<String, TypeParamSymbol> typeParameters;
+	private final Map<String, Symbol> superclasses;
+	private final Map<String, MemberSymbol> declaredMembers;
 
 	private boolean pure = false;
 
-	public ClassSymbol(String name,
-			List<String> typeParameterTypes,
-			List<Typed> superclassTypes) {
-		this.name = name;
-
-		this.typeParameterTypes = typeParameterTypes != null ? new ArrayList<>(typeParameterTypes) : new ArrayList<>();
-		this.superclassTypes = superclassTypes != null ? new ArrayList<>(superclassTypes) : new ArrayList<>();
+	public ClassSymbol(String name) {
+		super(name);
 
 		this.typeParameters = new LinkedHashMap<>();
 		this.superclasses = new LinkedHashMap<>();
-		this.declaredFuns = new LinkedHashMap<>();
-		this.declaredVars = new LinkedHashMap<>();
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public List<String> getTypeParameterTypes() {
-		return Collections.unmodifiableList(typeParameterTypes);
-	}
-
-	public List<Typed> getSuperclassTypes() {
-		return Collections.unmodifiableList(superclassTypes);
+		this.declaredMembers = new LinkedHashMap<>();
 	}
 
 	// TypeParameters
@@ -77,8 +57,8 @@ public class ClassSymbol extends Symbol {
 		if (symbol.isClass()) {
 			className = symbol.asClass().getName();
 		}
-		if (symbol.isParameterized()) {
-			className = symbol.asParameterized().getBase().getName();
+		if (symbol.isParameterizedClass()) {
+			className = symbol.asParameterizedClass().getBase().getName();
 		}
 		if (className != null)
 			this.superclasses.put(className, symbol);
@@ -113,113 +93,55 @@ public class ClassSymbol extends Symbol {
 		for (Symbol clazz : superclasses.values()) {
 			if (clazz.isClass()) {
 				result.add(clazz.asClass());
-			} else if (clazz.isParameterized()) {
-				result.add(clazz.asParameterized().getBase());
+			} else if (clazz.isParameterizedClass()) {
+				result.add(clazz.asParameterizedClass().getBase());
 			}
 		}
 		return Collections.unmodifiableList(result);
 	}
 
-	// Variables
+	// Members
 
-	public void addDeclaredVar(VarSymbol var) {
-		if (var != null) {
-			String name = var.getName();
-			declaredVars.put(name, var);
-		}
+	public void addDeclaredMember(MemberSymbol member) {
+		if (member != null)
+			declaredMembers.put(member.getName(), member);
+
 	}
 
-	public void setDeclaredVars(List<VarSymbol> declaredVars) {
-		this.declaredVars.clear();
-		if (declaredVars != null)
-			declaredVars.forEach(varSymbol -> this.declaredVars.put(varSymbol.getName(), varSymbol));
+	public MemberSymbol getDeclaredMember(String name) {
+		return declaredMembers.get(name);
 	}
 
-	public VarSymbol getDeclaredVar(String name) {
-		return declaredVars.get(name);
+	public Map<String, MemberSymbol> getDeclaredMembers() {
+		return Collections.unmodifiableMap(declaredMembers);
 	}
 
-	public Map<String, VarSymbol> getDeclaredVars() {
-		return Collections.unmodifiableMap(declaredVars);
+	public boolean hasDeclaredMember(String funName) {
+		return this.declaredMembers.containsKey(funName);
 	}
 
-	public boolean hasDeclaredVar(String varName) {
-		return this.declaredVars.containsKey(varName);
-	}
-
-	public boolean hasDeclaredVars() {
-		return this.declaredVars.isEmpty();
-	}
-
-	// Variables (util)
-
-	public VarSymbol getVar(String name) {
-		VarSymbol var = declaredVars.get(name);
-		if (var != null)
-			return var;
-
-		List<ClassSymbol> baseSuperclasss = getBaseSuperclasses();
-		for (ClassSymbol clazz : baseSuperclasss) {
-			var = clazz.getVar(name);
-			if (var != null)
-				return var;
-		}
-		return null;
-	}
-
-	public boolean hasVar(String name) {
-		return getVar(name) != null;
-	}
-
-	// Functions
-
-	public void addDeclaredFun(FunSymbol fun) {
-		if (fun != null) {
-			String name = fun.getName();
-			declaredFuns.put(name, fun);
-		}
-	}
-
-	public void setDeclaredFuns(List<FunSymbol> declaredFuns) {
-		this.declaredFuns.clear();
-		if (declaredFuns != null)
-			declaredFuns.forEach(funSymbol -> this.declaredFuns.put(funSymbol.getName(), funSymbol));
-	}
-
-	public FunSymbol getDeclaredFun(String name) {
-		return declaredFuns.get(name);
-	}
-
-	public Map<String, FunSymbol> getDeclaredFuns() {
-		return Collections.unmodifiableMap(declaredFuns);
-	}
-
-	public boolean hasDeclaredFun(String funName) {
-		return this.declaredFuns.containsKey(funName);
-	}
-
-	public boolean hasDeclaredFuns() {
-		return this.declaredFuns.isEmpty();
+	public boolean hasDeclaredMembers() {
+		return this.declaredMembers.isEmpty();
 	}
 
 	// Functions (util)
 
-	public FunSymbol getFun(String name) {
-		FunSymbol fun = declaredFuns.get(name);
-		if (fun != null)
-			return fun;
+	public MemberSymbol getMember(String name) {
+		MemberSymbol member = declaredMembers.get(name);
+		if (member != null)
+			return member;
 
 		List<ClassSymbol> baseSuperclasss = getBaseSuperclasses();
 		for (ClassSymbol clazz : baseSuperclasss) {
-			fun = clazz.getFun(name);
-			if (fun != null)
-				return fun;
+			member = clazz.getMember(name);
+			if (member != null)
+				return member;
 		}
 		return null;
 	}
 
-	public boolean hasFun(String name) {
-		return getFun(name) != null;
+	public boolean hasMember(String name) {
+		return getMember(name) != null;
 	}
 
 	// Pure

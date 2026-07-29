@@ -1,23 +1,13 @@
 package com.lang.symbol;
 
-import com.lang.ast.Typed;
+import com.lang.ast.Expr;
 
-public class VarSymbol extends Symbol {
-	private final String name;
-	private final Typed typeType;
+public class VarSymbol extends MemberSymbol {
 	private Symbol type;
+	private Expr initializer;
 
-	public VarSymbol(String name, Typed typeType) {
-		this.name = name;
-		this.typeType = typeType;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public Typed getTypeType() {
-		return typeType;
+	public VarSymbol(String name) {
+		super(name);
 	}
 
 	public void setType(Symbol type) {
@@ -26,5 +16,13 @@ public class VarSymbol extends Symbol {
 
 	public Symbol getType() {
 		return type;
+	}
+
+	public void setInitializer(Expr initializer) {
+		this.initializer = initializer;
+	}
+
+	public Expr getInitializer() {
+		return initializer;
 	}
 }

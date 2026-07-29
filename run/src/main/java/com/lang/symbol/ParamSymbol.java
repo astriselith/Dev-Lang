@@ -1,16 +1,14 @@
 package com.lang.symbol;
 
 public class ParamSymbol extends Symbol {
-	private final  String name;
-	private final Symbol type;
+	private Symbol type;
 
-	public ParamSymbol(String name, Symbol type) {
-		this.name = name;
-		this.type = type;
+	public ParamSymbol(String name) {
+		super(name);
 	}
 
-	public String getName() {
-		return name;
+	public void setType(Symbol type) {
+		this.type = type;
 	}
 
 	public Symbol getType() {

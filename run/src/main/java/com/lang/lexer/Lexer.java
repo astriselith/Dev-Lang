@@ -34,7 +34,7 @@ public class Lexer extends TokenStream {
 	public Lexer(CodepointStream source, CompilationUnit unit) {
 		super(10);
 		this.source = source;
-		this.unit = unit != null ? unit : new CompilationUnit();
+		this.unit = unit;
 
 		addKeyword("true", BOOL);
 		addKeyword("false", BOOL);

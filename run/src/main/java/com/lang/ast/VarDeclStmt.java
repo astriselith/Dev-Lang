@@ -2,8 +2,8 @@ package com.lang.ast;
 
 import com.lang.util.Position;
 
-public class VarDeclStmt extends Stmt {
-	public Identifier name;
+public class VarDeclStmt extends MemberDeclStmt {
+
 	public Typed type;
 	public Expr value;
 
@@ -11,8 +11,7 @@ public class VarDeclStmt extends Stmt {
 	}
 
 	public VarDeclStmt(Identifier name, Typed type, Expr value, Position position) {
-		super(position);
-		this.name = name;
+		super(name, position);
 		this.type = type;
 		this.value = value;
 	}

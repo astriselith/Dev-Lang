@@ -6,26 +6,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.lang.ast.Typed;
-
 public class TypeParamSymbol extends Symbol {
-	private final String name;
-	private final List<Typed> superclassTypes;
+
 	private Map<String, Symbol> superclasses;
 
-	public TypeParamSymbol(String name, List<Typed> superclassTypes) {
-		this.name = name;
-		this.superclassTypes = superclassTypes != null ? superclassTypes : new ArrayList<>();
-
+	public TypeParamSymbol(String name) {
+		super(name);
 		this.superclasses = new LinkedHashMap<>();
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public List<Typed> getSuperclassTypes() {
-		return Collections.unmodifiableList(superclassTypes);
 	}
 
 	// Superclasses
@@ -35,8 +22,8 @@ public class TypeParamSymbol extends Symbol {
 		if (symbol.isClass()) {
 			className = symbol.asClass().getName();
 		}
-		if (symbol.isParameterized()) {
-			className = symbol.asParameterized().getBase().getName();
+		if (symbol.isParameterizedClass()) {
+			className = symbol.asParameterizedClass().getBase().getName();
 		}
 		if (className != null)
 			this.superclasses.put(className, symbol);
@@ -71,26 +58,16 @@ public class TypeParamSymbol extends Symbol {
 		for (Symbol clazz : superclasses.values()) {
 			if (clazz.isClass()) {
 				result.add(clazz.asClass());
-			} else if (clazz.isParameterized()) {
-				result.add(clazz.asParameterized().getBase());
+			} else if (clazz.isParameterizedClass()) {
+				result.add(clazz.asParameterizedClass().getBase());
 			}
 		}
 		return Collections.unmodifiableList(result);
 	}
 
-	public FunSymbol getFun(String name) {
-		for (ClassSymbol trait : getBaseSuperclasses()) {
-			FunSymbol result = trait.getFun(name);
-			if (result != null)
-				return result;
-		}
-
-		return null;
-	}
-
-	public VarSymbol getVar(String name) {
-		for (ClassSymbol trait : getBaseSuperclasses()) {
-			VarSymbol result = trait.getVar(name);
+	public Symbol getMember(String name) {
+		for (ClassSymbol superclass : getBaseSuperclasses()) {
+			Symbol result = superclass.getMember(name);
 			if (result != null)
 				return result;
 		}

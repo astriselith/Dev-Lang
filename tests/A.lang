@@ -1,1 +1,8 @@
-class A : B<C>;
+class A {
+    var s: B;
+    var b: S;
+
+    fun add<L, R, U>(l: L, r: R): U {
+
+    }
+}

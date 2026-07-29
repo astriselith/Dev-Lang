@@ -24,17 +24,13 @@ public class Parser {
 
 	public Parser(TokenStream stream, CompilationUnit unit) {
 		this.stream = stream;
-		this.unit = unit != null ? unit : new CompilationUnit();
+		this.unit = unit;
 
 		if (this.stream == null) {
 			throw new IllegalArgumentException("TokenStream cannot be null");
 		}
 		this.stream.setHandler((token) -> {
-			if (token.isComment()) {
-				this.unit.addComment(new Comment(token.lexeme, token.position));
-				return false;
-			}
-			return true;
+			return token.isComment() ? false : true;
 		});
 
 	}
@@ -138,12 +134,10 @@ public class Parser {
 
 		semicolon();
 
-		VarDeclStmt var = new VarDeclStmt();
-		var.name = new Identifier(nameToken.lexeme, nameToken.position);
-		var.type = type;
-		var.value = value;
-		var.position = between(start, stream.previous());
-		return var;
+		return new VarDeclStmt(new Identifier(nameToken.lexeme, nameToken.position),
+				type, value,
+				between(start, stream.previous()));
+
 	}
 
 	private FunDeclStmt funDecl() {
@@ -232,14 +226,11 @@ public class Parser {
 
 			List<TypeParamDeclStmt> typeParameters = null;
 
-			if (stream.check(RANGLE))
-				typeParameters = typeParameters();
-
 			List<Typed> superclasses = null;
 			if (stream.check(COLON))
 				superclasses = superclasses();
 
-			Positioned end = !superclasses.isEmpty()
+			Positioned end = superclasses != null
 					? superclasses.get(superclasses.size() - 1)
 					: nameToken;
 
@@ -352,8 +343,7 @@ public class Parser {
 
 		List<Typed> superclasses = superclasses();
 
-		List<FunDeclStmt> funs = new ArrayList<>();
-		List<VarDeclStmt> vars = new ArrayList<>();
+		List<MemberDeclStmt> members = new ArrayList<>();
 		Positioned end = null;
 
 		if (stream.match(SEMICOLON)) {
@@ -365,10 +355,10 @@ public class Parser {
 				try {
 					if (stream.check("fun")) {
 						FunDeclStmt fun = funDecl();
-						funs.add(fun);
+						members.add(fun);
 					} else if (stream.check("var")) {
 						VarDeclStmt var = varDecl();
-						vars.add(var);
+						members.add(var);
 
 					} else {
 						throw unit.error(
@@ -394,7 +384,7 @@ public class Parser {
 		}
 
 		return new ClassDeclStmt(new Identifier(nameToken.lexeme, nameToken.position), superclasses,
-				typeParameters, funs, vars, between(start, end));
+				typeParameters, members, between(start, end));
 	}
 
 	private LetDeclStmt letDecl() {
@@ -675,7 +665,7 @@ public class Parser {
 			List<Typed> typeArguments = null;
 			if (stream.check(LANGLE)) {
 				if (stream.checkNext(RANGLE) ||
-						(stream.checkNext(IDENTIFIER) && stream.checkNextNextAny(LANGLE, RANGLE, COMMA))) {
+						(stream.checkNext(IDENTIFIER) && stream.checkNextNextAny(RANGLE, RANGLE, COMMA))) {
 					try {
 						typeArguments = typeArguments();
 						if (!stream.check(LPAREN)) {
