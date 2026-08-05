@@ -1,7 +1,5 @@
 package com.lang.ast;
 
-import java.util.List;
-
 import com.lang.util.Position;
 
 public class VarDecl extends MemberDecl {
@@ -12,8 +10,8 @@ public class VarDecl extends MemberDecl {
 	public VarDecl() {
 	}
 
-	public VarDecl(List<Meta> metas, Identifier name, Typed type, Expr value, Position position) {
-		super(metas, name, position);
+	public VarDecl(Identifier name, Typed type, Expr value, Position position) {
+		super(name, position);
 		this.type = type;
 		this.value = value;
 	}

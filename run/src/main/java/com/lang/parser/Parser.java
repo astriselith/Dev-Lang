@@ -134,7 +134,7 @@ public class Parser {
 
 		semicolon();
 
-		return new VarDecl(metas, new Identifier(nameToken.lexeme, nameToken.position),
+		return new VarDecl(new Identifier(nameToken.lexeme, nameToken.position),
 				type, value,
 				between(start, stream.previous()));
 
@@ -322,44 +322,6 @@ public class Parser {
 		}
 	}
 
-	private List<Meta> metas() {
-		List<Meta> metas = new ArrayList<>();
-		while (true) {
-			Meta meta = meta();
-
-			if (meta == null)
-				break;
-
-			metas.add(meta);
-		}
-		return metas;
-	}
-
-	private Meta meta() {
-		if (stream.check(AT))
-			return anno();
-		return null;
-	}
-
-	private AnnoMeta anno() {
-		Token start = stream.expect(AT);
-		Token nameToken = stream.expect(IDENTIFIER);
-
-		List<Typed> typeArguments = null;
-		if (stream.check(LANGLE))
-			typeArguments = typeArguments();
-
-		List<Expr> arguments = null;
-		if (stream.check(LPAREN))
-			arguments = arguments();
-
-		return new AnnoMeta(
-				new Identifier(nameToken.lexeme, nameToken.position),
-				typeArguments,
-				arguments,
-				between(start, stream.previous()));
-	}
-
 	private ClassDecl classDecl() {
 		Token start = stream.expect("class");
 
@@ -410,7 +372,7 @@ public class Parser {
 				typeParameters, members, between(start, end));
 	}
 
-	private LetDecl letDecl() {
+	private LetStmt letDecl() {
 		Token start = stream.expect("let");
 
 		Token nameToken = stream.expect(IDENTIFIER);
@@ -425,7 +387,7 @@ public class Parser {
 
 		semicolon();
 
-		return new LetDecl(new Identifier(nameToken.lexeme, nameToken.position), type, value,
+		return new LetStmt(new Identifier(nameToken.lexeme, nameToken.position), type, value,
 				between(start, stream.previous()));
 	}
 

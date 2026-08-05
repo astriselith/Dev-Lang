@@ -13,9 +13,9 @@ public class FunDecl extends MemberDecl {
 	public FunDecl() {
 	}
 
-	public FunDecl(List<Meta> metas, Identifier name, List<TypeParamDecl> typeParameters, List<ParamDecl> parameters,
+	public FunDecl(Identifier name, List<TypeParamDecl> typeParameters, List<ParamDecl> parameters,
 			Typed returnType, BlockStmt body, Position position) {
-		super(metas, name, position);
+		super(name, position);
 		this.typeParameters = typeParameters;
 		this.parameters = parameters;
 		this.returnType = returnType;

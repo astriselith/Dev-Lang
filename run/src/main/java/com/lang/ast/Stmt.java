@@ -12,8 +12,8 @@ public abstract class Stmt extends Node {
 	}
 
 	public <T> T accept(StmtVisitor<T> visitor) {
-		if (this instanceof LetDecl)
-			return visitor.visitLetDeclStmt((LetDecl) this);
+		if (this instanceof LetStmt)
+			return visitor.visitLetStmt((LetStmt) this);
 		if (this instanceof IfStmt)
 			return visitor.visitIfStmt((IfStmt) this);
 		if (this instanceof WhileStmt)

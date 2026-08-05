@@ -3,7 +3,7 @@ package com.lang.tools;
 import com.lang.ast.*;
 import java.util.List;
 
-public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
+public class Printer implements DeclVisitor<String>, StmtVisitor<String>, ExprVisitor<String> {
 	private int indent = 0;
 
 	public String print(List<? extends Node> nodes) {
@@ -108,52 +108,52 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 	}
 
 	@Override
-	public String visitVarDeclStmt(VarDecl stmt) {
+	public String visitVarDecl(VarDecl decl) {
 		StringBuilder sb = new StringBuilder();
 
-		sb.append("var ").append(stmt.name);
-		if (stmt.type != null) {
-			sb.append(": ").append(stmt.type.getSignature());
+		sb.append("var ").append(decl.name);
+		if (decl.type != null) {
+			sb.append(": ").append(decl.type.getSignature());
 		}
-		if (stmt.value != null) {
-			sb.append(" = ").append(stmt.value.accept(this));
+		if (decl.value != null) {
+			sb.append(" = ").append(decl.value.accept(this));
 		}
 		sb.append(";");
 		return sb.toString();
 	}
 
 	@Override
-	public String visitFunDeclStmt(FunDecl stmt) {
+	public String visitFunDecl(FunDecl decl) {
 		StringBuilder sb = new StringBuilder();
 
-		sb.append("fun ").append(stmt.name);
+		sb.append("fun ").append(decl.name);
 
-		if (stmt.typeParameters != null) {
+		if (decl.typeParameters != null) {
 			sb.append("<");
-			for (int i = 0; i < stmt.typeParameters.size(); i++) {
+			for (int i = 0; i < decl.typeParameters.size(); i++) {
 				if (i > 0)
 					sb.append(", ");
-				sb.append(stmt.typeParameters.get(i).accept(this));
+				sb.append(decl.typeParameters.get(i).accept(this));
 			}
 			sb.append(">");
 		}
 
 		sb.append("(");
-		for (int i = 0; i < stmt.parameters.size(); i++) {
+		for (int i = 0; i < decl.parameters.size(); i++) {
 			if (i > 0)
 				sb.append(", ");
-			ParamDecl param = stmt.parameters.get(i);
+			ParamDecl param = decl.parameters.get(i);
 			sb.append(param.accept(this));
 		}
 		sb.append(")");
 
-		if (stmt.returnType != null) {
-			sb.append(": ").append(stmt.returnType.getSignature());
+		if (decl.returnType != null) {
+			sb.append(": ").append(decl.returnType.getSignature());
 		}
 
-		if (stmt.body != null) {
+		if (decl.body != null) {
 			sb.append(" ");
-			sb.append(stmt.body.accept(this));
+			sb.append(decl.body.accept(this));
 		} else {
 			sb.append(";");
 		}
@@ -161,21 +161,21 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 	}
 
 	@Override
-	public String visitParamDeclStmt(ParamDecl stmt) {
-		if (stmt.type != null) {
-			return stmt.name + ": " + stmt.type.getName();
+	public String visitParamDecl(ParamDecl decl) {
+		if (decl.type != null) {
+			return decl.name + ": " + decl.type.getName();
 		}
-		return stmt.name.source;
+		return decl.name.source;
 	}
 
 	@Override
-	public String visitTypeParamDeclStmt(TypeParamDecl stmt) {
-		StringBuilder sb = new StringBuilder(stmt.name.source);
+	public String visitTypeParamDecl(TypeParamDecl decl) {
+		StringBuilder sb = new StringBuilder(decl.name.source);
 
-		if (stmt.supers != null && !stmt.supers.isEmpty()) {
+		if (decl.supers != null && !decl.supers.isEmpty()) {
 			sb.append(" : ");
-			sb.append(String.join(" & ", stmt.supers.stream()
-					.map(Typed::getSignature)
+			sb.append(String.join(" & ", decl.supers.stream()
+					.map(s -> s.accept(this))
 					.toArray(String[]::new)));
 		}
 
@@ -183,36 +183,36 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 	}
 
 	@Override
-	public String visitClassDeclStmt(ClassDecl stmt) {
+	public String visitClassDecl(ClassDecl decl) {
 		StringBuilder sb = new StringBuilder();
 
-		sb.append("class ").append(stmt.name);
+		sb.append("class ").append(decl.name);
 
-		if (stmt.typeParameters != null) {
+		if (decl.typeParameters != null) {
 			sb.append("<");
-			sb.append(String.join(", ", stmt.typeParameters.stream()
+			sb.append(String.join(", ", decl.typeParameters.stream()
 					.map(p -> p.accept(this))
 					.toArray(String[]::new)));
 			sb.append(">");
 		}
 
-		if (stmt.supers != null && !stmt.supers.isEmpty()) {
+		if (decl.supers != null && !decl.supers.isEmpty()) {
 			sb.append(" : ");
 
-			sb.append(String.join(" & ", stmt.supers.stream()
-					.map(Typed::getSignature)
+			sb.append(String.join(" & ", decl.supers.stream()
+					.map(s -> s.accept(this))
 					.toArray(String[]::new)));
 		}
 
 		sb.append(" ");
 
-		if (stmt.members.isEmpty()) {
+		if (decl.members.isEmpty()) {
 			sb.append("{}");
 		} else {
 			sb.append("{\n");
 			indent++;
 
-			for (Stmt member : stmt.members) {
+			for (MemberDecl member : decl.members) {
 				if (member != null) {
 					sb.append(indent()).append(member.accept(this)).append("\n");
 				}
@@ -225,7 +225,12 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 	}
 
 	@Override
-	public String visitLetDeclStmt(LetDecl stmt) {
+	public String visitSuperDecl(SuperDecl decl) {
+		return decl.type.getSignature();
+	}
+
+	@Override
+	public String visitLetStmt(LetStmt stmt) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("let ").append(stmt.name);
 		if (stmt.type != null) {

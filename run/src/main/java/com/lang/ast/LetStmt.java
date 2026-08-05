@@ -2,15 +2,15 @@ package com.lang.ast;
 
 import com.lang.util.Position;
 
-public class LetDecl extends Stmt {
+public class LetStmt extends Stmt {
 	public Identifier name;
 	public Typed type;
 	public Expr value;
 
-	public LetDecl() {
+	public LetStmt() {
 	}
 
-	public LetDecl(Identifier name, Typed type, Expr value, Position position) {
+	public LetStmt(Identifier name, Typed type, Expr value, Position position) {
 		super(position);
 		this.name = name;
 		this.type = type;

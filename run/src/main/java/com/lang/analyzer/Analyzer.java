@@ -13,23 +13,23 @@ import com.lang.ast.*;
 import com.lang.symbol.*;
 import com.lang.unit.CompilationUnit;
 
-public class Analyzer implements DefaultStmtVisitor<Void>, DefaultExprVisitor<SymbolResult> {
+public class Analyzer implements DefaultDeclVisitor<Void>, DefaultStmtVisitor<Void>, DefaultExprVisitor<SymbolResult> {
 
-    private SymbolTable table;
-    private CompilationUnit unit;
+    private final SymbolTable table;
+    private final CompilationUnit unit;
     private final SymbolScope global;
     private final Stack<SymbolScope> scopeStack = new Stack<>();
     private final Stack<Map<String, Symbol>> substitutionStack = new Stack<>();
+    private final Consumer<Typed> reporter;
+
     private ClassSymbol currentClass;
     private FunSymbol currentFun;
-
-    private final Consumer<Typed> typeReporter = t -> unit
-            .addError(unit.error(TAG, UNRESOLVED_TYPE.format(t.getName()), t));
 
     public Analyzer(SymbolTable table, CompilationUnit unit) {
         this.table = table;
         this.unit = unit;
         this.global = new SymbolScope("global");
+        this.reporter = t -> unit.addError(unit.error(TAG, UNRESOLVED_TYPE.format(t.getName()), t));
     }
 
     public void analyze() {
@@ -65,12 +65,12 @@ public class Analyzer implements DefaultStmtVisitor<Void>, DefaultExprVisitor<Sy
     }
 
     @Override
-    public Void visitClassDeclStmt(ClassDecl stmt) {
-        currentClass = table.get(stmt.name.source);
+    public Void visitClassDecl(ClassDecl decl) {
+        currentClass = table.get(decl.name.source);
         if (currentClass == null)
             return null;
 
-        SymbolScope classScope = currentScope().child(stmt.name.source);
+        SymbolScope classScope = currentScope().child(decl.name.source);
         classScope.putLocal("this", currentClass);
 
         Map<String, Symbol> subs = new LinkedHashMap<>();
@@ -80,8 +80,8 @@ public class Analyzer implements DefaultStmtVisitor<Void>, DefaultExprVisitor<Sy
         pushScope(classScope);
         pushSubstitutions(subs);
 
-        if (stmt.members != null) {
-            stmt.members.forEach(member -> member.accept(this));
+        if (decl.members != null) {
+            decl.members.forEach(member -> member.accept(this));
         }
 
         popSubstitutions();
@@ -91,26 +91,37 @@ public class Analyzer implements DefaultStmtVisitor<Void>, DefaultExprVisitor<Sy
     }
 
     @Override
-    public Void visitFunDeclStmt(FunDecl stmt) {
+    public Void visitFunDecl(FunDecl decl) {
         if (currentClass == null)
             return null;
 
-        currentFun = (FunSymbol) currentClass.getDeclaredMember(stmt.name.source);
+        currentFun = (FunSymbol) currentClass.getDeclaredMember(decl.name.source);
         if (currentFun == null)
             return null;
 
-        SymbolScope funScope = currentScope().child(stmt.name.source);
+        SymbolScope funScope = currentScope().child(decl.name.source);
 
         Map<String, Symbol> subs = new LinkedHashMap<>();
         if (currentFun.getTypeParameters() != null) {
             subs.putAll(currentFun.getTypeParameters());
         }
 
+        // Adiciona parâmetros da função ao escopo
+        if (currentFun.getParameters() != null) {
+            for (ParamSymbol param : currentFun.getParameters().values()) {
+                funScope.putLocal(param.getName(), param);
+            }
+        }
+
         pushScope(funScope);
         pushSubstitutions(subs);
 
-        if (stmt.body != null) {
-            stmt.body.accept(this);
+        if (decl.parameters != null) {
+            decl.parameters.forEach(p -> p.accept(this));
+        }
+
+        if (decl.body != null) {
+            decl.body.accept(this);
         }
 
         popSubstitutions();
@@ -120,16 +131,16 @@ public class Analyzer implements DefaultStmtVisitor<Void>, DefaultExprVisitor<Sy
     }
 
     @Override
-    public Void visitVarDeclStmt(VarDecl stmt) {
-        VarSymbol varSymbol = (VarSymbol) currentClass.getDeclaredMember(stmt.name.source);
+    public Void visitVarDecl(VarDecl decl) {
+        VarSymbol varSymbol = (VarSymbol) currentClass.getDeclaredMember(decl.name.source);
         if (varSymbol == null) {
-            unit.addError(unit.error(TAG, UNDEFINED_VARIABLE.format(stmt.name.source), stmt));
+            unit.addError(unit.error(TAG, UNDEFINED_VARIABLE.format(decl.name.source), decl));
             return null;
         }
 
-        if (stmt.value != null) {
-            SymbolResult result = stmt.value.accept(this);
-            Symbol valueType = result.getType();
+        if (decl.value != null) {
+            SymbolResult result = decl.value.accept(this);
+            Symbol valueType = result != null ? result.getType() : null;
             Symbol varType = varSymbol.getType();
 
             if (varType != null && valueType != null) {
@@ -138,7 +149,7 @@ public class Analyzer implements DefaultStmtVisitor<Void>, DefaultExprVisitor<Sy
                             INVALID_ASSIGNMENT.format(
                                     getTypeName(valueType),
                                     getTypeName(varType)),
-                            stmt.value));
+                            decl.value));
                 }
             }
         }
@@ -147,14 +158,19 @@ public class Analyzer implements DefaultStmtVisitor<Void>, DefaultExprVisitor<Sy
     }
 
     @Override
-    public Void visitLetDeclStmt(LetDecl stmt) {
+    public Void visitParamDecl(ParamDecl decl) {
+        // Parâmetros já são registrados no escopo em visitFunDecl
+        return null;
+    }
 
+    @Override
+    public Void visitLetStmt(LetStmt stmt) {
         if (stmt.value != null) {
             SymbolResult result = stmt.value.accept(this);
-            Symbol valueType = result.getType();
+            Symbol valueType = result != null ? result.getType() : null;
 
             if (stmt.type != null) {
-                Symbol declaredType = table.resolve(stmt.type, currentSubstitutions(), typeReporter);
+                Symbol declaredType = table.resolve(stmt.type, currentSubstitutions(), reporter);
 
                 if (declaredType != null && valueType != null) {
                     if (!table.isAssignable(valueType, declaredType)) {
@@ -186,8 +202,9 @@ public class Analyzer implements DefaultStmtVisitor<Void>, DefaultExprVisitor<Sy
     @Override
     public Void visitIfStmt(IfStmt stmt) {
         if (stmt.condition != null) {
-SymbolResult result = stmt.condition.accept(this);
-            Symbol condType = result.getType();            if (condType != null && !table.isBool(condType)) {
+            SymbolResult result = stmt.condition.accept(this);
+            Symbol condType = result != null ? result.getType() : null;
+            if (condType != null && !table.isBool(condType)) {
                 unit.addError(unit.error(TAG,
                         "Condition must be Bool, got " + getTypeName(condType),
                         stmt.condition));
@@ -204,7 +221,7 @@ SymbolResult result = stmt.condition.accept(this);
     public Void visitWhileStmt(WhileStmt stmt) {
         if (stmt.condition != null) {
             SymbolResult result = stmt.condition.accept(this);
-            Symbol condType = result.getType();
+            Symbol condType = result != null ? result.getType() : null;
             if (condType != null && !table.isBool(condType)) {
                 unit.addError(unit.error(TAG,
                         "Condition must be Bool, got " + getTypeName(condType),
@@ -227,7 +244,7 @@ SymbolResult result = stmt.condition.accept(this);
 
         if (stmt.value != null) {
             SymbolResult result = stmt.value.accept(this);
-            Symbol valueType = result.getType();
+            Symbol valueType = result != null ? result.getType() : null;
 
             if (returnType != null && valueType != null) {
                 if (!table.isAssignable(valueType, returnType)) {
@@ -258,33 +275,34 @@ SymbolResult result = stmt.condition.accept(this);
         if (symbol == null) {
             if (currentClass != null) {
                 MemberSymbol member = currentClass.getMember(expr.name.source);
-
-                if (member != null)
-                    return SymbolResult.of(member, table.unwrap(member));
-            }
-
-            if (currentFun != null) {
-                ParamSymbol param = currentFun.getParameter(expr.name.source);
-                if (param != null)
-                    return SymbolResult.of(param, table.unwrap(param));
+                if (member != null) {
+                    Symbol type = table.unwrap(member);
+                    return SymbolResult.of(member, type);
+                }
             }
 
             unit.addError(unit.error(TAG, UNDEFINED_VARIABLE.format(expr.name.source), expr));
             return null;
         }
 
-        return SymbolResult.of(symbol, symbol);
+        Symbol type = table.unwrap(symbol);
+        return SymbolResult.of(symbol, type);
     }
 
     @Override
     public SymbolResult visitMemberAccessExpr(MemberAccessExpr expr) {
         SymbolResult result = expr.object.accept(this);
+        if (result == null)
+            return null;
+
         Symbol objectType = result.getType();
+        if (objectType == null)
+            return null;
 
         ClassSymbol classSymbol = table.getBaseClass(objectType);
         if (classSymbol == null) {
             unit.addError(unit.error(TAG,
-                    "Cannot access member on non-class type: " + getTypeName(rawObjectType),
+                    "Cannot access member on non-class type: " + getTypeName(objectType),
                     expr));
             return null;
         }
@@ -297,12 +315,18 @@ SymbolResult result = stmt.condition.accept(this);
             return null;
         }
 
-        return SymbolResult.of(member, table.unwrap(member));
+        Symbol type = table.unwrap(member);
+        return SymbolResult.of(member, type);
     }
 
     @Override
-    public Symbol visitCallExpr(CallExpr expr) {
-        Symbol callee = expr.callee.accept(this);
+    public SymbolResult visitCallExpr(CallExpr expr) {
+        SymbolResult calleeResult = expr.callee.accept(this);
+        if (calleeResult == null)
+            return null;
+
+        Symbol callee = calleeResult.getRaw();
+
         if (callee == null)
             return null;
 
@@ -323,7 +347,8 @@ SymbolResult result = stmt.condition.accept(this);
                 }
 
                 for (int i = 0; i < expr.arguments.size(); i++) {
-                    Symbol argType = expr.arguments.get(i).accept(this);
+                    SymbolResult argResult = expr.arguments.get(i).accept(this);
+                    Symbol argType = argResult != null ? argResult.getType() : null;
                     Symbol paramType = paramList.get(i).getType();
 
                     if (argType != null && paramType != null) {
@@ -336,11 +361,11 @@ SymbolResult result = stmt.condition.accept(this);
                                     expr.arguments.get(i)));
                         }
                     }
-                    System.out.print("");
                 }
             }
 
-            return funSymbol.getReturnType();
+            Symbol returnType = funSymbol.getReturnType();
+            return SymbolResult.of(funSymbol, returnType);
         }
 
         if (callee.isClass()) {
@@ -357,27 +382,33 @@ SymbolResult result = stmt.condition.accept(this);
     }
 
     @Override
-    public Symbol visitBinaryExpr(BinaryExpr expr) {
-        Symbol leftType = expr.left != null ? expr.left.accept(this) : null;
-        Symbol rightType = expr.right != null ? expr.right.accept(this) : null;
+    public SymbolResult visitBinaryExpr(BinaryExpr expr) {
+        SymbolResult leftResult = expr.left != null ? expr.left.accept(this) : null;
+        SymbolResult rightResult = expr.right != null ? expr.right.accept(this) : null;
+
+        Symbol leftType = leftResult != null ? leftResult.getType() : null;
+        Symbol rightType = rightResult != null ? rightResult.getType() : null;
 
         String op = expr.operator.lexeme;
 
+        // Operadores aritméticos
         if (op.equals("+") || op.equals("-") || op.equals("*") || op.equals("/") || op.equals("%")) {
             if (leftType != null && rightType != null) {
                 if (table.isNumeric(leftType) && table.isNumeric(rightType)) {
                     if (table.isFloat(leftType) || table.isFloat(rightType)) {
-                        return table.getFloat();
+                        return SymbolResult.of(null, table.getFloat());
                     }
-                    return table.getInt();
+                    return SymbolResult.of(null, table.getInt());
                 }
                 unit.addError(unit.error(TAG,
-                        INVALID_OPERATOR.format(op, getTypeName(leftType)),
+                        "Operands of '" + op + "' must be numeric, got " +
+                                getTypeName(leftType) + " and " + getTypeName(rightType),
                         expr));
             }
             return null;
         }
 
+        // Operadores de igualdade
         if (op.equals("==") || op.equals("!=")) {
             if (leftType != null && rightType != null) {
                 if (!table.isComparable(leftType, rightType)) {
@@ -387,9 +418,10 @@ SymbolResult result = stmt.condition.accept(this);
                             expr));
                 }
             }
-            return table.getBool();
+            return SymbolResult.of(null, table.getBool());
         }
 
+        // Operadores de comparação
         if (op.equals("<") || op.equals(">") || op.equals("<=") || op.equals(">=")) {
             if (leftType != null && rightType != null) {
                 if (!table.isNumeric(leftType) || !table.isNumeric(rightType)) {
@@ -399,9 +431,10 @@ SymbolResult result = stmt.condition.accept(this);
                             expr));
                 }
             }
-            return table.getBool();
+            return SymbolResult.of(null, table.getBool());
         }
 
+        // Operadores lógicos
         if (op.equals("&&") || op.equals("||")) {
             if (leftType != null && !table.isBool(leftType)) {
                 unit.addError(unit.error(TAG,
@@ -413,15 +446,16 @@ SymbolResult result = stmt.condition.accept(this);
                         "Right operand of '" + op + "' must be Bool, got " + getTypeName(rightType),
                         expr.right));
             }
-            return table.getBool();
+            return SymbolResult.of(null, table.getBool());
         }
 
         return null;
     }
 
     @Override
-    public Symbol visitUnaryExpr(UnaryExpr expr) {
-        Symbol operandType = expr.operand.accept(this);
+    public SymbolResult visitUnaryExpr(UnaryExpr expr) {
+        SymbolResult operandResult = expr.operand.accept(this);
+        Symbol operandType = operandResult != null ? operandResult.getType() : null;
         String op = expr.operator.lexeme;
 
         if (op.equals("!")) {
@@ -430,7 +464,7 @@ SymbolResult result = stmt.condition.accept(this);
                         "Operand of '!' must be Bool, got " + getTypeName(operandType),
                         expr));
             }
-            return table.getBool();
+            return SymbolResult.of(null, table.getBool());
         }
 
         if (op.equals("-") || op.equals("+")) {
@@ -439,44 +473,52 @@ SymbolResult result = stmt.condition.accept(this);
                         "Operand of '" + op + "' must be numeric, got " + getTypeName(operandType),
                         expr));
             }
-            return operandType;
+            return SymbolResult.of(null, operandType);
         }
 
-        return operandType;
+        return operandResult;
     }
 
     @Override
-    public Symbol visitLiteralExpr(LiteralExpr expr) {
-
+    public SymbolResult visitLiteralExpr(LiteralExpr expr) {
+        Symbol type;
         switch (expr.type) {
             case LiteralExpr.NULL:
-                return table.getNull();
+                type = table.getNull();
+                break;
             case LiteralExpr.BOOL:
-                return table.getBool();
+                type = table.getBool();
+                break;
             case LiteralExpr.CHAR:
-                return table.getChar();
+                type = table.getChar();
+                break;
             case LiteralExpr.FLOAT:
-                return table.getFloat();
+                type = table.getFloat();
+                break;
             case LiteralExpr.INT:
-                return table.getInt();
+                type = table.getInt();
+                break;
             case LiteralExpr.STRING:
-                return table.getString();
+                type = table.getString();
+                break;
             default:
-                return null;
+                type = null;
         }
+        return SymbolResult.of(null, type);
     }
 
     @Override
-    public Symbol visitParenthesisExpr(ParenthesisExpr expr) {
+    public SymbolResult visitParenthesisExpr(ParenthesisExpr expr) {
         if (expr.inner != null)
             return expr.inner.accept(this);
         return null;
     }
 
     @Override
-    public Symbol visitTernaryExpr(TernaryExpr expr) {
+    public SymbolResult visitTernaryExpr(TernaryExpr expr) {
         if (expr.condition != null) {
-            Symbol condType = expr.condition.accept(this);
+            SymbolResult condResult = expr.condition.accept(this);
+            Symbol condType = condResult != null ? condResult.getType() : null;
             if (condType != null && !table.isBool(condType)) {
                 unit.addError(unit.error(TAG,
                         "Ternary condition must be Bool, got " + getTypeName(condType),
@@ -484,20 +526,23 @@ SymbolResult result = stmt.condition.accept(this);
             }
         }
 
-        Symbol thenType = expr.thenExpr != null ? expr.thenExpr.accept(this) : null;
-        Symbol elseType = expr.elseExpr != null ? expr.elseExpr.accept(this) : null;
+        SymbolResult thenResult = expr.thenExpr != null ? expr.thenExpr.accept(this) : null;
+        SymbolResult elseResult = expr.elseExpr != null ? expr.elseExpr.accept(this) : null;
+
+        Symbol thenType = thenResult != null ? thenResult.getType() : null;
+        Symbol elseType = elseResult != null ? elseResult.getType() : null;
 
         if (thenType != null && elseType != null) {
             if (table.isAssignable(thenType, elseType)) {
-                return elseType;
+                return SymbolResult.of(null, elseType);
             }
             if (table.isAssignable(elseType, thenType)) {
-                return thenType;
+                return SymbolResult.of(null, thenType);
             }
 
             Symbol lub = table.getLeastUpperBound(thenType, elseType);
             if (lub != null) {
-                return lub;
+                return SymbolResult.of(null, lub);
             }
 
             unit.addError(unit.error(TAG,
@@ -507,15 +552,17 @@ SymbolResult result = stmt.condition.accept(this);
             return null;
         }
 
-        return thenType != null ? thenType : elseType;
+        return thenType != null ? thenResult : elseResult;
     }
 
     @Override
-    public Symbol visitAssignExpr(AssignExpr expr) {
-        Symbol targetType = expr.target.accept(this);
+    public SymbolResult visitAssignExpr(AssignExpr expr) {
+        SymbolResult targetResult = expr.target.accept(this);
+        Symbol targetType = targetResult != null ? targetResult.getType() : null;
 
         if (expr.value != null) {
-            Symbol valueType = expr.value.accept(this);
+            SymbolResult valueResult = expr.value.accept(this);
+            Symbol valueType = valueResult != null ? valueResult.getType() : null;
 
             if (targetType != null && valueType != null) {
                 if (!table.isAssignable(valueType, targetType)) {
@@ -526,15 +573,18 @@ SymbolResult result = stmt.condition.accept(this);
                             expr.value));
                 }
             }
-            return valueType;
+            return SymbolResult.of(null, valueType);
         }
         return null;
     }
 
     @Override
-    public Symbol visitIndexAccessExpr(IndexAccessExpr expr) {
-        Symbol targetType = expr.target.accept(this);
-        Symbol indexType = expr.index.accept(this);
+    public SymbolResult visitIndexAccessExpr(IndexAccessExpr expr) {
+        SymbolResult targetResult = expr.target.accept(this);
+        Symbol targetType = targetResult != null ? targetResult.getType() : null;
+
+        SymbolResult indexResult = expr.index.accept(this);
+        Symbol indexType = indexResult != null ? indexResult.getType() : null;
 
         if (targetType != null && !table.isClassType(targetType)) {
             unit.addError(unit.error(TAG,
@@ -555,7 +605,7 @@ SymbolResult result = stmt.condition.accept(this);
             MemberSymbol getter = classSymbol.getDeclaredMember("get");
             if (getter != null && getter.isFun()) {
                 FunSymbol fun = getter.asFun();
-                return fun.getReturnType();
+                return SymbolResult.of(null, fun.getReturnType());
             }
         }
 
@@ -580,14 +630,16 @@ SymbolResult result = stmt.condition.accept(this);
     }
 
     @Override
-    public Void visitParamDeclStmt(ParamDecl stmt) {
+    public Void visitTypeParamDecl(TypeParamDecl decl) {
         return null;
     }
 
     @Override
-    public Void visitTypeParamDeclStmt(TypeParamDecl stmt) {
+    public Void visitSuperDecl(SuperDecl decl) {
         return null;
     }
+
+    // Métodos auxiliares
 
     private String getTypeName(Symbol sym) {
         if (sym == null)

@@ -14,10 +14,10 @@ public class ClassDecl extends MemberDecl {
 	public ClassDecl() {
 	}
 
-	public ClassDecl(List<Meta> metas, Identifier name, List<SuperDecl> supers, List<TypeParamDecl> typeParameters,
+	public ClassDecl(Identifier name, List<SuperDecl> supers, List<TypeParamDecl> typeParameters,
 			List<MemberDecl> members, Position position) {
-		super(metas, name, position);
-	
+		super(name, position);
+
 		this.supers = supers;
 		this.typeParameters = typeParameters;
 		this.members = members;
