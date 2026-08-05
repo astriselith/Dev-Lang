@@ -1,6 +1,6 @@
 package com.lang.unit;
 
-import com.lang.ast.ClassDeclStmt;
+import com.lang.ast.ClassDecl;
 import com.lang.util.Position;
 import com.lang.util.Positioned;
 
@@ -12,7 +12,7 @@ public class CompilationUnit {
 	private final String filePath;
 	private final String fileName;
 
-	public final List<ClassDeclStmt> classes;
+	public final List<ClassDecl> classes;
 
 	private final List<CompilationException> errors;
 	private final List<WarningException> warnings;
@@ -126,20 +126,20 @@ public class CompilationUnit {
 		return warnings.size();
 	}
 
-	public void addClass(ClassDeclStmt classDecl) {
+	public void addClass(ClassDecl classDecl) {
 		classes.add(classDecl);
 	}
 
-	public void addClasses(List<ClassDeclStmt> classes) {
+	public void addClasses(List<ClassDecl> classes) {
 		this.classes.addAll(classes);
 	}
 
-	public List<ClassDeclStmt> getClasses() {
+	public List<ClassDecl> getClasses() {
 		return Collections.unmodifiableList(classes);
 	}
 
 	public boolean hasClass(String name) {
-		for (ClassDeclStmt cls : classes) {
+		for (ClassDecl cls : classes) {
 			if (cls.name.sourceEquals(name)) {
 				return true;
 			}
@@ -147,8 +147,8 @@ public class CompilationUnit {
 		return false;
 	}
 
-	public ClassDeclStmt getClass(String name) {
-		for (ClassDeclStmt cls : classes) {
+	public ClassDecl getClass(String name) {
+		for (ClassDecl cls : classes) {
 			if (cls.name.sourceEquals(name)) {
 				return cls;
 			}

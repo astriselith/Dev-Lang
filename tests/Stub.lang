@@ -1,0 +1,25 @@
+class Any {
+    fun print(str: Stringfiable): Void {
+        let s: String = str.stringfy();
+        // Native
+    }
+
+    fun println(str: Stringfiable): Void {
+        let s: String = str.stringfy();
+        // Native
+    }
+}
+
+class Void;
+class Null;
+class Bool;
+class Char;
+class Float;
+class Int;
+class String;
+
+class Stringfiable {
+    fun stringfy() : String {
+        return "";
+    }
+}

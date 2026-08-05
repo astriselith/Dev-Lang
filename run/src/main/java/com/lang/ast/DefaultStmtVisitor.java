@@ -3,7 +3,7 @@ package com.lang.ast;
 public interface DefaultStmtVisitor<T> extends StmtVisitor<T> {
 
     @Override
-    default T visitLetDeclStmt(LetDeclStmt stmt) {
+    default T visitLetDeclStmt(LetDecl stmt) {
         return null;
     }
 
@@ -43,27 +43,27 @@ public interface DefaultStmtVisitor<T> extends StmtVisitor<T> {
     }
 
     @Override
-    default T visitParamDeclStmt(ParamDeclStmt stmt) {
+    default T visitParamDeclStmt(ParamDecl stmt) {
         return null;
     }
 
     @Override
-    default T visitTypeParamDeclStmt(TypeParamDeclStmt stmt) {
+    default T visitTypeParamDeclStmt(TypeParamDecl stmt) {
         return null;
     }
 
     @Override
-    default T visitClassDeclStmt(ClassDeclStmt stmt) {
+    default T visitClassDeclStmt(ClassDecl stmt) {
         return null;
     }
 
     @Override
-    default T visitVarDeclStmt(VarDeclStmt stmt) {
+    default T visitVarDeclStmt(VarDecl stmt) {
         return null;
     }
 
     @Override
-    default T visitFunDeclStmt(FunDeclStmt stmt) {
+    default T visitFunDeclStmt(FunDecl stmt) {
         return null;
     }
 }

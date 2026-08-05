@@ -220,5 +220,6 @@ public class Main {
 			unit.printReport();
 			System.out.println();
 		}
+		System.out.println("Finished.");
 	}
 }

@@ -6,18 +6,20 @@ import com.lang.ast.*;
 import com.lang.symbol.*;
 import com.lang.unit.CompilationUnit;
 
-public class Register implements DefaultStmtVisitor<Void> {
+public class Register implements DeclVisitor<Void> {
 
     private final SymbolTable table;
     private final CompilationUnit unit;
     private ClassSymbol currentClass;
     private FunSymbol currentFunction;
+    private TypeParamSymbol currentTypeParameter;
 
     public Register(SymbolTable table, CompilationUnit unit) {
         this.table = table;
         this.unit = unit;
         this.currentClass = null;
         this.currentFunction = null;
+        this.currentTypeParameter = null;
     }
 
     public void register() {
@@ -25,23 +27,23 @@ public class Register implements DefaultStmtVisitor<Void> {
     }
 
     @Override
-    public Void visitClassDeclStmt(ClassDeclStmt stmt) {
-        String className = stmt.name.source;
+    public Void visitClassDecl(ClassDecl decl) {
+        String className = decl.name.source;
 
         if (table.has(className)) {
-            unit.addError(unit.error(TAG, REDEFINED_CLASS.format(className), stmt));
+            unit.addError(unit.error(TAG, REDEFINED_CLASS.format(className), decl));
             return null;
         }
 
         currentClass = new ClassSymbol(className);
         table.add(currentClass);
 
-        if (stmt.typeParameters != null) {
-            stmt.typeParameters.forEach(tp -> tp.accept(this));
+        if (decl.typeParameters != null) {
+            decl.typeParameters.forEach(tp -> tp.accept(this));
         }
 
-        if (stmt.members != null) {
-            stmt.members.forEach(member -> member.accept(this));
+        if (decl.members != null) {
+            decl.members.forEach(member -> member.accept(this));
         }
 
         currentClass = null;
@@ -49,32 +51,60 @@ public class Register implements DefaultStmtVisitor<Void> {
     }
 
     @Override
-    public Void visitTypeParamDeclStmt(TypeParamDeclStmt stmt) {
-        String tpName = stmt.name.source;
+    public Void visitTypeParamDecl(TypeParamDecl decl) {
+        String tpName = decl.name.source;
+        TypeParamSymbol tpSymbol = new TypeParamSymbol(tpName);
+        currentTypeParameter = tpSymbol;
+        decl.supers.forEach(s -> s.accept(this));
 
-        if (currentClass != null) {
-            if (currentClass.hasTypeParameter(tpName)) {
-                unit.addError(unit.error(TAG, REDEFINED_TYPE_PARAMETER.format(tpName), stmt));
-                return null;
-            }
-            currentClass.addTypeParameter(new TypeParamSymbol(tpName));
-        } else if (currentFunction != null) {
+        if (currentFunction != null) {
             if (currentFunction.hasTypeParameter(tpName)) {
-                unit.addError(unit.error(TAG, REDEFINED_TYPE_PARAMETER.format(tpName), stmt));
+                unit.addError(unit.error(TAG, REDEFINED_TYPE_PARAMETER.format(tpName), decl));
+                currentTypeParameter = null;
                 return null;
             }
-            currentFunction.addTypeParameter(new TypeParamSymbol(tpName));
+
+            currentFunction.addTypeParameter(tpSymbol);
+        } else if (currentClass != null) {
+            if (currentClass.hasTypeParameter(tpName)) {
+                unit.addError(unit.error(TAG, REDEFINED_TYPE_PARAMETER.format(tpName), decl));
+                currentTypeParameter = null;
+                return null;
+            }
+            currentClass.addTypeParameter(tpSymbol);
+        }
+
+        currentTypeParameter = null;
+        return null;
+    }
+
+    @Override
+    public Void visitSuperDecl(SuperDecl decl) {
+        String sName = decl.name.source;
+        SuperSymbol sSymbol = new SuperSymbol(sName);
+        if (currentTypeParameter != null) {
+            if (currentTypeParameter.hasSuper(sName)) {
+                unit.addError(unit.error(TAG, REDEFINED_SUPER.format(sName), decl));
+                return null;
+            }
+            currentTypeParameter.addSuper(sSymbol);
+        } else if (currentClass != null) {
+            if (currentClass.hasSuper(sName)) {
+                unit.addError(unit.error(TAG, REDEFINED_SUPER.format(sName), decl));
+                return null;
+            }
+            currentClass.addSuper(sSymbol);
         }
         return null;
     }
 
     @Override
-    public Void visitVarDeclStmt(VarDeclStmt stmt) {
-        String varName = stmt.name.source;
+    public Void visitVarDecl(VarDecl decl) {
+        String varName = decl.name.source;
 
         if (currentClass != null) {
             if (currentClass.hasDeclaredMember(varName)) {
-                unit.addError(unit.error(TAG, REDEFINED_VARIABLE.format(varName), stmt));
+                unit.addError(unit.error(TAG, REDEFINED_VARIABLE.format(varName), decl));
                 return null;
             }
             currentClass.addDeclaredMember(new VarSymbol(varName));
@@ -83,23 +113,23 @@ public class Register implements DefaultStmtVisitor<Void> {
     }
 
     @Override
-    public Void visitFunDeclStmt(FunDeclStmt stmt) {
-        String funName = stmt.name.source;
+    public Void visitFunDecl(FunDecl decl) {
+        String funName = decl.name.source;
 
         if (currentClass != null) {
             if (currentClass.hasDeclaredMember(funName)) {
-                unit.addError(unit.error(TAG, REDEFINED_FUNCTION.format(funName), stmt));
+                unit.addError(unit.error(TAG, REDEFINED_FUNCTION.format(funName), decl));
                 return null;
             }
 
             currentFunction = new FunSymbol(funName);
 
-            if (stmt.typeParameters != null) {
-                stmt.typeParameters.forEach(tp -> tp.accept(this));
+            if (decl.typeParameters != null) {
+                decl.typeParameters.forEach(tp -> tp.accept(this));
             }
 
-            if (stmt.parameters != null) {
-                stmt.parameters.forEach(p -> p.accept(this));
+            if (decl.parameters != null) {
+                decl.parameters.forEach(p -> p.accept(this));
             }
 
             currentClass.addDeclaredMember(currentFunction);
@@ -109,12 +139,12 @@ public class Register implements DefaultStmtVisitor<Void> {
     }
 
     @Override
-    public Void visitParamDeclStmt(ParamDeclStmt stmt) {
-        String pName = stmt.name.source;
+    public Void visitParamDecl(ParamDecl decl) {
+        String pName = decl.name.source;
 
         if (currentFunction != null) {
             if (currentFunction.hasParameter(pName)) {
-                unit.addError(unit.error(TAG, REDEFINED_PARAMETER.format(pName), stmt));
+                unit.addError(unit.error(TAG, REDEFINED_PARAMETER.format(pName), decl));
                 return null;
             }
             currentFunction.addParameter(new ParamSymbol(pName));

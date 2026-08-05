@@ -108,7 +108,7 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 	}
 
 	@Override
-	public String visitVarDeclStmt(VarDeclStmt stmt) {
+	public String visitVarDeclStmt(VarDecl stmt) {
 		StringBuilder sb = new StringBuilder();
 
 		sb.append("var ").append(stmt.name);
@@ -123,7 +123,7 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 	}
 
 	@Override
-	public String visitFunDeclStmt(FunDeclStmt stmt) {
+	public String visitFunDeclStmt(FunDecl stmt) {
 		StringBuilder sb = new StringBuilder();
 
 		sb.append("fun ").append(stmt.name);
@@ -142,7 +142,7 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 		for (int i = 0; i < stmt.parameters.size(); i++) {
 			if (i > 0)
 				sb.append(", ");
-			ParamDeclStmt param = stmt.parameters.get(i);
+			ParamDecl param = stmt.parameters.get(i);
 			sb.append(param.accept(this));
 		}
 		sb.append(")");
@@ -161,7 +161,7 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 	}
 
 	@Override
-	public String visitParamDeclStmt(ParamDeclStmt stmt) {
+	public String visitParamDeclStmt(ParamDecl stmt) {
 		if (stmt.type != null) {
 			return stmt.name + ": " + stmt.type.getName();
 		}
@@ -169,12 +169,12 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 	}
 
 	@Override
-	public String visitTypeParamDeclStmt(TypeParamDeclStmt stmt) {
+	public String visitTypeParamDeclStmt(TypeParamDecl stmt) {
 		StringBuilder sb = new StringBuilder(stmt.name.source);
 
-		if (stmt.superclasses != null && !stmt.superclasses.isEmpty()) {
+		if (stmt.supers != null && !stmt.supers.isEmpty()) {
 			sb.append(" : ");
-			sb.append(String.join(" & ", stmt.superclasses.stream()
+			sb.append(String.join(" & ", stmt.supers.stream()
 					.map(Typed::getSignature)
 					.toArray(String[]::new)));
 		}
@@ -183,7 +183,7 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 	}
 
 	@Override
-	public String visitClassDeclStmt(ClassDeclStmt stmt) {
+	public String visitClassDeclStmt(ClassDecl stmt) {
 		StringBuilder sb = new StringBuilder();
 
 		sb.append("class ").append(stmt.name);
@@ -196,10 +196,10 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 			sb.append(">");
 		}
 
-		if (stmt.superclasses != null && !stmt.superclasses.isEmpty()) {
+		if (stmt.supers != null && !stmt.supers.isEmpty()) {
 			sb.append(" : ");
 
-			sb.append(String.join(" & ", stmt.superclasses.stream()
+			sb.append(String.join(" & ", stmt.supers.stream()
 					.map(Typed::getSignature)
 					.toArray(String[]::new)));
 		}
@@ -225,7 +225,7 @@ public class Printer implements ExprVisitor<String>, StmtVisitor<String> {
 	}
 
 	@Override
-	public String visitLetDeclStmt(LetDeclStmt stmt) {
+	public String visitLetDeclStmt(LetDecl stmt) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("let ").append(stmt.name);
 		if (stmt.type != null) {

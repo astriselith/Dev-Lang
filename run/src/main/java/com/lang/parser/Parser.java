@@ -120,42 +120,8 @@ public class Parser {
 
 	}
 
-	private List<MemberDeclStmt> members() {
-		stream.expect(LBRACE);
-
-		List<MemberDeclStmt> members = new ArrayList<>();
-		while (!stream.isAtEnd() && !stream.check(RBRACE)) {
-			try {
-				if (stream.check("fun"))
-					members.add(funDecl());
-				else if (stream.check("var"))
-					members.add(varDecl());
-				else
-					throw unit.error(
-							TAG,
-							EXPECTED_MEMBER.format(),
-							stream.peek());
-
-			} catch (CompilationException e) {
-				unit.addError(e);
-				synchronizeAfter(DEFAULT_MEMBER_RECOVERY);
-			} catch (IllegalStateException e) {
-				unit.addError(
-						unit.error(
-								TAG,
-								e.getMessage(),
-								stream.peek()));
-				synchronizeAfter(DEFAULT_MEMBER_RECOVERY);
-			}
-		}
-
-		stream.expect(RBRACE);
-		return members;
-	}
-
-	private VarDeclStmt varDecl() {
+	private VarDecl varDecl() {
 		Token start = stream.expect("var");
-
 		Token nameToken = stream.expect(IDENTIFIER);
 
 		Typed type = null;
@@ -168,22 +134,22 @@ public class Parser {
 
 		semicolon();
 
-		return new VarDeclStmt(new Identifier(nameToken.lexeme, nameToken.position),
+		return new VarDecl(metas, new Identifier(nameToken.lexeme, nameToken.position),
 				type, value,
 				between(start, stream.previous()));
 
 	}
 
-	private FunDeclStmt funDecl() {
+	private FunDecl funDecl() {
 		Token start = stream.expect("fun");
 
 		Token nameToken = stream.expect(IDENTIFIER);
 
-		List<TypeParamDeclStmt> typeParameters = null;
+		List<TypeParamDecl> typeParameters = null;
 		if (stream.check(LANGLE))
 			typeParameters = typeParameters();
 
-		List<ParamDeclStmt> params = parameters();
+		List<ParamDecl> params = parameters();
 
 		Typed returnType = null;
 		if (stream.match(COLON))
@@ -202,15 +168,15 @@ public class Parser {
 					stream.peek());
 		}
 
-		return new FunDeclStmt(new Identifier(nameToken.lexeme, nameToken.position), typeParameters, params, returnType,
+		return new FunDecl(new Identifier(nameToken.lexeme, nameToken.position), typeParameters, params, returnType,
 				body,
 				between(start, body != null ? body : stream.previous()));
 	}
 
-	private List<ParamDeclStmt> parameters() {
+	private List<ParamDecl> parameters() {
 		stream.expect(LPAREN);
 
-		List<ParamDeclStmt> params = new ArrayList<>();
+		List<ParamDecl> params = new ArrayList<>();
 
 		if (!stream.check(RPAREN)) {
 			do {
@@ -220,7 +186,7 @@ public class Parser {
 					type = type();
 
 				params.add(
-						new ParamDeclStmt(new Identifier(nameToken.lexeme, nameToken.position), type, pos(nameToken)));
+						new ParamDecl(new Identifier(nameToken.lexeme, nameToken.position), type, pos(nameToken)));
 			} while (stream.match(COMMA));
 		}
 
@@ -228,41 +194,41 @@ public class Parser {
 		return params;
 	}
 
-	private List<Typed> superclasses() {
-		List<Typed> superclasses = new ArrayList<>();
+	private List<SuperDecl> supers() {
+		List<SuperDecl> supers = new ArrayList<>();
 
 		if (stream.match(COLON)) {
 			do {
-				superclasses.add(type());
+				Identifier name = new Identifier(stream.expect(IDENTIFIER).lexeme, stream.previous().position);
+				Typed type = type();
+
+				supers.add(new SuperDecl(name, type, pos(type)));
 			} while (stream.match(AMP));
 		}
 
-		return superclasses;
+		return supers;
 	}
 
-	private List<TypeParamDeclStmt> typeParameters() {
+	private List<TypeParamDecl> typeParameters() {
 		stream.expect(LANGLE);
 
-		List<TypeParamDeclStmt> params = new ArrayList<>();
+		List<TypeParamDecl> params = new ArrayList<>();
 
 		do {
 			Token nameToken = stream.expect(IDENTIFIER);
 
-			List<TypeParamDeclStmt> typeParameters = null;
-
-			List<Typed> superclasses = null;
+			List<SuperDecl> supers = null;
 			if (stream.check(COLON))
-				superclasses = superclasses();
+				supers = supers();
 
-			Positioned end = superclasses != null
-					? superclasses.get(superclasses.size() - 1)
+			Positioned end = supers != null
+					? supers.get(supers.size() - 1)
 					: nameToken;
 
 			params.add(
-					new TypeParamDeclStmt(
+					new TypeParamDecl(
 							new Identifier(nameToken.lexeme, nameToken.position),
-							typeParameters,
-							superclasses,
+							supers,
 							between(nameToken, end)));
 		} while (stream.match(COMMA));
 
@@ -356,32 +322,95 @@ public class Parser {
 		}
 	}
 
-	private ClassDeclStmt classDecl() {
+	private List<Meta> metas() {
+		List<Meta> metas = new ArrayList<>();
+		while (true) {
+			Meta meta = meta();
+
+			if (meta == null)
+				break;
+
+			metas.add(meta);
+		}
+		return metas;
+	}
+
+	private Meta meta() {
+		if (stream.check(AT))
+			return anno();
+		return null;
+	}
+
+	private AnnoMeta anno() {
+		Token start = stream.expect(AT);
+		Token nameToken = stream.expect(IDENTIFIER);
+
+		List<Typed> typeArguments = null;
+		if (stream.check(LANGLE))
+			typeArguments = typeArguments();
+
+		List<Expr> arguments = null;
+		if (stream.check(LPAREN))
+			arguments = arguments();
+
+		return new AnnoMeta(
+				new Identifier(nameToken.lexeme, nameToken.position),
+				typeArguments,
+				arguments,
+				between(start, stream.previous()));
+	}
+
+	private ClassDecl classDecl() {
 		Token start = stream.expect("class");
 
 		Token nameToken = stream.expect(IDENTIFIER);
 
-		List<TypeParamDeclStmt> typeParameters = null;
+		List<TypeParamDecl> typeParameters = null;
 		if (stream.check(LANGLE))
 			typeParameters = typeParameters();
 
-		List<Typed> superclasses = null;
+		List<SuperDecl> supers = null;
 		if (stream.check(COLON))
-			superclasses = superclasses();
+			supers = supers();
 
-		List<MemberDeclStmt> members = new ArrayList<>();
+		List<MemberDecl> members = new ArrayList<>();
 		Positioned end = null;
 		if (stream.check(SEMICOLON)) {
 			end = stream.advance();
 		} else if (stream.check(LBRACE)) {
-			members = members();
-			end = stream.previous();
+			stream.expect(LBRACE);
+			while (!stream.isAtEnd() && !stream.check(RBRACE)) {
+				try {
+					if (stream.check("fun"))
+						members.add(funDecl());
+					else if (stream.check("var"))
+						members.add(varDecl());
+					else
+						throw unit.error(
+								TAG,
+								EXPECTED_MEMBER.format(),
+								stream.peek());
+
+				} catch (CompilationException e) {
+					unit.addError(e);
+					synchronizeAfter(DEFAULT_MEMBER_RECOVERY);
+				} catch (IllegalStateException e) {
+					unit.addError(
+							unit.error(
+									TAG,
+									e.getMessage(),
+									stream.peek()));
+					synchronizeAfter(DEFAULT_MEMBER_RECOVERY);
+				}
+			}
+
+			end = stream.expect(RBRACE);
 		}
-		return new ClassDeclStmt(new Identifier(nameToken.lexeme, nameToken.position), superclasses,
+		return new ClassDecl(new Identifier(nameToken.lexeme, nameToken.position), supers,
 				typeParameters, members, between(start, end));
 	}
 
-	private LetDeclStmt letDecl() {
+	private LetDecl letDecl() {
 		Token start = stream.expect("let");
 
 		Token nameToken = stream.expect(IDENTIFIER);
@@ -396,7 +425,7 @@ public class Parser {
 
 		semicolon();
 
-		return new LetDeclStmt(new Identifier(nameToken.lexeme, nameToken.position), type, value,
+		return new LetDecl(new Identifier(nameToken.lexeme, nameToken.position), type, value,
 				between(start, stream.previous()));
 	}
 

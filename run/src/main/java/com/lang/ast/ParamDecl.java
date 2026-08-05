@@ -2,14 +2,14 @@ package com.lang.ast;
 
 import com.lang.util.Position;
 
-public class ParamDeclStmt extends Stmt {
+public class ParamDecl extends Decl {
 	public Identifier name;
 	public Typed type;
 
-	public ParamDeclStmt() {
+	public ParamDecl() {
 	}
 
-	public ParamDeclStmt(Identifier name, Typed type, Position position) {
+	public ParamDecl(Identifier name, Typed type, Position position) {
 		super(position);
 		this.name = name;
 		this.type = type;

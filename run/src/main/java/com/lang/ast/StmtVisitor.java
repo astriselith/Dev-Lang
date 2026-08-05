@@ -1,7 +1,7 @@
 package com.lang.ast;
 
 public interface StmtVisitor<T> {
-	T visitLetDeclStmt(LetDeclStmt stmt);
+	T visitLetDeclStmt(LetDecl stmt);
 	T visitIfStmt(IfStmt stmt);
 	T visitWhileStmt(WhileStmt stmt);
 	T visitReturnStmt(ReturnStmt stmt);
@@ -9,9 +9,9 @@ public interface StmtVisitor<T> {
 	T visitContinueStmt(ContinueStmt stmt);
 	T visitBlockStmt(BlockStmt stmt);
 	T visitExprStmt(ExprStmt stmt);
-	T visitParamDeclStmt(ParamDeclStmt stmt);
-	T visitTypeParamDeclStmt(TypeParamDeclStmt stmt);
-	T visitClassDeclStmt(ClassDeclStmt stmt);
-	T visitVarDeclStmt(VarDeclStmt stmt);
-	T visitFunDeclStmt(FunDeclStmt stmt);
+	T visitParamDeclStmt(ParamDecl stmt);
+	T visitTypeParamDeclStmt(TypeParamDecl stmt);
+	T visitClassDeclStmt(ClassDecl stmt);
+	T visitVarDeclStmt(VarDecl stmt);
+	T visitFunDeclStmt(FunDecl stmt);
 }

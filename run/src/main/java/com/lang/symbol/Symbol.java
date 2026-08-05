@@ -20,6 +20,10 @@ public abstract class Symbol {
 		return this instanceof ClassSymbol;
 	}
 
+	public boolean isSuper() {
+		return this instanceof SuperSymbol;
+	}
+
 	public boolean isFun() {
 		return this instanceof FunSymbol;
 	}
@@ -42,6 +46,10 @@ public abstract class Symbol {
 
 	public ClassSymbol asClass() {
 		return isClass() ? (ClassSymbol) this : null;
+	}
+
+	public SuperSymbol asSuper() {
+		return isSuper() ? (SuperSymbol) this : null;
 	}
 
 	public FunSymbol asFun() {
@@ -67,4 +75,10 @@ public abstract class Symbol {
 	public static void resetCounter() {
 		globalCounter = 0;
 	}
+
+	@Override
+	public String toString() {
+		return name + "@" + declarationOrder;
+	}
+
 }

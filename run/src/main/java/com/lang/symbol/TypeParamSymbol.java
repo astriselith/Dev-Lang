@@ -8,66 +8,59 @@ import java.util.Map;
 
 public class TypeParamSymbol extends Symbol {
 
-	private Map<String, Symbol> superclasses;
+	private Map<String, SuperSymbol> supers;
 
 	public TypeParamSymbol(String name) {
 		super(name);
-		this.superclasses = new LinkedHashMap<>();
+		this.supers = new LinkedHashMap<>();
 	}
 
-	// Superclasses
+	// Supers
 
-	public void addSuperclass(Symbol symbol) {
-		String className = null;
-		if (symbol.isClass()) {
-			className = symbol.asClass().getName();
-		}
-		if (symbol.isParameterizedClass()) {
-			className = symbol.asParameterizedClass().getBase().getName();
-		}
-		if (className != null)
-			this.superclasses.put(className, symbol);
+	public void addSuper(SuperSymbol symbol) {
+		this.supers.put(symbol.getName(), symbol);
 	}
 
-	public void setSuperclasses(Map<String, Symbol> superclasses) {
-		this.superclasses.clear();
-		if (superclasses != null)
-			this.superclasses.putAll(superclasses);
+	public void setSupers(Map<String, SuperSymbol> supers) {
+		this.supers.clear();
+		if (supers != null)
+			this.supers.putAll(supers);
 	}
 
-	public boolean hasSuperclass(String className) {
-		return this.superclasses.containsKey(className);
+	public boolean hasSuper(String className) {
+		return this.supers.containsKey(className);
 	}
 
-	public Symbol getSuperclass(String className) {
-		return this.superclasses.get(className);
+	public SuperSymbol getSuper(String className) {
+		return this.supers.get(className);
 	}
 
-	public Map<String, Symbol> getSuperclasses() {
-		return Collections.unmodifiableMap(superclasses);
+	public Map<String, SuperSymbol> getSupers() {
+		return Collections.unmodifiableMap(supers);
 	}
 
-	public boolean hasSuperclasses() {
-		return !superclasses.isEmpty();
+	public boolean hasSupers() {
+		return !supers.isEmpty();
 	}
 
-	// Superclasses (util)
+	// Supers (util)
 
-	public List<ClassSymbol> getBaseSuperclasses() {
+	public List<ClassSymbol> getBaseSupers() {
 		List<ClassSymbol> result = new ArrayList<>();
-		for (Symbol clazz : superclasses.values()) {
-			if (clazz.isClass()) {
-				result.add(clazz.asClass());
-			} else if (clazz.isParameterizedClass()) {
-				result.add(clazz.asParameterizedClass().getBase());
+		for (SuperSymbol sup : supers.values()) {
+			Symbol base = sup.getType();
+			if (base.isClass()) {
+				result.add(base.asClass());
+			} else if (base.isParameterizedClass()) {
+				result.add(base.asParameterizedClass().getBase());
 			}
 		}
 		return Collections.unmodifiableList(result);
 	}
 
 	public Symbol getMember(String name) {
-		for (ClassSymbol superclass : getBaseSuperclasses()) {
-			Symbol result = superclass.getMember(name);
+		for (ClassSymbol supers : getBaseSupers()) {
+			Symbol result = supers.getMember(name);
 			if (result != null)
 				return result;
 		}

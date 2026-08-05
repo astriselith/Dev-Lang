@@ -10,13 +10,13 @@ import com.lang.ast.*;
 import com.lang.symbol.*;
 import com.lang.unit.CompilationUnit;
 
-public class Linker implements DefaultStmtVisitor<Void> {
+public class Linker implements DeclVisitor<Void> {
 
     private final SymbolTable table;
     private final CompilationUnit unit;
     private ClassSymbol currentClass;
     private FunSymbol currentFunction;
-    private Map<String, Symbol> substitutions;
+    private TypeParamSymbol currentTypeParameter;
 
     private final Consumer<Typed> reporter;
 
@@ -27,7 +27,7 @@ public class Linker implements DefaultStmtVisitor<Void> {
 
         this.currentClass = null;
         this.currentFunction = null;
-        this.substitutions = new LinkedHashMap<>();
+        this.currentTypeParameter = null;
     }
 
     public void link() {
@@ -35,119 +35,130 @@ public class Linker implements DefaultStmtVisitor<Void> {
     }
 
     @Override
-    public Void visitClassDeclStmt(ClassDeclStmt stmt) {
-        String className = stmt.name.source;
+    public Void visitClassDecl(ClassDecl decl) {
+        String className = decl.name.source;
         currentClass = table.get(className);
         if (currentClass == null)
             return null;
 
-        substitutions = new LinkedHashMap<>();
-        substitutions.put(className, currentClass);
-        substitutions.putAll(currentClass.getTypeParameters());
-
-        if (stmt.typeParameters != null) {
-            stmt.typeParameters.forEach(tp -> tp.accept(this));
+        if (decl.typeParameters != null) {
+            decl.typeParameters.forEach(tp -> tp.accept(this));
         }
 
-        if (stmt.superclasses != null) {
-            stmt.superclasses.forEach(superClass -> {
-                String name = superClass.getName();
-                if (currentClass.hasSuperclass(name)) {
-                    unit.addError(unit.error(TAG, DUPLICATE_SUPERCLASS.format(name), superClass));
-                    return;
-                }
-
-                Symbol resolved = table.resolve(superClass, substitutions, reporter);
-                if (resolved == null)
-                    return;
-                if (resolved.isClass() && resolved == currentClass) {
-                    unit.addError(unit.error(TAG, CIRCULAR_INHERITANCE.format(className), superClass));
-                    return;
-                }
-                currentClass.addSuperclass(resolved);
-            });
+        if (decl.supers != null) {
+            decl.supers.forEach(superClass -> superClass.accept(this));
         }
 
-        if (stmt.members != null) {
-            stmt.members.forEach(member -> member.accept(this));
+        if (currentClass != table.getAny() && !currentClass.hasSupers()) {
+            ClassSymbol anyClass = table.getAny();
+            SuperSymbol anySuper = new SuperSymbol(anyClass.getName());
+            anySuper.setType(anyClass);
+            currentClass.addSuper(anySuper);
+        }
+
+        if (decl.members != null) {
+            decl.members.forEach(member -> member.accept(this));
         }
 
         currentClass = null;
-        substitutions = null;
         return null;
     }
 
     @Override
-    public Void visitTypeParamDeclStmt(TypeParamDeclStmt stmt) {
-        if (currentClass != null) {
-            TypeParamSymbol tpSymbol = currentClass.getTypeParameter(stmt.name.source);
-            if (tpSymbol == null)
+    public Void visitSuperDecl(SuperDecl decl) {
+        if (currentTypeParameter != null) {
+            String superName = decl.name.source;
+            SuperSymbol sSymbol = currentTypeParameter.getSuper(superName);
+
+            Map<String, Symbol> substitutions = new LinkedHashMap<>();
+
+            if (currentClass != null)
+                substitutions.putAll(currentClass.getTypeParameters());
+
+            if (currentFunction != null)
+                substitutions.putAll(currentFunction.getTypeParameters());
+
+            Symbol resolved = table.resolve(decl.type, substitutions, reporter);
+            if (sSymbol == null)
+                return null;
+            if (resolved == null)
+                return null;
+            sSymbol.setType(resolved);
+
+        } else if (currentClass != null) {
+            String superName = decl.name.source;
+
+            SuperSymbol sSymbol = currentClass.getSuper(superName);
+
+            Map<String, Symbol> substitutions = new LinkedHashMap<>();
+
+            if (currentClass != null)
+                substitutions.putAll(currentClass.getTypeParameters());
+            if (currentFunction != null)
+                substitutions.putAll(currentFunction.getTypeParameters());
+
+            Symbol resolved = table.resolve(decl.type, substitutions, reporter);
+            if (sSymbol == null)
+                return null;
+            if (resolved == null)
                 return null;
 
-            if (stmt.superclasses == null)
-                return null;
+            sSymbol.setType(resolved);
 
-            stmt.superclasses.forEach(superClass -> {
-                String name = superClass.getName();
-                if (tpSymbol.hasSuperclass(name)) {
-                    unit.addError(unit.error(TAG, DUPLICATE_SUPERCLASS.format(name), superClass));
-                    return;
-                }
-
-                Symbol resolved = table.resolve(superClass, substitutions, reporter);
-                if (resolved == null)
-                    return;
-                if (resolved.isTypeParam() && resolved == tpSymbol) {
-                    unit.addError(unit.error(TAG, SELF_REFERENTIAL_TYPE_PARAMETER.format(stmt.name.source), stmt));
-                    return;
-                }
-                tpSymbol.addSuperclass(resolved);
-            });
-        } else if (currentFunction != null) {
-            TypeParamSymbol tpSymbol = currentFunction.getTypeParameter(stmt.name.source);
-            if (tpSymbol == null)
-                return null;
-
-            if (stmt.superclasses == null)
-                return null;
-
-            Map<String, Symbol> funSubs = new LinkedHashMap<>(substitutions);
-            funSubs.putAll(currentFunction.getTypeParameters());
-
-            stmt.superclasses.forEach(superClass -> {
-                String name = superClass.getName();
-                if (tpSymbol.hasSuperclass(name)) {
-                    unit.addError(unit.error(TAG, DUPLICATE_SUPERCLASS.format(name), superClass));
-                    return;
-                }
-
-                Symbol resolved = table.resolve(superClass, funSubs, reporter);
-                if (resolved == null)
-                    return;
-                if (resolved.isTypeParam() && resolved == tpSymbol) {
-                    unit.addError(unit.error(TAG, SELF_REFERENTIAL_TYPE_PARAMETER.format(stmt.name.source), stmt));
-                    return;
-                }
-                tpSymbol.addSuperclass(resolved);
-            });
         }
         return null;
     }
 
     @Override
-    public Void visitVarDeclStmt(VarDeclStmt stmt) {
+    public Void visitTypeParamDecl(TypeParamDecl decl) {
+        if (currentFunction != null) {
+            TypeParamSymbol tpSymbol = currentFunction.getTypeParameter(decl.name.source);
+            if (tpSymbol == null)
+                return null;
+
+            if (decl.supers == null)
+                return null;
+
+            currentTypeParameter = tpSymbol;
+            decl.supers.forEach(superClass -> superClass.accept(this));
+            currentTypeParameter = null;
+        } else if (currentClass != null) {
+            TypeParamSymbol tpSymbol = currentClass.getTypeParameter(decl.name.source);
+            if (tpSymbol == null)
+                return null;
+
+            if (decl.supers == null)
+                return null;
+
+            currentTypeParameter = tpSymbol;
+            decl.supers.forEach(superClass -> superClass.accept(this));
+            currentTypeParameter = null;
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitVarDecl(VarDecl decl) {
         if (currentClass == null)
             return null;
 
-        Symbol sym = currentClass.getDeclaredMember(stmt.name.source);
+        Symbol sym = currentClass.getDeclaredMember(decl.name.source);
         if (!(sym instanceof VarSymbol))
             return null;
 
         VarSymbol varSymbol = (VarSymbol) sym;
-        if (stmt.type == null)
+        if (decl.type == null)
             return null;
 
-        Symbol resolved = table.resolve(stmt.type, substitutions, reporter);
+        Map<String, Symbol> substitutions = new LinkedHashMap<>();
+
+        if (currentClass != null)
+            substitutions.putAll(currentClass.getTypeParameters());
+
+        if (currentFunction != null)
+            substitutions.putAll(currentFunction.getTypeParameters());
+
+        Symbol resolved = table.resolve(decl.type, substitutions, reporter);
         if (resolved != null)
             varSymbol.setType(resolved);
 
@@ -155,31 +166,34 @@ public class Linker implements DefaultStmtVisitor<Void> {
     }
 
     @Override
-    public Void visitFunDeclStmt(FunDeclStmt stmt) {
+    public Void visitFunDecl(FunDecl decl) {
         if (currentClass == null)
             return null;
 
-        Symbol sym = currentClass.getDeclaredMember(stmt.name.source);
+        Symbol sym = currentClass.getDeclaredMember(decl.name.source);
         if (!(sym instanceof FunSymbol))
             return null;
 
         currentFunction = (FunSymbol) sym;
 
-        Map<String, Symbol> funSubs = new LinkedHashMap<>(substitutions);
-        funSubs.putAll(currentFunction.getTypeParameters());
+        Map<String, Symbol> substitutions = new LinkedHashMap<>();
+        if (currentClass != null)
+            substitutions.putAll(currentClass.getTypeParameters());
+        if (currentFunction != null)
+            substitutions.putAll(currentFunction.getTypeParameters());
 
-        if (stmt.returnType != null) {
-            Symbol resolved = table.resolve(stmt.returnType, funSubs, reporter);
+        if (decl.returnType != null) {
+            Symbol resolved = table.resolve(decl.returnType, substitutions, reporter);
             if (resolved != null)
                 currentFunction.setReturnType(resolved);
         }
 
-        if (stmt.parameters != null) {
-            stmt.parameters.forEach(param -> param.accept(this));
+        if (decl.parameters != null) {
+            decl.parameters.forEach(param -> param.accept(this));
         }
 
-        if (stmt.typeParameters != null) {
-            stmt.typeParameters.forEach(tp -> tp.accept(this));
+        if (decl.typeParameters != null) {
+            decl.typeParameters.forEach(tp -> tp.accept(this));
         }
 
         currentFunction = null;
@@ -187,21 +201,25 @@ public class Linker implements DefaultStmtVisitor<Void> {
     }
 
     @Override
-    public Void visitParamDeclStmt(ParamDeclStmt stmt) {
+    public Void visitParamDecl(ParamDecl decl) {
         if (currentFunction == null)
             return null;
 
-        if (stmt.type == null)
+        if (decl.type == null)
             return null;
 
-        ParamSymbol paramSymbol = currentFunction.getParameter(stmt.name.source);
+        ParamSymbol paramSymbol = currentFunction.getParameter(decl.name.source);
         if (paramSymbol == null)
             return null;
 
-        Map<String, Symbol> funSubs = new LinkedHashMap<>(substitutions);
-        funSubs.putAll(currentFunction.getTypeParameters());
+        Map<String, Symbol> substitutions = new LinkedHashMap<>();
 
-        Symbol resolved = table.resolve(stmt.type, funSubs, reporter);
+        if (currentClass != null)
+            substitutions.putAll(currentClass.getTypeParameters());
+        if (currentFunction != null)
+            substitutions.putAll(currentFunction.getTypeParameters());
+
+        Symbol resolved = table.resolve(decl.type, substitutions, reporter);
         if (resolved != null)
             paramSymbol.setType(resolved);
 

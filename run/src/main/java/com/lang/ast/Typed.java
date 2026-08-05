@@ -31,4 +31,9 @@ public abstract class Typed extends Node {
 
 		throw new UnsupportedOperationException("Unknown typed type: " + this.getClass().getName());
 	}
+
+	@Override
+	public final String toString() {
+		return getSignature();
+	}
 }

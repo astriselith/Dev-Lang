@@ -1,8 +1,21 @@
-class A {
-    var s: B;
-    var b: S;
+class A : Stringfiable {
 
-    fun add<L, R, U>(l: L, r: R): U {
+    var str: String = "";
 
+    fun main() {
+        println(this);
+        println(b());
     }
+
+    fun stringfy(): String {
+        return str;
+    }
+
+    fun b(): B {
+        return null;
+    }
+}
+
+class B {
+
 }
