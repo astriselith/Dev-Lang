@@ -213,66 +213,7 @@ public class SymbolTable {
 			return true;
 		}
 
-		if (from.isClass()) {
-			ClassSymbol fromClass = from.asClass();
-			return isSubtype(fromClass, to);
-		}
-
-		if (from.isParameterizedClass()) {
-			ParameterizedClassSymbol fromParam = from.asParameterizedClass();
-			return isSubtype(fromParam, to);
-		}
-
-		if (from.isTypeParam()) {
-			TypeParamSymbol tp = from.asTypeParam();
-			for (Symbol constraint : tp.getSupers().values()) {
-				if (isAssignable(constraint, to)) {
-					return true;
-				}
-			}
-		}
-
-		return false;
-	}
-
-	public boolean isSubtype(ClassSymbol subClass, Symbol superType) {
-		if (subClass == null || superType == null) {
-			return false;
-		}
-
-		if (subClass == superType) {
-			return true;
-		}
-
-		if (superType.isTypeParam()) {
-			TypeParamSymbol tp = superType.asTypeParam();
-			for (SuperSymbol constraint : tp.getSupers().values()) {
-				if (isSubtype(subClass, constraint.getType())) {
-					return true;
-				}
-			}
-			return false;
-		}
-
-		// Verifica todos os superclasses diretamente
-		for (SuperSymbol parent : subClass.getSupers().values()) {
-			Symbol parentType = parent.getType();
-			if (parentType == superType) {
-				return true;
-			}
-			if (parentType.isClass()) {
-				if (isSubtype(parentType.asClass(), superType)) {
-					return true;
-				}
-			}
-			if (parentType.isParameterizedClass()) {
-				if (isSubtype(parentType.asParameterizedClass(), superType)) {
-					return true;
-				}
-			}
-		}
-
-		return false;
+		return isSubtype(from, to);
 	}
 
 	public boolean isSubtype(Symbol subType, Symbol superType) {
@@ -284,40 +225,58 @@ public class SymbolTable {
 			return true;
 		}
 
-		if (subType.isClass()) {
-			return isSubtype(subType.asClass(), superType);
+		if (isAny(superType)) {
+			return true;
 		}
 
-		if (subType.isParameterizedClass()) {
-			return isSubtype(subType.asParameterizedClass(), superType);
+		if (isNull(subType)) {
+			return superType.isClass() && !isPrimitive(superType);
 		}
 
-		if (subType.isTypeParam()) {
-			TypeParamSymbol tp = subType.asTypeParam();
-			for (Symbol constraint : tp.getSupers().values()) {
-				if (isSubtype(constraint, superType)) {
+		if (superType.isTypeParam()) {
+			TypeParamSymbol tp = superType.asTypeParam();
+			for (SuperSymbol constraint : tp.getSupers().values()) {
+				Symbol constraintType = constraint.getType();
+				if (constraintType != null && isSubtype(subType, constraintType)) {
 					return true;
 				}
 			}
-		}
-
-		return false;
-	}
-
-	public boolean isSubtype(ParameterizedClassSymbol subClass, Symbol superType) {
-		if (subClass == null || superType == null) {
 			return false;
 		}
 
-		ClassSymbol base = subClass.getBase();
+		if (subType.isClass()) {
+			ClassSymbol subClass = subType.asClass();
+			for (SuperSymbol parent : subClass.getSupers().values()) {
+				Symbol parentType = parent.getType();
 
-		if (superType.isParameterizedClass()) {
-			ParameterizedClassSymbol superParam = superType.asParameterizedClass();
-			if (base == superParam.getBase()) {
-				Map<String, Symbol> subArgs = subClass.getTypeArguments();
-				Map<String, Symbol> superArgs = superParam.getTypeArguments();
+				if (parentType == superType) {
+					return true;
+				}
+				if (isSubtype(parentType, superType)) {
+					return true;
+				}
+			}
+			return false;
+		}
 
-				if (subArgs.size() == superArgs.size()) {
+		if (subType.isParameterizedClass()) {
+			ParameterizedClassSymbol subParam = subType.asParameterizedClass();
+			ClassSymbol base = subParam.getBase();
+
+			if (isSubtype(base, superType)) {
+				return true;
+			}
+
+			if (superType.isParameterizedClass()) {
+				ParameterizedClassSymbol superParam = superType.asParameterizedClass();
+				if (base == superParam.getBase()) {
+					Map<String, Symbol> subArgs = subParam.getTypeArguments();
+					Map<String, Symbol> superArgs = superParam.getTypeArguments();
+
+					if (subArgs.size() != superArgs.size()) {
+						return false;
+					}
+
 					for (String key : subArgs.keySet()) {
 						if (!isAssignable(subArgs.get(key), superArgs.get(key))) {
 							return false;
@@ -326,9 +285,22 @@ public class SymbolTable {
 					return true;
 				}
 			}
+
+			return false;
 		}
 
-		return isSubtype(base, superType);
+		if (subType.isTypeParam()) {
+			TypeParamSymbol tp = subType.asTypeParam();
+			for (SuperSymbol constraint : tp.getSupers().values()) {
+				Symbol constraintType = constraint.getType();
+				if (constraintType != null && isSubtype(constraintType, superType)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		return false;
 	}
 
 	public boolean isComparable(Symbol a, Symbol b) {
@@ -472,11 +444,8 @@ public class SymbolTable {
 			return true;
 		}
 
-		if (sym.isClass() || sym.isParameterizedClass()) {
-			return !isPrimitive(sym);
-		}
+		return !isPrimitive(sym);
 
-		return false;
 	}
 
 	public boolean isReferenceType(Symbol sym) {
@@ -551,13 +520,7 @@ public class SymbolTable {
 		if (isFloat(sym))
 			return true;
 
-		if (sym.isClass()) {
-			return isSubtype(sym.asClass(), getNumber());
-		}
-		if (sym.isParameterizedClass()) {
-			return isSubtype(sym.asParameterizedClass(), getNumber());
-		}
-		return false;
+		return isSubtype(sym, getNumber());
 	}
 
 	public boolean isInt(Symbol sym) {

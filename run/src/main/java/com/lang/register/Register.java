@@ -42,6 +42,10 @@ public class Register implements DeclVisitor<Void> {
             decl.typeParameters.forEach(tp -> tp.accept(this));
         }
 
+        if (decl.supers != null) {
+            decl.supers.forEach(s -> s.accept(this));
+        }
+
         if (decl.members != null) {
             decl.members.forEach(member -> member.accept(this));
         }
@@ -107,7 +111,9 @@ public class Register implements DeclVisitor<Void> {
                 unit.addError(unit.error(TAG, REDEFINED_VARIABLE.format(varName), decl));
                 return null;
             }
-            currentClass.addDeclaredMember(new VarSymbol(varName));
+            VarSymbol varSymbol = new VarSymbol(varName);
+            varSymbol.setDeclaringClass(currentClass);
+            currentClass.addDeclaredMember(varSymbol);
         }
         return null;
     }
@@ -122,8 +128,10 @@ public class Register implements DeclVisitor<Void> {
                 return null;
             }
 
-            currentFunction = new FunSymbol(funName);
+            FunSymbol funSymbol = new FunSymbol(funName);
+            funSymbol.setDeclaringClass(currentClass);
 
+            currentFunction = funSymbol;
             if (decl.typeParameters != null) {
                 decl.typeParameters.forEach(tp -> tp.accept(this));
             }

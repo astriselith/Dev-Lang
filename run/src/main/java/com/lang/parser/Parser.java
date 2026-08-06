@@ -185,8 +185,13 @@ public class Parser {
 				if (stream.match(COLON))
 					type = type();
 
+				Expr value = null;
+				if (stream.match(EQUALS))
+					value = expr();
+
 				params.add(
-						new ParamDecl(new Identifier(nameToken.lexeme, nameToken.position), type, pos(nameToken)));
+						new ParamDecl(new Identifier(nameToken.lexeme, nameToken.position), type, value,
+								pos(nameToken)));
 			} while (stream.match(COMMA));
 		}
 
@@ -199,7 +204,7 @@ public class Parser {
 
 		if (stream.match(COLON)) {
 			do {
-				Identifier name = new Identifier(stream.expect(IDENTIFIER).lexeme, stream.previous().position);
+				Identifier name = new Identifier(stream.peek().lexeme, stream.previous().position);
 				Typed type = type();
 
 				supers.add(new SuperDecl(name, type, pos(type)));

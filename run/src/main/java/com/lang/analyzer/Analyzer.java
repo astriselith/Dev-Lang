@@ -3,6 +3,7 @@ package com.lang.analyzer;
 import static com.lang.analyzer.AnalyzingErrorCode.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -106,13 +107,6 @@ public class Analyzer implements DefaultDeclVisitor<Void>, DefaultStmtVisitor<Vo
             subs.putAll(currentFun.getTypeParameters());
         }
 
-        // Adiciona parâmetros da função ao escopo
-        if (currentFun.getParameters() != null) {
-            for (ParamSymbol param : currentFun.getParameters().values()) {
-                funScope.putLocal(param.getName(), param);
-            }
-        }
-
         pushScope(funScope);
         pushSubstitutions(subs);
 
@@ -159,7 +153,23 @@ public class Analyzer implements DefaultDeclVisitor<Void>, DefaultStmtVisitor<Vo
 
     @Override
     public Void visitParamDecl(ParamDecl decl) {
-        // Parâmetros já são registrados no escopo em visitFunDecl
+        ParamSymbol paramSymbol = currentFun.getParameter(decl.name.source);
+
+        if (decl.value != null) {
+            SymbolResult result = decl.value.accept(this);
+            Symbol valueType = result != null ? result.getType() : null;
+            Symbol varType = paramSymbol.getType();
+
+            if (varType != null && valueType != null) {
+                if (!table.isAssignable(valueType, varType)) {
+                    unit.addError(unit.error(TAG,
+                            INVALID_ASSIGNMENT.format(
+                                    getTypeName(valueType),
+                                    getTypeName(varType)),
+                            decl.value));
+                }
+            }
+        }
         return null;
     }
 
@@ -270,23 +280,42 @@ public class Analyzer implements DefaultDeclVisitor<Void>, DefaultStmtVisitor<Vo
 
     @Override
     public SymbolResult visitRefExpr(RefExpr expr) {
-        Symbol symbol = currentScope().resolve(expr.name.source);
+        String refName = expr.name.source;
+        Symbol symbol = currentScope().resolve(refName);
 
         if (symbol == null) {
-            if (currentClass != null) {
-                MemberSymbol member = currentClass.getMember(expr.name.source);
-                if (member != null) {
-                    Symbol type = table.unwrap(member);
-                    return SymbolResult.of(member, type);
+            if (currentFun != null) {
+                if (currentFun.hasTypeParameter(refName)) {
+                    TypeParamSymbol typeParam = currentFun.getTypeParameter(refName);
+                    return SymbolResult.of(typeParam, typeParam);
+                }
+                if (currentFun.hasParameter(refName)) {
+                    ParamSymbol param = currentFun.getParameter(refName);
+                    return SymbolResult.of(param, table.unwrap(param));
                 }
             }
 
-            unit.addError(unit.error(TAG, UNDEFINED_VARIABLE.format(expr.name.source), expr));
+            if (currentClass != null) {
+                if (currentClass.hasTypeParameter(refName)) {
+                    TypeParamSymbol typeParam = currentClass.getTypeParameter(refName);
+                    return SymbolResult.of(typeParam, typeParam);
+                }
+                MemberSymbol member = currentClass.getMember(refName);
+                if (member != null) {
+                    return SymbolResult.of(member, table.unwrap(member));
+                }
+            }
+
+            ClassSymbol classSymbol = table.get(refName);
+            if (classSymbol != null) {
+                return SymbolResult.of(classSymbol, classSymbol);
+            }
+
+            unit.addError(unit.error(TAG, UNDEFINED_VARIABLE.format(refName), expr));
             return null;
         }
 
-        Symbol type = table.unwrap(symbol);
-        return SymbolResult.of(symbol, type);
+        return SymbolResult.of(symbol, table.unwrap(symbol));
     }
 
     @Override
@@ -322,62 +351,66 @@ public class Analyzer implements DefaultDeclVisitor<Void>, DefaultStmtVisitor<Vo
     @Override
     public SymbolResult visitCallExpr(CallExpr expr) {
         SymbolResult calleeResult = expr.callee.accept(this);
-        if (calleeResult == null)
+        if (calleeResult == null || calleeResult.getRaw() == null) {
             return null;
+        }
 
         Symbol callee = calleeResult.getRaw();
 
-        if (callee == null)
-            return null;
+        // 1. Instanciação de Classe
+        if (callee.isClass()) {
+            ClassSymbol classSymbol = callee.asClass();
 
-        if (callee.isFun()) {
-            FunSymbol funSymbol = callee.asFun();
-
-            if (expr.arguments != null) {
-                Map<String, ParamSymbol> params = funSymbol.getParameters();
-                List<ParamSymbol> paramList = new ArrayList<>(params.values());
-
-                if (expr.arguments.size() != paramList.size()) {
-                    unit.addError(unit.error(TAG,
-                            "Function '" + funSymbol.getName() +
-                                    "' expects " + paramList.size() +
-                                    " arguments but got " + expr.arguments.size(),
-                            expr));
-                    return null;
-                }
-
-                for (int i = 0; i < expr.arguments.size(); i++) {
-                    SymbolResult argResult = expr.arguments.get(i).accept(this);
-                    Symbol argType = argResult != null ? argResult.getType() : null;
-                    Symbol paramType = paramList.get(i).getType();
-
-                    if (argType != null && paramType != null) {
-                        if (!table.isAssignable(argType, paramType)) {
-                            unit.addError(unit.error(TAG,
-                                    INVALID_ARGUMENT_TYPE.format(
-                                            funSymbol.getName(),
-                                            getTypeName(paramType),
-                                            getTypeName(argType)),
-                                    expr.arguments.get(i)));
-                        }
-                    }
-                }
+            int argCount = (expr.arguments != null) ? expr.arguments.size() : 0;
+            if (argCount != 0) {
+                unit.addError(unit.error(TAG,
+                        "Class '" + classSymbol.getName() + "' instantiation expects 0 arguments but got " + argCount,
+                        expr));
+                return null;
             }
 
-            Symbol returnType = funSymbol.getReturnType();
-            return SymbolResult.of(funSymbol, returnType);
+            // Retorna diretamente o SymbolResult apontando para o tipo da Classe
+            return SymbolResult.of(classSymbol, classSymbol);
+        }
+        // 2. Chamada de Função Normal
+        if (callee.isFun()) {
+            FunSymbol funSymbol = callee.asFun();
+            List<ParamSymbol> paramList = new ArrayList<>(funSymbol.getParameters().values());
+            List<Expr> arguments = (expr.arguments != null) ? expr.arguments : Collections.emptyList();
+
+            if (arguments.size() != paramList.size()) {
+                unit.addError(unit.error(TAG,
+                        "Function '" + funSymbol.getName() + "' expects " + paramList.size() +
+                                " arguments but got " + arguments.size(),
+                        expr));
+                return null;
+            }
+
+            for (int i = 0; i < arguments.size(); i++) {
+                Expr argExpr = arguments.get(i);
+                SymbolResult argResult = argExpr.accept(this);
+
+                Symbol argType = argResult != null ? argResult.getType() : null;
+                Symbol paramType = paramList.get(i).getType();
+
+                if (argType != null && paramType != null && !table.isAssignable(argType, paramType)) {
+                    unit.addError(unit.error(TAG,
+                            INVALID_ARGUMENT_TYPE.format(
+                                    funSymbol.getName(),
+                                    getTypeName(paramType),
+                                    getTypeName(argType)),
+                            argExpr));
+                }
+
+                // Breakpoint used for debugging purposes, this line does not affect the
+                // execution of the program.
+                System.out.print("");
+            }
+
+            return SymbolResult.of(funSymbol, funSymbol.getReturnType());
         }
 
-        if (callee.isClass()) {
-            unit.addError(unit.error(TAG,
-                    "Cannot call class constructor: " + getTypeName(callee),
-                    expr));
-            return null;
-        }
-
-        unit.addError(unit.error(TAG,
-                INVALID_CALL.format(getTypeName(callee)),
-                expr));
+        unit.addError(unit.error(TAG, INVALID_CALL.format(getTypeName(callee)), expr));
         return null;
     }
 

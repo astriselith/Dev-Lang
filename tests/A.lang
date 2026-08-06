@@ -4,7 +4,8 @@ class A : Stringfiable {
 
     fun main() {
         println(this);
-        println(b());
+        println(A());
+        println(B());
     }
 
     fun stringfy(): String {
