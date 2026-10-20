@@ -1,0 +1,29 @@
+# Test.lang #
+class A() {
+
+    fun main() {
+        println(this);
+        println(A()); # Erro programado #
+        println(Person("Alice", "")); # Erro programado #
+    };
+
+    fun b(): B {
+        return null;
+    };
+};
+
+class Person(name: String, age: Int) : Stringfiable() {
+    var name: String = name;
+    var age: Int = age;
+
+    fun stringfy(): String {
+        let builder = StringBuilder();
+        builder.append(name);
+        builder.append(" is ");
+        builder.append(age);
+        builder.append(" years old.");
+        return builder.stringfy();
+    };
+
+
+};

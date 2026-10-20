@@ -1,25 +1,28 @@
-class Any {
-    fun print(str: Stringfiable): Void {
-        let s: String = str.stringfy();
-        // Native
-    }
+# This is a stub #
 
-    fun println(str: Stringfiable): Void {
-        let s: String = str.stringfy();
-        // Native
-    }
-}
+class Any() {
+    fun print(str: Stringfiable): Void;
 
-class Void;
-class Null;
-class Bool;
-class Char;
-class Float;
-class Int;
-class String;
+    fun println(str: Stringfiable): Void;
+};
 
-class Stringfiable {
-    fun stringfy() : String {
-        return "";
-    }
-}
+class Void() : Any();
+class Null() : Void();
+class Bool() : Stringfiable();
+class Float() : Stringfiable();
+class Int() : Stringfiable();
+
+class String() : Stringfiable() {
+    fun stringfy(): String;
+};
+
+class StringBuilder() : Stringfiable() {
+    var str: String = "";
+
+    fun stringfy(): String;
+    fun append(str: Stringfiable): Void;
+};
+
+class Stringfiable() : Any() {
+    fun stringfy(): String;
+};

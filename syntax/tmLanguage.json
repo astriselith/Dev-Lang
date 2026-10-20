@@ -1,0 +1,176 @@
+{
+	"$schema": "vscode://schemas/tmLanguage",
+	"name": "Lang",
+	"scopeName": "source.lang",
+	"patterns": [
+		{ "include": "#comments" },
+		{ "include": "#strings" },
+		{ "include": "#numbers" },
+		{ "include": "#class-declaration" },
+		{ "include": "#function-declaration" },
+		{ "include": "#variable-declaration" },
+		{ "include": "#parameters" },
+		{ "include": "#member-access" },
+		{ "include": "#function-call" },
+		{ "include": "#keywords" },
+		{ "include": "#constants" },
+		{ "include": "#builtin-types" },
+		{ "include": "#variable-reference" },
+		{ "include": "#operators" },
+		{ "include": "#punctuation" }
+	],
+	"repository": {
+		"comments": {
+			"patterns": [
+				{
+					"name": "comment.block.lang",
+					"begin": "#",
+					"end": "#"
+				}
+			]
+		},
+		"strings": {
+			"name": "string.quoted.double.lang",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.lang",
+					"match": "\\\\."
+				}
+			]
+		},
+		"numbers": {
+			"patterns": [
+				{
+					"name": "constant.numeric.float.lang",
+					"match": "\\b[0-9][0-9_]*\\.[0-9][0-9_]*([eE][+-]?[0-9][0-9_]*)?\\b"
+				},
+				{
+					"name": "constant.numeric.integer.lang",
+					"match": "\\b[0-9][0-9_]*\\b"
+				}
+			]
+		},
+		"class-declaration": {
+			"patterns": [
+				{
+					"match": "\\b(class)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+					"captures": {
+						"1": { "name": "storage.type.class.lang" },
+						"2": { "name": "entity.name.type.class.lang" }
+					}
+				}
+			]
+		},
+		"function-declaration": {
+			"patterns": [
+				{
+					"match": "\\b(fun)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+					"captures": {
+						"1": { "name": "storage.type.function.lang" },
+						"2": { "name": "entity.name.function.lang" }
+					}
+				}
+			]
+		},
+		"variable-declaration": {
+			"patterns": [
+				{
+					"match": "\\b(var|let)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+					"captures": {
+						"1": { "name": "storage.type.variable.lang" },
+						"2": { "name": "variable.other.lang" }
+					}
+				}
+			]
+		},
+		"parameters": {
+			"patterns": [
+				{
+					"match": "\\b([a-z][A-Za-z0-9_]*)\\s*(?=:)",
+					"name": "variable.parameter.lang"
+				}
+			]
+		},
+		"member-access": {
+			"patterns": [
+				{
+					"match": "(\\.)\\s*([A-Za-z_][A-Za-z0-9_]*)",
+					"captures": {
+						"1": { "name": "punctuation.accessor.lang" },
+						"2": { "name": "variable.other.property.lang" }
+					}
+				}
+			]
+		},
+		"function-call": {
+			"patterns": [
+				{
+					"match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()",
+					"name": "entity.name.function.call.lang"
+				}
+			]
+		},
+		"variable-reference": {
+			"patterns": [
+				{
+					"match": "\\b([a-z][A-Za-z0-9_]*)\\b",
+					"name": "variable.other.readwrite.lang"
+				}
+			]
+		},
+		"keywords": {
+			"patterns": [
+				{
+					"name": "keyword.control.lang",
+					"match": "\\b(if|else|while|return|break|continue|class|fun|var|let)\\b"
+				},
+				{
+					"name": "variable.language.this.lang",
+					"match": "\\bthis\\b"
+				}
+			]
+		},
+		"constants": {
+			"name": "constant.language.lang",
+			"match": "\\b(true|false|null)\\b"
+		},
+		"builtin-types": {
+			"patterns": [
+				{
+					"name": "support.type.lang",
+					"match": "\\b(Any|Void|Null|Bool|Float|Int|String|Stringfiable)\\b"
+				},
+				{
+					"name": "entity.name.type.lang",
+					"match": "\\b[A-Z][A-Za-z0-9_]*\\b"
+				}
+			]
+		},
+		"operators": {
+			"patterns": [
+				{
+					"name": "keyword.operator.strict.lang",
+					"match": "\\$(?:==|!=|<=|>=|[=<>+\\-*/%])"
+				},
+				{
+					"name": "keyword.operator.lang",
+					"match": "==|!=|<=|>=|&&|\\|\\||[+\\-*/%=<>!&|]"
+				}
+			]
+		},
+		"punctuation": {
+			"patterns": [
+				{
+					"name": "punctuation.separator.lang",
+					"match": "[\\[\\]{}();,.:?]"
+				},
+				{
+					"name": "punctuation.definition.generic.lang",
+					"match": "[<>]"
+				}
+			]
+		}
+	}
+}

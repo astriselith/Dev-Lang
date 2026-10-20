@@ -1,0 +1,37 @@
+{
+	"name": "lang",
+	"displayName": "lang",
+	"description": "Syntax highlighting for lang",
+	"version": "0.0.1",
+	"publisher": "astriselith",
+	"engines": {
+		"vscode": "^1.80.0"
+	},
+	"categories": [
+		"Programming Languages"
+	],
+	"main": "./extension.js",
+	"activationEvents": [
+		"onLanguage:lang"
+	],
+	"dependencies": {
+		"vscode-languageclient": "^9.0.1"
+	},
+	"contributes": {
+		"languages": [
+			{
+				"id": "lang",
+				"aliases": ["lang"],
+				"extensions": [".lang", ".l"],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "lang",
+				"scopeName": "source.lang",
+				"path": "./tmLanguage.json"
+			}
+		]
+	}
+}
