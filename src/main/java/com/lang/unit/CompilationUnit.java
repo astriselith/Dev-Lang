@@ -1,6 +1,7 @@
 package com.lang.unit;
 
 import com.lang.ast.ClassDecl;
+import com.lang.ast.Comment;
 import com.lang.util.Diagnostic;
 
 import java.util.ArrayList;
@@ -11,14 +12,22 @@ import java.util.Map;
 public class CompilationUnit {
     private final String filePath;
     private final String fileName;
-    private final List<ClassDecl> classes;
-    private final Map<String, List<Diagnostic>> diagnostics;
+    private final List<Comment> comments = new ArrayList<>();
+    private final List<ClassDecl> classes = new ArrayList<>();
+    private final Map<String, List<Diagnostic>> diagnostics = new HashMap<>();
 
     public CompilationUnit(String filePath, String fileName) {
         this.filePath = filePath;
         this.fileName = fileName;
-        this.classes = new ArrayList<>();
-        this.diagnostics = new HashMap<>();
+    }
+
+    public void addComment(Comment comment) {
+        if (comment != null)
+            comments.add(comment);
+    }
+
+    public List<Comment> getComments() {
+        return comments;
     }
 
     public void addClass(ClassDecl cls) {

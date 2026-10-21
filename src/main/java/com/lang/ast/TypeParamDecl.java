@@ -6,15 +6,15 @@ import com.lang.util.Position;
 
 public class TypeParamDecl extends Decl {
 	public Identifier name;
-	public List<SuperDecl> supers;
+	public List<BoundDecl> bounds;
 
 	public TypeParamDecl() {
 	}
 
-	public TypeParamDecl(Identifier name, List<SuperDecl> supers,
+	public TypeParamDecl(Identifier name, List<BoundDecl> bounds,
 			Position position) {
 		super(position);
 		this.name = name;
-		this.supers = supers;
+		this.bounds = bounds;
 	}
 }

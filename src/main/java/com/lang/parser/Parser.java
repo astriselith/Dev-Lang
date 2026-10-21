@@ -31,6 +31,14 @@ public class Parser {
 		if (this.stream == null) {
 			throw new IllegalArgumentException("TokenStream cannot be null");
 		}
+
+		this.stream.setFilter(t -> {
+			if (t.is(COMMENT)) {
+				unit.addComment(new Comment(t.lexeme, t.position));
+				return false;
+			}
+			return true;
+		});
 	}
 
 	public CompilationUnit parse() {
@@ -238,9 +246,18 @@ public class Parser {
 			if (stream.match(COLON))
 				type = type();
 
+			Expr init = null;
+			if (stream.match(EQUALS)) {
+				init = expr();
+			}
+
+			Position end = init != null
+					? init.getPosition()
+					: nameToken.position;
+
 			params.add(
-					new ParamDecl(new Identifier(nameToken.lexeme, nameToken.position), type,
-							pos(nameToken)));
+					new ParamDecl(new Identifier(nameToken.lexeme, nameToken.position), type, init,
+							end));
 		} while (stream.match(COMMA));
 
 		return params;
@@ -264,24 +281,35 @@ public class Parser {
 		return supers;
 	}
 
+private List<BoundDecl> boundList() {
+    List<BoundDecl> bounds = new ArrayList<>();
+
+    do {
+        Typed type = type();
+        bounds.add(new BoundDecl(type, pos(type)));
+    } while (stream.match(AMP));
+
+    return bounds;
+}
+
 	private List<TypeParamDecl> typeParameterList() {
 		List<TypeParamDecl> params = new ArrayList<>();
 
 		do {
 			Token nameToken = expect(IDENTIFIER);
 
-			List<SuperDecl> supers = null;
+			List<BoundDecl> bounds = null;
 			if (stream.match(COLON))
-				supers = superList();
+				bounds = boundList();
 
-			Positioned end = supers != null
-					? supers.get(supers.size() - 1)
+			Positioned end = bounds != null
+					? bounds.get(bounds.size() - 1)
 					: nameToken;
 
 			params.add(
 					new TypeParamDecl(
 							new Identifier(nameToken.lexeme, nameToken.position),
-							supers,
+							bounds,
 							between(nameToken, end)));
 		} while (stream.match(COMMA));
 
@@ -592,8 +620,8 @@ public class Parser {
 
 				if (stream.check(LANGLE)
 						&& (stream.checkIndex(1, RANGLE)
-							|| (stream.checkIndex(1, IDENTIFIER)
-								&& stream.checkIndexAny(2, RANGLE, COMMA, LANGLE)))) {
+								|| (stream.checkIndex(1, IDENTIFIER)
+										&& stream.checkIndexAny(2, RANGLE, COMMA, LANGLE)))) {
 					expect(LANGLE);
 					typeArguments = stream.check(RANGLE)
 							? new ArrayList<>()

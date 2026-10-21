@@ -133,6 +133,10 @@ public class Lexer extends TokenStream {
     private Token scan() {
         int cp = source.peek();
 
+        if (cp == '#') {
+            return comment();
+        }
+
         if (symbols.containsKey(cp)) {
             int type = symbols.get(cp);
             update();
@@ -164,41 +168,49 @@ public class Lexer extends TokenStream {
         while (!source.isAtEnd()) {
             int cp = source.peek();
 
-            if (Codepoint.isWhitespace(cp)) {
-                update();
-                continue;
-            }
-
-            if (cp != '#') {
+            if (!Codepoint.isWhitespace(cp)) {
                 break;
             }
 
-            start = current;
-            firstLineCount = currentLineCount;
-            firstLineStart = currentLineStart;
-
-            update(1);
-
-            boolean closed = false;
-
-            while (!source.isAtEnd()) {
-                if (source.peek() == '#') {
-                    update(1);
-                    closed = true;
-                    break;
-                }
-                update();
-            }
-
-            if (!closed) {
-                unit.addDiagnostic(TAG, Diagnostic.error(position(),
-                        UNTERMINATED_COMMENT.format()));
-            }
+            update();
         }
 
         start = current;
         firstLineCount = currentLineCount;
         firstLineStart = currentLineStart;
+    }
+
+    private Token comment() {
+        StringBuilder builder = new StringBuilder();
+
+        builder.appendCodePoint('#');
+        update();
+
+        boolean closed = false;
+
+        while (!source.isAtEnd()) {
+            int cp = source.peek();
+
+            if (cp == '#') {
+                builder.appendCodePoint('#');
+                update();
+                closed = true;
+                break;
+            }
+
+            builder.appendCodePoint(cp);
+            update();
+        }
+
+        String text = builder.toString();
+        Position pos = position();
+
+        if (!closed) {
+            unit.addDiagnostic(TAG, Diagnostic.error(pos,
+                    UNTERMINATED_COMMENT.format()));
+        }
+
+        return Token.of(COMMENT, text, pos);
     }
 
     private Token identifier() {

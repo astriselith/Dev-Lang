@@ -1,4 +1,3 @@
-// ./src/main/java/com/lang/analyzer/Analyzer.java
 package com.lang.analyzer;
 
 import static com.lang.analyzer.AnalyzingErrorCode.*;
@@ -27,6 +26,7 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
 
     private ClassSymbol currentClass;
     private FunSymbol currentFun;
+    private TypeParamSymbol currentTypeParameter;
 
     public Analyzer(SymbolTable table, CompilationUnit unit) {
         this.table = table;
@@ -108,11 +108,174 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
         hint(hintPos, param.getName() + ":");
     }
 
+    // ==================== SUBSTITUIÇÕES ====================
+
+    private Map<String, Symbol> mergeSubstitutions(Map<String, Symbol> base,
+                                                   Map<String, Symbol> over) {
+        if ((base == null || base.isEmpty()) && (over == null || over.isEmpty()))
+            return Collections.emptyMap();
+        Map<String, Symbol> merged = new LinkedHashMap<>();
+        if (base != null) merged.putAll(base);
+        if (over != null) merged.putAll(over);
+        return merged;
+    }
+
+    private Symbol substitute(Symbol type, Map<String, Symbol> subs) {
+        if (type == null || subs == null || subs.isEmpty())
+            return type;
+
+        if (type.isTypeParam()) {
+            Symbol replacement = subs.get(type.getName());
+            return replacement != null ? replacement : type;
+        }
+
+        if (type.isParameterizedClass()) {
+            ParameterizedClassSymbol pc = type.asParameterizedClass();
+            Map<String, Symbol> newArgs = new LinkedHashMap<>();
+            for (Map.Entry<String, Symbol> e : pc.getTypeArguments().entrySet()) {
+                newArgs.put(e.getKey(), substitute(e.getValue(), subs));
+            }
+            return new ParameterizedClassSymbol(pc.getBase(), newArgs);
+        }
+
+        return type;
+    }
+
+    // ==================== CONVERSÃO IMPLÍCITA ====================
+
+    private boolean isImplicitConstructorCompatible(Symbol declaredType,
+                                                    Expr rhsExpr,
+                                                    Symbol rhsType) {
+        if (!(rhsExpr instanceof LiteralExpr)) return false;
+        if (declaredType == null || rhsType == null) return false;
+        if (!declaredType.isClass()) return false;
+
+        ClassSymbol cls = declaredType.asClass();
+        Map<String, ParamSymbol> params = cls.getParameters();
+        if (params.size() != 1) return false;
+
+        ParamSymbol only = params.values().iterator().next();
+        Symbol paramType = only.getType();
+        if (paramType == null) return false;
+
+        return table.isAssignable(rhsType, paramType);
+    }
+
+    private void hintImplicitConstructor(Symbol declaredType, Expr valueExpr) {
+        if (declaredType == null || valueExpr == null || valueExpr.getPosition() == null)
+            return;
+
+        String typeName = getTypeName(declaredType);
+        if (typeName == null || typeName.isEmpty())
+            return;
+
+        Position vp = valueExpr.getPosition();
+
+        Position openPos = zeroWidth(
+                vp.getFirstLineCount(),
+                vp.getFirstLineStart(),
+                vp.getStart());
+        hint(openPos, typeName + "(");
+
+        Position closePos = zeroWidth(
+                vp.getLastLineCount(),
+                vp.getLastLineStart(),
+                vp.getEnd());
+        hint(closePos, ")");
+    }
+
+    // ==================== PLACEHOLDER `_` ====================
+
+    private static final String HINT_DEFAULT_MARKER = "\u0001D";
+
+    private boolean isPlaceholder(Expr expr) {
+        return expr instanceof RefExpr ref
+                && ref.name != null
+                && "_".equals(ref.name.source);
+    }
+
+    private void hintDefaultApplied(Expr argExpr, ParamSymbol param) {
+        if (argExpr == null || argExpr.getPosition() == null) return;
+        if (param == null || !param.hasInit()) return;
+
+        String value = renderExprDefault(param.getInit());
+        if (value == null) return;
+
+        Position p = argExpr.getPosition();
+        Position hintPos = zeroWidth(
+                p.getFirstLineCount(),
+                p.getFirstLineStart(),
+                p.getStart());
+        hint(hintPos, HINT_DEFAULT_MARKER + param.getName() + " = " + value);
+    }
+
+    private String renderExprDefault(Expr expr) {
+        if (expr == null) return null;
+
+        if (expr instanceof LiteralExpr lit) {
+            switch (lit.type) {
+                case LiteralExpr.NULL:   return "null";
+                case LiteralExpr.BOOL:   return lit.value;
+                case LiteralExpr.INT:    return lit.value;
+                case LiteralExpr.FLOAT:  return lit.value;
+                case LiteralExpr.STRING: return "\"" + stripQuotes(lit.value) + "\"";
+                default:                 return lit.value;
+            }
+        }
+
+        if (expr instanceof RefExpr ref) {
+            return ref.name != null ? ref.name.source : null;
+        }
+
+        if (expr instanceof ParenthesisExpr p) {
+            return "(" + renderExprDefault(p.inner) + ")";
+        }
+
+        if (expr instanceof UnaryExpr u) {
+            String inner = renderExprDefault(u.operand);
+            return inner != null ? u.operator.lexeme + inner : null;
+        }
+
+        if (expr instanceof MemberAccessExpr m) {
+            String obj = renderExprDefault(m.object);
+            String name = m.name != null ? m.name.source : null;
+            return obj != null && name != null ? obj + "." + name : null;
+        }
+
+        if (expr instanceof CallExpr c) {
+            String callee = renderExprDefault(c.callee);
+            if (callee == null) return null;
+            StringBuilder sb = new StringBuilder(callee).append("(");
+            if (c.arguments != null) {
+                for (int i = 0; i < c.arguments.size(); i++) {
+                    if (i > 0) sb.append(", ");
+                    String a = renderExprDefault(c.arguments.get(i));
+                    sb.append(a != null ? a : "?");
+                }
+            }
+            return sb.append(")").toString();
+        }
+
+        return null;
+    }
+
+    private String stripQuotes(String s) {
+        if (s == null || s.length() < 2) return s;
+        if (s.charAt(0) == '"' && s.charAt(s.length() - 1) == '"') {
+            return s.substring(1, s.length() - 1);
+        }
+        return s;
+    }
+
+    // ==================== DECLS ====================
+
     @Override
     public Void visitClassDecl(ClassDecl decl) {
         currentClass = table.get(decl.name.source);
         if (currentClass == null)
             return null;
+
+        decl.symbol = currentClass;
 
         SymbolScope classScope = currentScope().child(decl.name.source);
         classScope.putLocal("this", currentClass);
@@ -142,6 +305,8 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
         currentFun = (FunSymbol) currentClass.getDeclaredMember(decl.name.source);
         if (currentFun == null)
             return null;
+
+        decl.symbol = currentFun;
 
         SymbolScope funScope = currentScope().child(decl.name.source);
 
@@ -178,6 +343,8 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
             return null;
         }
 
+        decl.symbol = varSymbol;
+
         if (decl.value != null) {
             SymbolResult result = decl.value.accept(this);
             Symbol valueType = result != null ? result.getType() : null;
@@ -185,9 +352,13 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
 
             if (varType != null && valueType != null) {
                 if (!table.isAssignable(valueType, varType)) {
-                    report(decl.value, INVALID_ASSIGNMENT.format(
-                            getTypeName(valueType),
-                            getTypeName(varType)));
+                    if (!isImplicitConstructorCompatible(varType, decl.value, valueType)) {
+                        report(decl.value, INVALID_ASSIGNMENT.format(
+                                getTypeName(valueType),
+                                getTypeName(varType)));
+                    } else {
+                        hintImplicitConstructor(varType, decl.value);
+                    }
                 }
             }
         }
@@ -197,18 +368,94 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
 
     @Override
     public Void visitParamDecl(ParamDecl decl) {
+        ParamSymbol pSymbol = null;
+
+        if (currentFun != null) {
+            pSymbol = currentFun.getParameter(decl.name.source);
+        } else if (currentClass != null) {
+            pSymbol = currentClass.getParameter(decl.name.source);
+        }
+
+        if (pSymbol != null) {
+            decl.symbol = pSymbol;
+        }
+
+        if (pSymbol != null && pSymbol.hasInit()) {
+            Expr init = pSymbol.getInit();
+
+            Symbol declaredType = pSymbol.getType();
+            if (declaredType == null && decl.type != null) {
+                declaredType = table.resolve(decl.type, currentSubstitutions(), reporter);
+            }
+
+            SymbolResult result = init != null ? init.accept(this) : null;
+            Symbol valueType = result != null ? result.getType() : null;
+
+            if (declaredType != null && valueType != null) {
+                if (!table.isAssignable(valueType, declaredType)) {
+                    if (!isImplicitConstructorCompatible(declaredType, init, valueType)) {
+                        report(init, INVALID_ASSIGNMENT.format(
+                                getTypeName(valueType),
+                                getTypeName(declaredType)));
+                    } else {
+                        hintImplicitConstructor(declaredType, init);
+                    }
+                }
+            }
+        }
+
         return null;
     }
 
     @Override
     public Void visitTypeParamDecl(TypeParamDecl decl) {
+        TypeParamSymbol tpSymbol = null;
+
+        if (currentFun != null) {
+            tpSymbol = currentFun.getTypeParameter(decl.name.source);
+        } else if (currentClass != null) {
+            tpSymbol = currentClass.getTypeParameter(decl.name.source);
+        }
+
+        if (tpSymbol != null) {
+            decl.symbol = tpSymbol;
+        }
+
+        if (decl.bounds != null) {
+            TypeParamSymbol previous = currentTypeParameter;
+            currentTypeParameter = tpSymbol;
+            decl.bounds.forEach(b -> b.accept(this));
+            currentTypeParameter = previous;
+        }
+
         return null;
     }
 
     @Override
     public Void visitSuperDecl(SuperDecl decl) {
+        if (currentClass == null)
+            return null;
+
+        String superName = decl.type.getName();
+        SuperSymbol sSymbol = currentClass.getSuper(superName);
+        if (sSymbol != null) {
+            decl.symbol = sSymbol;
+        }
         return null;
     }
+
+    @Override
+    public Void visitBoundDecl(BoundDecl decl) {
+        if (currentTypeParameter != null) {
+            BoundSymbol bSymbol = currentTypeParameter.getBound(decl.type.getName());
+            if (bSymbol != null) {
+                decl.symbol = bSymbol;
+            }
+        }
+        return null;
+    }
+
+    // ==================== STMTS ====================
 
     @Override
     public Void visitLetStmt(LetStmt stmt) {
@@ -235,9 +482,13 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
 
         if (declaredType != null && valueType != null) {
             if (!table.isAssignable(valueType, declaredType)) {
-                report(stmt.value, INVALID_ASSIGNMENT.format(
-                        getTypeName(valueType),
-                        getTypeName(declaredType)));
+                if (!isImplicitConstructorCompatible(declaredType, stmt.value, valueType)) {
+                    report(stmt.value, INVALID_ASSIGNMENT.format(
+                            getTypeName(valueType),
+                            getTypeName(declaredType)));
+                } else {
+                    hintImplicitConstructor(declaredType, stmt.value);
+                }
             }
         }
 
@@ -252,18 +503,20 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
 
         currentScope().putLocal(stmt.name.source, effectiveType);
 
-        String hintText = ": " + getTypeName(effectiveType);
+        if (stmt.type == null) {
+            String hintText = ": " + getTypeName(effectiveType);
 
-        Position namePos = stmt.name.position;
-        if (namePos != null) {
-            int end = namePos.getEnd();
-            Position hintPos = zeroWidth(
-                    namePos.getLastLineCount(),
-                    namePos.getLastLineStart(),
-                    end);
-            hint(hintPos, hintText);
-        } else {
-            hint(stmt, hintText);
+            Position namePos = stmt.name.position;
+            if (namePos != null) {
+                int end = namePos.getEnd();
+                Position hintPos = zeroWidth(
+                        namePos.getLastLineCount(),
+                        namePos.getLastLineStart(),
+                        end);
+                hint(hintPos, hintText);
+            } else {
+                hint(stmt, hintText);
+            }
         }
 
         return null;
@@ -322,6 +575,9 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
         }
 
         Symbol returnType = currentFun.getType();
+        if (returnType != null) {
+            returnType = substitute(returnType, currentSubstitutions());
+        }
 
         if (stmt.value != null) {
             SymbolResult result = stmt.value.accept(this);
@@ -362,40 +618,55 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
         return null;
     }
 
+    // ==================== EXPRS ====================
+
     @Override
     public SymbolResult visitRefExpr(RefExpr expr) {
         String refName = expr.name.source;
+
         Symbol symbol = currentScope().resolve(refName);
 
         if (symbol == null) {
             if (currentFun != null) {
                 if (currentFun.hasTypeParameter(refName)) {
                     TypeParamSymbol typeParam = currentFun.getTypeParameter(refName);
+                    expr.symbol = typeParam;
                     return SymbolResult.of(typeParam, typeParam);
                 }
                 if (currentFun.hasParameter(refName)) {
                     ParamSymbol param = currentFun.getParameter(refName);
-                    return SymbolResult.of(param, table.unwrap(param));
+                    expr.symbol = param;
+                    Symbol type = table.unwrap(param);
+                    Map<String, Symbol> subs = substitutionsOf(type);
+                    return SymbolResult.of(param, type, subs);
                 }
             }
 
             if (currentClass != null) {
                 if (currentClass.hasTypeParameter(refName)) {
                     TypeParamSymbol typeParam = currentClass.getTypeParameter(refName);
+                    expr.symbol = typeParam;
                     return SymbolResult.of(typeParam, typeParam);
                 }
                 if (currentClass.hasParameter(refName)) {
                     ParamSymbol param = currentClass.getParameter(refName);
-                    return SymbolResult.of(param, table.unwrap(param));
+                    expr.symbol = param;
+                    Symbol type = table.unwrap(param);
+                    Map<String, Symbol> subs = substitutionsOf(type);
+                    return SymbolResult.of(param, type, subs);
                 }
                 MemberSymbol member = currentClass.getMember(refName);
                 if (member != null) {
-                    return SymbolResult.of(member, table.unwrap(member));
+                    expr.symbol = member;
+                    Symbol type = table.unwrap(member);
+                    Map<String, Symbol> subs = substitutionsOf(type);
+                    return SymbolResult.of(member, type, subs);
                 }
             }
 
             ClassSymbol classSymbol = table.get(refName);
             if (classSymbol != null) {
+                expr.symbol = classSymbol;
                 return SymbolResult.of(classSymbol, classSymbol);
             }
 
@@ -403,7 +674,18 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
             return null;
         }
 
-        return SymbolResult.of(symbol, table.unwrap(symbol));
+        expr.symbol = symbol;
+        Symbol type = table.unwrap(symbol);
+        Map<String, Symbol> subs = substitutionsOf(type);
+        return SymbolResult.of(symbol, type, subs);
+    }
+
+    /** Extrai o mapa de substituições de um tipo parametrizado, se for o caso. */
+    private Map<String, Symbol> substitutionsOf(Symbol type) {
+        if (type != null && type.isParameterizedClass()) {
+            return new LinkedHashMap<>(type.asParameterizedClass().getTypeArguments());
+        }
+        return Collections.emptyMap();
     }
 
     @Override
@@ -428,8 +710,17 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
             return null;
         }
 
-        Symbol type = table.unwrap(member);
-        return SymbolResult.of(member, type);
+        expr.symbol = member;
+
+        Symbol memberType = table.unwrap(member);
+
+        // Substituições do receptor: `Box<String>` → `{T → String}`.
+        Map<String, Symbol> subs = substitutionsOf(objectType);
+
+        // Aplica no tipo do membro, para `b2.content` (T → String).
+        Symbol substitutedType = substitute(memberType, subs);
+
+        return SymbolResult.of(member, substitutedType, subs);
     }
 
     @Override
@@ -440,24 +731,28 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
         }
 
         Symbol callee = calleeResult.getRaw();
+        Map<String, Symbol> receiverSubs = calleeResult.getSubstituitions();
 
         if (callee.isClass()) {
-            return visitClassInstantiation(expr, callee.asClass());
+            return visitClassInstantiation(expr, callee.asClass(), receiverSubs);
         }
 
         if (callee.isParameterizedClass()) {
-            return visitClassInstantiation(expr, callee.asParameterizedClass().getBase());
+            return visitClassInstantiation(expr, callee.asParameterizedClass().getBase(), receiverSubs);
         }
 
         if (callee.isFun()) {
-            return visitFunctionCall(expr, callee.asFun());
+            return visitFunctionCall(expr, callee.asFun(), receiverSubs);
         }
 
         report(expr, INVALID_FUNCTION_CALL.format(getTypeName(callee)));
         return null;
     }
 
-    private SymbolResult visitClassInstantiation(CallExpr expr, ClassSymbol classSymbol) {
+    private SymbolResult visitClassInstantiation(CallExpr expr, ClassSymbol classSymbol,
+                                                 Map<String, Symbol> receiverSubs) {
+        expr.symbol = classSymbol;
+
         Map<String, Symbol> typeSubs = new LinkedHashMap<>();
         List<String> tpNames = new ArrayList<>(classSymbol.getTypeParameters().keySet());
         List<Typed> typeArgs = expr.typeArguments != null
@@ -501,10 +796,21 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
 
         for (int i = 0; i < arguments.size(); i++) {
             Expr argExpr = arguments.get(i);
+            ParamSymbol param = classParams.get(i);
+
+            if (isPlaceholder(argExpr)) {
+                if (param.hasInit()) {
+                    hintDefaultApplied(argExpr, param);
+                } else {
+                    report(argExpr, "Placeholder '_' requires parameter '%s' to have a default value"
+                            .formatted(param.getName()));
+                }
+                continue;
+            }
+
             SymbolResult argResult = argExpr.accept(this);
             Symbol argType = argResult != null ? argResult.getType() : null;
 
-            ParamSymbol param = classParams.get(i);
             Symbol rawParamType = param.getType();
             if (rawParamType == null) {
                 report(expr,
@@ -533,7 +839,7 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
                                                   Map<String, Symbol> typeSubs) {
         if (!typeSubs.isEmpty()) {
             ParameterizedClassSymbol pcs = new ParameterizedClassSymbol(classSymbol, typeSubs);
-            return SymbolResult.of(classSymbol, pcs);
+            return SymbolResult.of(classSymbol, pcs, typeSubs);
         }
         return SymbolResult.of(classSymbol, classSymbol);
     }
@@ -542,8 +848,8 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
         if (tp == null)
             return table.getAny();
 
-        for (SuperSymbol sup : tp.getSupers().values()) {
-            Symbol t = sup.getType();
+        for (BoundSymbol bound : tp.getBounds().values()) {
+            Symbol t = bound.getType();
             if (t != null)
                 return t;
         }
@@ -561,7 +867,10 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
         return sb.toString();
     }
 
-    private SymbolResult visitFunctionCall(CallExpr expr, FunSymbol funSymbol) {
+    private SymbolResult visitFunctionCall(CallExpr expr, FunSymbol funSymbol,
+                                           Map<String, Symbol> receiverSubs) {
+        expr.symbol = funSymbol;
+
         List<ParamSymbol> paramList = new ArrayList<>(funSymbol.getParameters().values());
         List<Expr> arguments = expr.arguments != null ? expr.arguments : Collections.emptyList();
 
@@ -573,11 +882,27 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
 
         for (int i = 0; i < arguments.size(); i++) {
             Expr argExpr = arguments.get(i);
-            SymbolResult argResult = argExpr.accept(this);
-
-            Symbol argType = argResult != null ? argResult.getType() : null;
             ParamSymbol param = paramList.get(i);
+
+            if (isPlaceholder(argExpr)) {
+                if (param.hasInit()) {
+                    hintDefaultApplied(argExpr, param);
+                } else {
+                    report(argExpr, "Placeholder '_' requires parameter '%s' to have a default value"
+                            .formatted(param.getName()));
+                }
+                continue;
+            }
+
+            SymbolResult argResult = argExpr.accept(this);
+            Symbol argType = argResult != null ? argResult.getType() : null;
+
+            // Aplica substituições do receptor ao tipo do parâmetro:
+            // `b.append(x)` num `Box<String>` substitui `T` por `String`.
             Symbol paramType = param.getType();
+            if (paramType != null && receiverSubs != null && !receiverSubs.isEmpty()) {
+                paramType = substitute(paramType, receiverSubs);
+            }
 
             if (argType != null && paramType != null && !table.isAssignable(argType, paramType)) {
                 report(argExpr, INVALID_FUNCTION_ARGUMENT_TYPE.format(
@@ -589,28 +914,14 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
             hintParamAtArg(argExpr, param, paramType);
         }
 
-        return SymbolResult.of(funSymbol, funSymbol.getType());
-    }
-
-    private Symbol substitute(Symbol type, Map<String, Symbol> subs) {
-        if (type == null || subs == null || subs.isEmpty())
-            return type;
-
-        if (type.isTypeParam()) {
-            Symbol replacement = subs.get(type.getName());
-            return replacement != null ? replacement : type;
+        // Aplica substituições do receptor ao tipo de retorno:
+        // `b.unwrap()` num `Box<String>` retorna `String`, não `T`.
+        Symbol returnType = funSymbol.getType();
+        if (returnType != null && receiverSubs != null && !receiverSubs.isEmpty()) {
+            returnType = substitute(returnType, receiverSubs);
         }
 
-        if (type.isParameterizedClass()) {
-            ParameterizedClassSymbol pc = type.asParameterizedClass();
-            Map<String, Symbol> newArgs = new LinkedHashMap<>();
-            for (Map.Entry<String, Symbol> e : pc.getTypeArguments().entrySet()) {
-                newArgs.put(e.getKey(), substitute(e.getValue(), subs));
-            }
-            return new ParameterizedClassSymbol(pc.getBase(), newArgs);
-        }
-
-        return type;
+        return SymbolResult.of(funSymbol, returnType, receiverSubs != null ? receiverSubs : Collections.emptyMap());
     }
 
     @Override
@@ -743,9 +1054,13 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
 
             if (targetType != null && valueType != null) {
                 if (!table.isAssignable(valueType, targetType)) {
-                    report(expr.value, INVALID_ASSIGNMENT.format(
-                            getTypeName(valueType),
-                            getTypeName(targetType)));
+                    if (!isImplicitConstructorCompatible(targetType, expr.value, valueType)) {
+                        report(expr.value, INVALID_ASSIGNMENT.format(
+                                getTypeName(valueType),
+                                getTypeName(targetType)));
+                    } else {
+                        hintImplicitConstructor(targetType, expr.value);
+                    }
                 }
             }
             return SymbolResult.of(null, valueType);
@@ -782,6 +1097,11 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
             ParamSymbol ps = sym.asParam();
             Symbol type = ps.getType();
             return type != null ? getTypeName(type) : "param";
+        }
+        if (sym.isBound()) {
+            BoundSymbol bs = sym.asBound();
+            Symbol type = bs.getType();
+            return type != null ? getTypeName(type) : "bound";
         }
         return sym.getName();
     }

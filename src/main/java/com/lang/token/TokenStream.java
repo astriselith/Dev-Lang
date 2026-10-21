@@ -1,6 +1,7 @@
 package com.lang.token;
 
 import java.io.IOException;
+import java.util.function.Predicate;
 
 public abstract class TokenStream {
 
@@ -12,6 +13,8 @@ public abstract class TokenStream {
     private boolean hitEof = false;
     private int eofIndex = -1;
 
+    private Predicate<Token> filter = t -> true;
+
     protected TokenStream() {
         this(10);
     }
@@ -22,6 +25,10 @@ public abstract class TokenStream {
         }
         this.window = Math.max(window, 3);
         this.buffer = new Token[(this.window * 2) + 1];
+    }
+
+    public void setFilter(Predicate<Token> filter) {
+        this.filter = filter != null ? filter : t -> true;
     }
 
     protected abstract Token fetchNext();
@@ -58,16 +65,18 @@ public abstract class TokenStream {
 
             Token next = fetchNext();
 
-            if (next == null || next.type == Token.EOF) {
-                tail++;
-                buffer[tail] = next;
-                hitEof = true;
-                eofIndex = tail;
-                break;
+            if (next != null && next.type != Token.EOF && !filter.test(next)) {
+                continue;
             }
 
             tail++;
             buffer[tail] = next;
+
+            if (next.type == Token.EOF) {
+                hitEof = true;
+                eofIndex = tail;
+                break;
+            }
         }
     }
 
@@ -144,35 +153,43 @@ public abstract class TokenStream {
     }
 
     public boolean checkAny(int... types) {
-        if (types == null || types.length == 0) return false;
+        if (types == null || types.length == 0)
+            return false;
         int type = peek().type;
         for (int t : types) {
-            if (t == type) return true;
+            if (t == type)
+                return true;
         }
         return false;
     }
 
     public boolean checkIndexAny(int index, int... types) {
-        if (types == null || types.length == 0) return false;
+        if (types == null || types.length == 0)
+            return false;
         int type = peekIndex(index).type;
         for (int t : types) {
-            if (t == type) return true;
+            if (t == type)
+                return true;
         }
         return false;
     }
 
     public boolean checkSequence(int... types) {
-        if (types == null || types.length == 0) return true;
+        if (types == null || types.length == 0)
+            return true;
         for (int i = 0; i < types.length; i++) {
-            if (!checkIndex(i, types[i])) return false;
+            if (!checkIndex(i, types[i]))
+                return false;
         }
         return true;
     }
 
     public boolean checkIndexSequence(int index, int... types) {
-        if (types == null || types.length == 0) return true;
+        if (types == null || types.length == 0)
+            return true;
         for (int i = 0; i < types.length; i++) {
-            if (!checkIndex(index + i, types[i])) return false;
+            if (!checkIndex(index + i, types[i]))
+                return false;
         }
         return true;
     }
@@ -186,35 +203,43 @@ public abstract class TokenStream {
     }
 
     public boolean checkAny(String... lexemes) {
-        if (lexemes == null || lexemes.length == 0) return false;
+        if (lexemes == null || lexemes.length == 0)
+            return false;
         String lexeme = peek().lexeme;
         for (String l : lexemes) {
-            if (l != null && l.equals(lexeme)) return true;
+            if (l != null && l.equals(lexeme))
+                return true;
         }
         return false;
     }
 
     public boolean checkIndexAny(int index, String... lexemes) {
-        if (lexemes == null || lexemes.length == 0) return false;
+        if (lexemes == null || lexemes.length == 0)
+            return false;
         String lexeme = peekIndex(index).lexeme;
         for (String l : lexemes) {
-            if (l != null && l.equals(lexeme)) return true;
+            if (l != null && l.equals(lexeme))
+                return true;
         }
         return false;
     }
 
     public boolean checkSequence(String... lexemes) {
-        if (lexemes == null || lexemes.length == 0) return true;
+        if (lexemes == null || lexemes.length == 0)
+            return true;
         for (int i = 0; i < lexemes.length; i++) {
-            if (!checkIndex(i, lexemes[i])) return false;
+            if (!checkIndex(i, lexemes[i]))
+                return false;
         }
         return true;
     }
 
     public boolean checkIndexSequence(int index, String... lexemes) {
-        if (lexemes == null || lexemes.length == 0) return true;
+        if (lexemes == null || lexemes.length == 0)
+            return true;
         for (int i = 0; i < lexemes.length; i++) {
-            if (!checkIndex(index + i, lexemes[i])) return false;
+            if (!checkIndex(index + i, lexemes[i]))
+                return false;
         }
         return true;
     }
@@ -228,7 +253,8 @@ public abstract class TokenStream {
     }
 
     public boolean matchAny(int... types) {
-        if (types == null || types.length == 0) return false;
+        if (types == null || types.length == 0)
+            return false;
         for (int t : types) {
             if (check(t)) {
                 advance();
@@ -239,8 +265,10 @@ public abstract class TokenStream {
     }
 
     public boolean matchSequence(int... types) {
-        if (types == null || types.length == 0) return true;
-        if (!checkSequence(types)) return false;
+        if (types == null || types.length == 0)
+            return true;
+        if (!checkSequence(types))
+            return false;
         for (int i = 0; i < types.length; i++) {
             advance();
         }
@@ -256,7 +284,8 @@ public abstract class TokenStream {
     }
 
     public boolean matchAny(String... lexemes) {
-        if (lexemes == null || lexemes.length == 0) return false;
+        if (lexemes == null || lexemes.length == 0)
+            return false;
         for (String l : lexemes) {
             if (check(l)) {
                 advance();
@@ -267,8 +296,10 @@ public abstract class TokenStream {
     }
 
     public boolean matchSequence(String... lexemes) {
-        if (lexemes == null || lexemes.length == 0) return true;
-        if (!checkSequence(lexemes)) return false;
+        if (lexemes == null || lexemes.length == 0)
+            return true;
+        if (!checkSequence(lexemes))
+            return false;
         for (int i = 0; i < lexemes.length; i++) {
             advance();
         }
@@ -276,28 +307,28 @@ public abstract class TokenStream {
     }
 
     public Token expect(int type) {
-	Token token = peek();
-	if (token == null || token.type != type) {
-		throw new IllegalStateException(
-				"Expected " + Token.typeName(type) +
-						" but found " +
-						(token != null ? Token.typeName(token.type) : "EOF"));
-	}
-	advance();
-	return token;
-}
+        Token token = peek();
+        if (token == null || token.type != type) {
+            throw new IllegalStateException(
+                    "Expected " + Token.typeName(type) +
+                            " but found " +
+                            (token != null ? Token.typeName(token.type) : "EOF"));
+        }
+        advance();
+        return token;
+    }
 
-public Token expect(String lexeme) {
-	Token token = peek();
-	if (token == null || token.lexeme == null || !token.lexeme.equals(lexeme)) {
-		throw new IllegalStateException(
-				"Expected \"" + lexeme +
-						"\" but found \"" +
-						(token != null ? token.lexeme : "EOF") + "\"");
-	}
-	advance();
-	return token;
-}
+    public Token expect(String lexeme) {
+        Token token = peek();
+        if (token == null || token.lexeme == null || !token.lexeme.equals(lexeme)) {
+            throw new IllegalStateException(
+                    "Expected \"" + lexeme +
+                            "\" but found \"" +
+                            (token != null ? token.lexeme : "EOF") + "\"");
+        }
+        advance();
+        return token;
+    }
 
     public int getHead() {
         return head;

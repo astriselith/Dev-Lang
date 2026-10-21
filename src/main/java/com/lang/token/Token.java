@@ -44,7 +44,9 @@ public class Token implements Positioned {
 
             DOLLAR = 80,
             AT = 81,
-            TILDE = 82;
+            TILDE = 82,
+            
+            COMMENT = 90;
 
     public static final Token EMPTY = new Token(UNDEFINED, "", Position.UNKNOWN);
 

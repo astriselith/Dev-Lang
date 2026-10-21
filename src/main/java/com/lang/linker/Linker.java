@@ -37,12 +37,23 @@ public class Linker implements DeclVisitor<Void> {
         unit.getClasses().forEach(cls -> cls.accept(this));
     }
 
+    private Map<String, Symbol> substitutions() {
+        Map<String, Symbol> subs = new LinkedHashMap<>();
+        if (currentClass != null)
+            subs.putAll(currentClass.getTypeParameters());
+        if (currentFunction != null)
+            subs.putAll(currentFunction.getTypeParameters());
+        return subs;
+    }
+
     @Override
     public Void visitClassDecl(ClassDecl decl) {
         String className = decl.name.source;
         currentClass = table.get(className);
         if (currentClass == null)
             return null;
+
+        currentClass.node = decl;
 
         if (decl.typeParameters != null) {
             decl.typeParameters.forEach(tp -> tp.accept(this));
@@ -76,7 +87,6 @@ public class Linker implements DeclVisitor<Void> {
                     break;
                 }
             } else if (member.isVar()) {
-                // Qualquer campo quebra pureza.
                 currentClass.setPure(false);
                 break;
             }
@@ -88,29 +98,17 @@ public class Linker implements DeclVisitor<Void> {
 
     @Override
     public Void visitSuperDecl(SuperDecl decl) {
-        String superName = decl.type.getName();
-
-        SuperSymbol sSymbol;
-        if (currentTypeParameter != null) {
-            sSymbol = currentTypeParameter.getSuper(superName);
-        } else if (currentClass != null) {
-            sSymbol = currentClass.getSuper(superName);
-        } else {
+        if (currentClass == null)
             return null;
-        }
 
+        String superName = decl.type.getName();
+        SuperSymbol sSymbol = currentClass.getSuper(superName);
         if (sSymbol == null)
             return null;
 
-        Map<String, Symbol> substitutions = new LinkedHashMap<>();
+        sSymbol.node = decl;
 
-        if (currentClass != null)
-            substitutions.putAll(currentClass.getTypeParameters());
-
-        if (currentFunction != null)
-            substitutions.putAll(currentFunction.getTypeParameters());
-
-        Symbol resolved = table.resolve(decl.type, substitutions, reporter);
+        Symbol resolved = table.resolve(decl.type, substitutions(), reporter);
         if (resolved != null)
             sSymbol.setType(resolved);
 
@@ -118,30 +116,46 @@ public class Linker implements DeclVisitor<Void> {
     }
 
     @Override
+    public Void visitBoundDecl(BoundDecl decl) {
+        if (currentTypeParameter == null)
+            return null;
+
+        String boundName = decl.type.getName();
+        BoundSymbol bSymbol = currentTypeParameter.getBound(boundName);
+        if (bSymbol == null)
+            return null;
+
+        bSymbol.node = decl;
+
+        Symbol resolved = table.resolve(decl.type, substitutions(), reporter);
+        if (resolved != null)
+            bSymbol.setType(resolved);
+
+        return null;
+    }
+
+    @Override
     public Void visitTypeParamDecl(TypeParamDecl decl) {
+        TypeParamSymbol tpSymbol = null;
+
         if (currentFunction != null) {
-            TypeParamSymbol tpSymbol = currentFunction.getTypeParameter(decl.name.source);
-            if (tpSymbol == null)
-                return null;
-
-            if (decl.supers == null)
-                return null;
-
-            currentTypeParameter = tpSymbol;
-            decl.supers.forEach(superClass -> superClass.accept(this));
-            currentTypeParameter = null;
+            tpSymbol = currentFunction.getTypeParameter(decl.name.source);
         } else if (currentClass != null) {
-            TypeParamSymbol tpSymbol = currentClass.getTypeParameter(decl.name.source);
-            if (tpSymbol == null)
-                return null;
-
-            if (decl.supers == null)
-                return null;
-
-            currentTypeParameter = tpSymbol;
-            decl.supers.forEach(superClass -> superClass.accept(this));
-            currentTypeParameter = null;
+            tpSymbol = currentClass.getTypeParameter(decl.name.source);
         }
+
+        if (tpSymbol == null)
+            return null;
+
+        tpSymbol.node = decl;
+
+        if (decl.bounds == null)
+            return null;
+
+        TypeParamSymbol previous = currentTypeParameter;
+        currentTypeParameter = tpSymbol;
+        decl.bounds.forEach(bound -> bound.accept(this));
+        currentTypeParameter = previous;
         return null;
     }
 
@@ -151,22 +165,15 @@ public class Linker implements DeclVisitor<Void> {
             return null;
 
         Symbol sym = currentClass.getDeclaredMember(decl.name.source);
-        if (!(sym instanceof VarSymbol))
+        if (!(sym instanceof VarSymbol varSymbol))
             return null;
 
-        VarSymbol varSymbol = (VarSymbol) sym;
+        varSymbol.node = decl;
+
         if (decl.type == null)
             return null;
 
-        Map<String, Symbol> substitutions = new LinkedHashMap<>();
-
-        if (currentClass != null)
-            substitutions.putAll(currentClass.getTypeParameters());
-
-        if (currentFunction != null)
-            substitutions.putAll(currentFunction.getTypeParameters());
-
-        Symbol resolved = table.resolve(decl.type, substitutions, reporter);
+        Symbol resolved = table.resolve(decl.type, substitutions(), reporter);
         if (resolved != null)
             varSymbol.setType(resolved);
 
@@ -179,19 +186,16 @@ public class Linker implements DeclVisitor<Void> {
             return null;
 
         Symbol sym = currentClass.getDeclaredMember(decl.name.source);
-        if (!(sym instanceof FunSymbol))
+        if (!(sym instanceof FunSymbol funSymbol))
             return null;
 
-        currentFunction = (FunSymbol) sym;
+        funSymbol.node = decl;
 
-        Map<String, Symbol> substitutions = new LinkedHashMap<>();
-        if (currentClass != null)
-            substitutions.putAll(currentClass.getTypeParameters());
-        if (currentFunction != null)
-            substitutions.putAll(currentFunction.getTypeParameters());
+        FunSymbol previous = currentFunction;
+        currentFunction = funSymbol;
 
         if (decl.type != null) {
-            Symbol resolved = table.resolve(decl.type, substitutions, reporter);
+            Symbol resolved = table.resolve(decl.type, substitutions(), reporter);
             if (resolved != null)
                 currentFunction.setType(resolved);
         }
@@ -206,7 +210,7 @@ public class Linker implements DeclVisitor<Void> {
 
         currentFunction.setPure(decl.body == null);
 
-        currentFunction = null;
+        currentFunction = previous;
         return null;
     }
 
@@ -217,34 +221,35 @@ public class Linker implements DeclVisitor<Void> {
             if (pSymbol == null)
                 return null;
 
-            Map<String, Symbol> substitutions = new LinkedHashMap<>();
-            if (currentClass != null)
-                substitutions.putAll(currentClass.getTypeParameters());
-            if (currentFunction != null)
-                substitutions.putAll(currentFunction.getTypeParameters());
+            pSymbol.node = decl;
 
-            if (decl.type != null) {
-                Symbol resolved = table.resolve(decl.type, substitutions, reporter);
-                if (resolved != null)
-                    pSymbol.setType(resolved);
-            }
-        } else if (currentClass != null) {
+            if (decl.type == null)
+                return null;
+
+            Symbol resolved = table.resolve(decl.type, substitutions(), reporter);
+            if (resolved != null)
+                pSymbol.setType(resolved);
+
+            return null;
+        }
+
+        if (currentClass != null) {
             ParamSymbol pSymbol = currentClass.getParameter(decl.name.source);
             if (pSymbol == null)
                 return null;
 
-            Map<String, Symbol> substitutions = new LinkedHashMap<>();
-            if (currentClass != null)
-                substitutions.putAll(currentClass.getTypeParameters());
-            if (currentFunction != null)
-                substitutions.putAll(currentFunction.getTypeParameters());
+            pSymbol.node = decl;
 
-            if (decl.type != null) {
-                Symbol resolved = table.resolve(decl.type, substitutions, reporter);
-                if (resolved != null)
-                    pSymbol.setType(resolved);
-            }
+            if (decl.type == null)
+                return null;
+
+            Symbol resolved = table.resolve(decl.type, substitutions(), reporter);
+            if (resolved != null)
+                pSymbol.setType(resolved);
+
+            return null;
         }
+
         return null;
     }
 }

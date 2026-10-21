@@ -1,6 +1,10 @@
 package com.lang.symbol;
 
+import com.lang.ast.Node;
+
 public abstract class Symbol {
+
+	public Node node;
 
 	private final String name;
 
@@ -26,6 +30,10 @@ public abstract class Symbol {
 
 	public boolean isSuper() {
 		return this instanceof SuperSymbol;
+	}
+
+	public boolean isBound() {
+		return this instanceof BoundSymbol;
 	}
 
 	public boolean isFun() {
@@ -58,6 +66,10 @@ public abstract class Symbol {
 
 	public SuperSymbol asSuper() {
 		return isSuper() ? (SuperSymbol) this : null;
+	}
+
+	public BoundSymbol asBound() {
+		return isBound() ? (BoundSymbol) this : null;
 	}
 
 	public FunSymbol asFun() {

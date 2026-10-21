@@ -1,29 +1,133 @@
-# Test.lang #
-class A() {
+#
+*Arquivo de teste — generics*
+#
+class User(name: String = "Gabriel", age: Int = 18) {
+    #
+    *Nome do usuário.*
+    #
+    var displayName: String = name;
 
-    fun main() {
-        println(this);
-        println(A()); # Erro programado #
-        println(Person("Alice", "")); # Erro programado #
-    };
-
-    fun b(): B {
-        return null;
+    #
+    *Retorna uma saudação simples.*
+    #
+    fun greet(): String {
+        return "hello";
     };
 };
 
-class Person(name: String, age: Int) : Stringfiable() {
-    var name: String = name;
-    var age: Int = age;
+#
+*Caixa genérica de um valor `T`.*
+#
+class Box<T>(value: T) {
+    #
+    *Valor guardado.*
+    #
+    var content: T = value;
 
-    fun stringfy(): String {
-        let builder = StringBuilder();
-        builder.append(name);
-        builder.append(" is ");
-        builder.append(age);
-        builder.append(" years old.");
-        return builder.stringfy();
+    #
+    *Devolve o valor guardado.*
+    #
+    fun unwrap(): T {
+        return content;
     };
+};
 
+#
+*Par genérico de dois valores.*
+#
+class Pair<A, B>(first: A, second: B) {
+    #
+    *Primeiro elemento.*
+    #
+    var left: A = first;
 
+    #
+    *Segundo elemento.*
+    #
+    var right: B = second;
+};
+
+#
+*Restrição de tipo: `T` deve ser subtipo de `Any`.*
+#
+class Holder<T: Any>(item: T) {
+    #
+    *Item guardado.*
+    #
+    var value: T = item;
+};
+
+#
+*Ponto de entrada.*
+#
+class Main() {
+    #
+    *Executa o programa.*
+    #
+    fun main(): Void {
+        #
+        *Box<Int>.*
+        #
+        let b1: Box<Int> = Box<Int>(10);
+        let v1: Int = b1.content;
+        let u1: Int = b1.unwrap();
+
+        #
+        *Box<String>.*
+        #
+        let b2: Box<String> = Box<String>("texto");
+        let v2: String = b2.content;
+
+        #
+        *Pair<Int, String>.*
+        #
+        let p1: Pair<Int, String> = Pair<Int, String>(1, "um");
+        let a1: Int = p1.left;
+        let s1: String = p1.right;
+
+        #
+        *Holder<User>.*
+        #
+        let h1: Holder<User> = Holder<User>(User("Ana", 23));
+        let uu: User = h1.value;
+
+        #
+        *Chamada que devolve T.*
+        #
+        let g1: String = b2.unwrap();
+    };
+};
+
+#
+*Casos negativos — cada um deve gerar um erro no editor.*
+#
+class NegGenA() {
+    fun f(): Void {
+        let b: Box<Int, String> = Box(10);
+    };
+};
+
+class NegGenB() {
+    fun f(): Void {
+        let b: Box<Int> = Box();
+    };
+};
+
+class NegGenC() {
+    fun f(): Void {
+        let p: Pair<Int, String> = Pair(1);
+    };
+};
+
+class NegGenD() {
+    fun f(): Void {
+        let p: Pair<Int, String> = Pair(1, 2);
+    };
+};
+
+class NegGenE() {
+    fun f(): Void {
+        let b: Box<Int> = Box(10);
+        let s: String = b.unwrap();
+    };
 };

@@ -38,13 +38,14 @@ public class Register implements DeclVisitor<Void> {
         }
 
         currentClass = new ClassSymbol(className);
+        currentClass.node = decl;
         table.add(currentClass);
 
         if (decl.typeParameters != null) {
             decl.typeParameters.forEach(tp -> tp.accept(this));
         }
 
-        if(decl.parameters != null) {
+        if (decl.parameters != null) {
             decl.parameters.forEach(p -> p.accept(this));
         }
 
@@ -64,10 +65,11 @@ public class Register implements DeclVisitor<Void> {
     public Void visitTypeParamDecl(TypeParamDecl decl) {
         String tpName = decl.name.source;
         TypeParamSymbol tpSymbol = new TypeParamSymbol(tpName);
+        tpSymbol.node = decl;
         currentTypeParameter = tpSymbol;
 
-        if (decl.supers != null) {
-            decl.supers.forEach(s -> s.accept(this));
+        if (decl.bounds != null) {
+            decl.bounds.forEach(b -> b.accept(this));
         }
 
         if (currentFunction != null) {
@@ -96,21 +98,32 @@ public class Register implements DeclVisitor<Void> {
     public Void visitSuperDecl(SuperDecl decl) {
         String sName = decl.type.getName();
         SuperSymbol sSymbol = new SuperSymbol(sName);
+        sSymbol.node = decl;
 
-        if (currentTypeParameter != null) {
-            if (currentTypeParameter.hasSuper(sName)) {
-                unit.addDiagnostic(TAG, Diagnostic.error(decl.getPosition(),
-                        REDEFINED_SUPER.format(sName)));
-                return null;
-            }
-            currentTypeParameter.addSuper(sSymbol);
-        } else if (currentClass != null) {
+        if (currentClass != null) {
             if (currentClass.hasSuper(sName)) {
                 unit.addDiagnostic(TAG, Diagnostic.error(decl.getPosition(),
                         REDEFINED_SUPER.format(sName)));
                 return null;
             }
             currentClass.addSuper(sSymbol);
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitBoundDecl(BoundDecl decl) {
+        String bName = decl.type.getName();
+        BoundSymbol bSymbol = new BoundSymbol(bName);
+        bSymbol.node = decl;
+
+        if (currentTypeParameter != null) {
+            if (currentTypeParameter.hasBound(bName)) {
+                unit.addDiagnostic(TAG, Diagnostic.error(decl.getPosition(),
+                        REDEFINED_BOUND.format(bName)));
+                return null;
+            }
+            currentTypeParameter.addBound(bSymbol);
         }
         return null;
     }
@@ -126,6 +139,7 @@ public class Register implements DeclVisitor<Void> {
                 return null;
             }
             VarSymbol varSymbol = new VarSymbol(varName);
+            varSymbol.node = decl;
             varSymbol.setDeclaringClass(currentClass);
             currentClass.addDeclaredMember(varSymbol);
         }
@@ -144,6 +158,7 @@ public class Register implements DeclVisitor<Void> {
             }
 
             FunSymbol funSymbol = new FunSymbol(funName);
+            funSymbol.node = decl;
             funSymbol.setDeclaringClass(currentClass);
 
             currentFunction = funSymbol;
@@ -165,7 +180,8 @@ public class Register implements DeclVisitor<Void> {
     public Void visitParamDecl(ParamDecl decl) {
         String pName = decl.name.source;
         ParamSymbol pSymbol = new ParamSymbol(pName);
-       
+        pSymbol.node = decl;
+
         if (currentFunction != null) {
             if (currentFunction.hasTypeParameter(pName)) {
                 unit.addDiagnostic(TAG, Diagnostic.error(decl.getPosition(),
