@@ -18,4 +18,9 @@ public class FunDecl extends MemberDecl {
 		this.parameters = parameters;
 		this.body = body;
 	}
+
+	@Override
+	public <T> T accept(DeclVisitor<T> visitor) {
+		return visitor.visitFunDecl(this);
+	}
 }

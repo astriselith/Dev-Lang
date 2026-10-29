@@ -79,11 +79,11 @@ public class Lexer extends TokenStream {
         }
     }
 
-    private void update(int n) {
+    /*private void update(int n) {
         for (int i = 0; i < n; i++) {
             update();
         }
-    }
+    }*/
 
     private Position position() {
         return new Position(

@@ -11,10 +11,6 @@ public abstract class Typed extends Node {
 		super(position);
 	}
 
-	public abstract String getName();
-
-	public abstract String getSignature();
-
 	public boolean isRef() {
 		return this instanceof RefTyped;
 	}
@@ -23,17 +19,16 @@ public abstract class Typed extends Node {
 		return this instanceof ParameterizedRefTyped;
 	}
 
-	public <T> T accept(TypedVisitor<T> visitor) {
-		if (this instanceof RefTyped)
-			visitor.visitRefTyped((RefTyped) this);
-		if (this instanceof ParameterizedRefTyped)
-			visitor.visitParameterizedRefTyped((ParameterizedRefTyped) this);
-
-		throw new UnsupportedOperationException("Unknown typed type: " + this.getClass().getName());
+	public RefTyped asRef() {
+		return (RefTyped) this;
 	}
 
-	@Override
-	public final String toString() {
-		return getSignature();
+	public ParameterizedRefTyped asParameterizedRef() {
+		return (ParameterizedRefTyped) this;
 	}
+
+	public abstract String getName();
+
+	public abstract String getSignature();
+
 }

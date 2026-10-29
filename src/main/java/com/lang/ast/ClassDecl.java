@@ -26,8 +26,10 @@ public class ClassDecl extends Decl {
 		this.members = members;
 	}
 
+	
+
 	@Override
-	public String toString() {
-		return name.toString();
+	public <T> T accept(DeclVisitor<T> visitor) {
+		return visitor.visitClassDecl(this);
 	}
 }

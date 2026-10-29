@@ -4,23 +4,22 @@ import com.lang.util.Position;
 
 public class RefTyped extends Typed {
 
-	public Identifier name;
+    public Identifier name;
 
-	public RefTyped() {
-	}
+    public RefTyped() {}
 
-	public RefTyped(Identifier name, Position position) {
-		super(position);
-		this.name = name;
-	}
+    public RefTyped(Identifier name, Position position) {
+        super(position);
+        this.name = name;
+    }
 
-	@Override
-	public String getName() {
-		return name.source;
-	}
+    @Override
+    public String getName() {
+        return name != null ? name.source : "";
+    }
 
-	@Override
-	public String getSignature() {
-		return name.source;
-	}
+    @Override
+    public String getSignature() {
+        return getName();
+    }
 }

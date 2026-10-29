@@ -3,47 +3,27 @@ package com.lang.ast;
 import com.lang.util.Position;
 
 public class Operator extends Node {
-	public String lexeme;
 
-	public Operator() {
-	}
+    public static final int PREFIX  = 0;
+    public static final int INFIX   = 1;
+    public static final int POSTFIX = 2;
 
-	public Operator(String lexeme, Position position) {
-		super(position);
-		this.lexeme = lexeme;
-	}
+    public String lexeme;
 
-	public boolean isCompound() {
-		return lexeme.length() > 1;
-	}
+    public Operator() {
+    }
 
-	public boolean isArithmetic() {
-		return lexeme.equals("+") || lexeme.equals("-") ||
-				lexeme.equals("*") || lexeme.equals("/") ||
-				lexeme.equals("%");
-	}
+    public Operator(String lexeme, Position position) {
+        super(position);
+        this.lexeme = lexeme;
+    }
 
-	public boolean isComparison() {
-		return lexeme.equals("==") || lexeme.equals("!=") ||
-				lexeme.equals("<") || lexeme.equals(">") ||
-				lexeme.equals("<=") || lexeme.equals(">=");
-	}
+    public boolean isCompound() {
+        return lexeme.length() > 1;
+    }
 
-	public boolean isLogical() {
-		return lexeme.equals("&&") || lexeme.equals("||");
-	}
-
-	public boolean isAssignment() {
-		return lexeme.equals("=");
-	}
-
-	public boolean isUnary() {
-		return lexeme.equals("!") || lexeme.equals("-") || lexeme.equals("+");
-	}
-
-	@Override
-	public String toString() {
-		return lexeme;
-	}
-
+    @Override
+    public String toString() {
+        return lexeme;
+    }
 }

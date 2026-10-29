@@ -1,0 +1,57 @@
+fun soma(a: Int, b: Int) : Int {
+    return a + b;
+};
+
+fun declara(x: Int) : Int;
+
+class Ponto();
+
+class Vec2(x: Float, y: Float) : Ponto() {
+    var x : Float;
+    var y : Float;
+
+    operator a: Self + b: Self : Self {
+        return Vec2(a.x + b.x, a.y + b.y);
+    };
+
+    operator a: Self * b: Float : Self {
+        return Vec2(a.x * b, a.y * b);
+    };
+};
+
+operator base: Int ** expoent: Int : Int {
+    let result -> base;
+    while()
+};
+
+operator - a: Int : Int;
+
+class Box::<T>(value: T) : Ponto() {
+    var value : T;
+
+    fun get() : T {
+        return value;
+    };
+};
+
+fun main() : Void {
+    let a -> Vec2(1.0, 2.0);
+    let b -> Vec2(3.0, 4.0);
+    let c -> a + b;
+    let d -> a * 2.0;
+
+    let box : Box::<Int> -> Box::<Int>(42);
+
+    if (a == b) -> print("iguais");
+
+    while (a.x > 10.0) -> a = a - a;
+
+    return;
+};
+
+fun teste_flat() : Int {
+    let x -> 1 + 2 * 3;
+    let y -> 1 + (2 * 3);
+    let z -> (1 + 2) * 3;
+    return x;
+};

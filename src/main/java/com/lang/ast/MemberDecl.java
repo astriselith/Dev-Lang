@@ -2,7 +2,7 @@ package com.lang.ast;
 
 import com.lang.util.Position;
 
-public class MemberDecl extends Decl {
+public abstract class MemberDecl extends Decl {
     public Identifier name;
     public Typed type;
 
@@ -14,4 +14,7 @@ public class MemberDecl extends Decl {
         this.name = name;
         this.type = type;
     }
+
+    @Override
+    public abstract <T> T accept(DeclVisitor<T> visitor);
 }

@@ -1,0 +1,87 @@
+# This is a stub #
+
+fun print(str: Stringfiable): Void;
+fun println(str: Stringfiable): Void;
+fun typeof(value: Any): String;
+
+# --- Tipos raiz (regras especiais) --- #
+class Any();
+class Void();
+class Null();
+
+# --- Value types (regras especiais) --- #
+class Bool() : Stringfiable() {
+    operator ! a: Self : Self;
+    operator a: Self && b: Self : Self;
+    operator a: Self || b: Self : Self;
+    operator a: Self == b: Self : Bool;
+    operator a: Self != b: Self : Bool;
+
+    fun stringfy(): String;
+};
+
+class Int() : Stringfiable() {
+    operator a: Self + b: Self : Self;
+    operator a: Self - b: Self : Self;
+    operator a: Self * b: Self : Self;
+    operator a: Self / b: Self : Self;
+    operator a: Self % b: Self : Self;
+    operator - a: Self : Self;
+    operator + a: Self : Self;
+
+    operator a: Self == b: Self : Bool;
+    operator a: Self != b: Self : Bool;
+    operator a: Self < b: Self : Bool;
+    operator a: Self > b: Self : Bool;
+    operator a: Self <= b: Self : Bool;
+    operator a: Self >= b: Self : Bool;
+
+    fun toFloat(): Float;
+    fun stringfy(): String;
+};
+
+class Float() : Stringfiable() {
+    operator a: Self + b: Self : Self;
+    operator a: Self - b: Self : Self;
+    operator a: Self * b: Self : Self;
+    operator a: Self / b: Self : Self;
+    operator a: Self % b: Self : Self;
+    operator - a: Self : Self;
+    operator + a: Self : Self;
+
+    operator a: Self == b: Self : Bool;
+    operator a: Self != b: Self : Bool;
+    operator a: Self < b: Self : Bool;
+    operator a: Self > b: Self : Bool;
+    operator a: Self <= b: Self : Bool;
+    operator a: Self >= b: Self : Bool;
+
+    fun toInt(): Int;
+    fun stringfy(): String;
+};
+
+# --- Reference types --- #
+class String() : Stringfiable() {
+    operator a: Self + b: Stringfiable : String;
+    operator a: Self == b: Self : Bool;
+    operator a: Self != b: Self : Bool;
+    operator a: Self < b: Self : Bool;
+    operator a: Self > b: Self : Bool;
+    operator a: Self <= b: Self : Bool;
+    operator a: Self >= b: Self : Bool;
+
+    fun stringfy(): String;
+};
+
+class StringBuilder() : Stringfiable() {
+    var str: String -> "";
+
+    operator a: Self + b: Stringfiable : Self;
+
+    fun stringfy(): String;
+    fun append(str: Stringfiable): Void;
+};
+
+class Stringfiable() {
+    fun stringfy(): String;
+};

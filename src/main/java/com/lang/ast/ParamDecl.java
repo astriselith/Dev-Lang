@@ -16,4 +16,11 @@ public class ParamDecl extends Decl {
 		this.type = type;
 		this.init = init;
 	}
+
+	@Override
+	public <T> T accept(DeclVisitor<T> visitor) {
+		return visitor.visitParamDecl(this);
+	}
+
+	
 }

@@ -8,4 +8,5 @@ public interface DeclVisitor<T> {
     T visitVarDecl(VarDecl decl);
     T visitFunDecl(FunDecl decl);
     T visitParamDecl(ParamDecl decl);
+    T visitOperatorDecl(OperatorDecl decl);
 }

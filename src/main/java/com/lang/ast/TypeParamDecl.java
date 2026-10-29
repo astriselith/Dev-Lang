@@ -17,4 +17,11 @@ public class TypeParamDecl extends Decl {
 		this.name = name;
 		this.bounds = bounds;
 	}
+
+	@Override
+	public <T> T accept(DeclVisitor<T> visitor) {
+		return visitor.visitTypeParamDecl(this);
+	}
+
+	
 }

@@ -1,12 +1,10 @@
 package com.lang.ast;
 
 public interface ExprVisitor<T> {
-	T visitLiteralExpr(LiteralExpr expr);
-	T visitRefExpr(RefExpr expr);
-	T visitParenthesisExpr(ParenthesisExpr expr);
-	T visitAssignExpr(AssignExpr expr);
-	T visitBinaryExpr(BinaryExpr expr);
-	T visitUnaryExpr(UnaryExpr expr);
-	T visitCallExpr(CallExpr expr);
-	T visitMemberAccessExpr(MemberAccessExpr expr);
+    T visitLiteralExpr(LiteralExpr expr);
+    T visitRefExpr(RefExpr expr);
+    T visitMemberExpr(MemberExpr expr);
+    T visitCallExpr(CallExpr expr);
+    T visitParenthesisExpr(ParenthesisExpr expr);
+    T visitOperatorExpr(OperatorExpr expr);
 }

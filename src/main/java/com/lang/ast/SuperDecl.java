@@ -11,17 +11,14 @@ public class SuperDecl extends Decl {
     public SuperDecl() {
     }
 
-    public SuperDecl(Typed type, Position position) {
-        this(type, null, position);
-    }
-
     public SuperDecl(Typed type, List<Expr> arguments, Position position) {
         super(position);
         this.type = type;
         this.arguments = arguments;
     }
 
-    public boolean hasArguments() {
-        return arguments != null && !arguments.isEmpty();
+    @Override
+    public <T> T accept(DeclVisitor<T> visitor) {
+        return visitor.visitSuperDecl(this);
     }
 }

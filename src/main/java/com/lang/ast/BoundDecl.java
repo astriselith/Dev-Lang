@@ -1,14 +1,24 @@
 package com.lang.ast;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.lang.util.Position;
 
 public class BoundDecl extends Decl {
-    public Typed type;
+    public Identifier name;
+    public List<TypeParamDecl> typeParameters = new ArrayList<>();
 
     public BoundDecl() {}
 
-    public BoundDecl(Typed type, Position position) {
+    public BoundDecl(Identifier name, List<TypeParamDecl> typeParameters, Position position) {
         super(position);
-        this.type = type;
+        this.name = name;
+        this.typeParameters = typeParameters;
+    }
+
+    @Override
+    public <T> T accept(DeclVisitor<T> visitor) {
+        return visitor.visitBoundDecl(this);
     }
 }

@@ -121,3 +121,6 @@ temp/
 # Node.js OS files
 .DS_Store
 Thumbs.db
+
+
+private/
