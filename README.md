@@ -66,8 +66,11 @@ fun first::<T, U>(value: T, fallback: U): T {
 ```
 
 A function declaration may end with `;` instead of a body. This form is used
-for declarations supplied externally; it does not define a function body in
-the source.
+for declarations supplied externally. It does not generate a function body,
+but a class method declared this way remains in the class vtable. Its exported
+C symbol must be provided by a linked library. A top-level function declaration
+without a body is emitted as an external C prototype and likewise requires a
+linked implementation.
 
 ### Operators
 
@@ -92,7 +95,8 @@ operator value: A ? : Bool {
 Operator symbols are composed from `+`, `-`, `*`, `/`, `%`, `=`, `!`, `<`,
 `>`, `&`, `|`, `?`, and `~`. Operators can also be declared without a body by
 ending the declaration with `;`; declarations without bodies do not generate
-C implementations or operator slots.
+C implementations, but their operator slots remain present. Their exported C
+symbols must be provided by a linked library.
 
 Global operators are declared at top level. Class operators and their
 supertypes are considered before global operators. At runtime, global operator

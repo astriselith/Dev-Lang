@@ -216,16 +216,12 @@ public class Codegen {
                     ci.fields.add((VarDecl) m);
                 else if (m instanceof FunDecl) {
                     FunDecl f = (FunDecl) m;
-                    if (f.body != null) {
-                        ci.methods.add(f);
-                        ci.fnByName.put(f.name.source, f);
-                    }
+                    ci.methods.add(f);
+                    ci.fnByName.put(f.name.source, f);
                 } else if (m instanceof OperatorDecl) {
                     OperatorDecl od = (OperatorDecl) m;
-                    if (od.body != null) {
-                        ci.operators.add(od);
-                        ci.opByKey.put(opKey(od.kind, od.operator.lexeme), od);
-                    }
+                    ci.operators.add(od);
+                    ci.opByKey.put(opKey(od.kind, od.operator.lexeme), od);
                 }
             }
         classes.put(ci.name, ci);
@@ -452,7 +448,15 @@ public class Codegen {
 
     private void emitClassDecls(ClassInfo ci, StringBuilder sb) {
         sb.append("Value* ").append(ci.name).append("_new(List* args);\n");
-        sb.append("VTable* ").append(ci.name).append("__vt(void);\n\n");
+        sb.append("VTable* ").append(ci.name).append("__vt(void);\n");
+        for (FunDecl function : ci.methods)
+            sb.append("Value* ").append(ci.name).append("__")
+                    .append(function.name.source)
+                    .append("(const Value* self, List* args);\n");
+        for (OperatorDecl operator : ci.operators)
+            sb.append("Value* ").append(ci.name).append("__")
+                    .append(globalOperatorCName(operator)).append("(List* args);\n");
+        sb.append("\n");
     }
 
     private void emitTopLevelDecls(StringBuilder sb) {
@@ -494,7 +498,7 @@ public class Codegen {
 
     private void emitOperatorImpl(ClassInfo ci, OperatorDecl od, StringBuilder sb) {
         String name = ci.name + "__" + globalOperatorCName(od);
-        sb.append("static Value* ").append(name).append("(List* args) {\n");
+        sb.append("Value* ").append(name).append("(List* args) {\n");
 
         pushScope();
         String previousClass = currentClass;
@@ -561,12 +565,16 @@ public class Codegen {
         return name == null || name.isEmpty() ? "Any" : name;
     }
 
+    private List<OperatorDecl> globalOperators() {
+        return unit.getOperators();
+    }
+
     private List<OperatorDecl> implementedGlobalOperators() {
-        return unit.getOperators().stream().filter(od -> od.body != null).toList();
+        return globalOperators().stream().filter(operator -> operator.body != null).toList();
     }
 
     private void emitGlobalOperatorExtension(StringBuilder sb) {
-        List<OperatorDecl> operators = implementedGlobalOperators();
+        List<OperatorDecl> operators = globalOperators();
         if (operators.isEmpty())
             return;
 
@@ -610,16 +618,18 @@ public class Codegen {
     private void emitClassImpl(ClassInfo ci, StringBuilder sb) {
         sb.append("/* ==== ").append(ci.name).append(" ==== */\n");
 
-        // Métodos e funções de slot
         for (FunDecl f : ci.methods) {
-            sb.append("static Value* ").append(ci.name).append("__").append(f.name.source)
-                    .append("(const Value* self, List* args) {\n");
-            emitMethodBody(ci, f, sb);
-            sb.append("}\n\n");
+            if (f.body != null) {
+                sb.append("Value* ").append(ci.name).append("__").append(f.name.source)
+                        .append("(const Value* self, List* args) {\n");
+                emitMethodBody(ci, f, sb);
+                sb.append("}\n\n");
+            }
         }
 
         for (OperatorDecl od : ci.operators) {
-            emitOperatorImpl(ci, od, sb);
+            if (od.body != null)
+                emitOperatorImpl(ci, od, sb);
         }
 
         List<VariableSlot> variables = variableSlots(ci);
@@ -753,9 +763,9 @@ public class Codegen {
     private void emitRuntimeInit(StringBuilder sb) {
         sb.append("void ").append(baseName()).append("_init(void) {\n");
         sb.append("    runtime_init();\n");
-        if (!implementedGlobalOperators().isEmpty()) {
+        if (!globalOperators().isEmpty()) {
             sb.append("    if (!rt_register_slots(&__global_info, global_operator_slot_ptrs, ")
-                    .append(implementedGlobalOperators().size()).append(")) {\n")
+                    .append(globalOperators().size()).append(")) {\n")
                     .append("        fputs(\"runtime error: could not register global operators\\n\", stderr);\n")
                     .append("        abort();\n")
                     .append("    }\n");
@@ -785,6 +795,8 @@ public class Codegen {
         }
 
         for (FunDecl f : unit.getFuns()) {
+            if (f.body == null)
+                continue;
             sb.append("Value* ").append(globalFunctionName(f.name.source))
                     .append("(List* args) {\n");
 

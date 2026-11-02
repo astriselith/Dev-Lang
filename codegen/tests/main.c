@@ -4,6 +4,21 @@
 
 Value *function_symbolProbe(List *args) { return List_arg(args, 0); }
 
+Value *C__declaredOnly(const Value *self, List *args) {
+  (void)self;
+  (void)args;
+  return Int_new(0);
+}
+
+Value *C__operator_infix_plus_generic_C_generic_C(List *args) {
+  return List_arg(args, 0);
+}
+
+Value *operator_prefix_bang_generic_C(List *args) {
+  (void)args;
+  return Bool_new(false);
+}
+
 static const VSlot operator_slot =
     VSLOT_OP_TYPED("operator_probe", "key_probe", &function_symbolProbe, 2,
                    "FirstType", "SecondType");
@@ -12,10 +27,16 @@ int main(int argc, char **argv) {
   List args = {0};
   List_init(&args);
 
-  if (__global_info.slots.count != 3 || Any_info.slots.count != 1 ||
+  if (__global_info.slots.count != 4 || Any_info.slots.count != 1 ||
       Any_info.supers.count != 1 ||
       find_operator(Any__vt(), SLOT_OP_NAME("infix", "tilde", "Int_Int")) == NULL)
     return 13;
+  if (!find_function(C__vt(), SLOT_FN_NAME("declaredOnly", "void")) ||
+      !find_operator(C__vt(),
+                     SLOT_OP_NAME("infix", "plus", "generic_C_generic_C")) ||
+      !find_operator(Any__vt(),
+                     SLOT_OP_NAME("prefix", "bang", "generic_C")))
+    return 17;
   Value *null_as_a = Null_new();
   List null_as_a_args = List_elements((void *[]){null_as_a}, 1);
   const VOperator *a_question = find_operator(

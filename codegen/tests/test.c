@@ -5,11 +5,11 @@
 #include <stdio.h>
 
 /* ==== A ==== */
-static Value* A__stringfy(const Value* self, List* args) {
+Value* A__stringfy(const Value* self, List* args) {
     return String_new("A");
 }
 
-static Value* A__operator_postfix_question_generic_A(List* args) {
+Value* A__operator_postfix_question_generic_A(List* args) {
     (void)(({ Value* _arg_0 = String_new("A question operator"); List _args = List_elements((void *[]){_arg_0}, 1); function_println(List_arg(&_args, 0)); }));
     if (value_as_bool(({ Value* _arg_0 = List_arg(args, 0); List _args = List_elements((void *[]){_arg_0}, 1); function_is_null(List_arg(&_args, 0)); }))) {
         return Bool_new(false);
@@ -18,7 +18,7 @@ static Value* A__operator_postfix_question_generic_A(List* args) {
     }
 }
 
-static Value* A__operator_infix_equals_generic_A_generic_A(List* args) {
+Value* A__operator_infix_equals_generic_A_generic_A(List* args) {
     return List_arg(args, 0);
 }
 
@@ -113,9 +113,13 @@ Value* B_new(List* args) {
 
 /* ==== C ==== */
 static const VSlot C__slots[] = {
+    VSLOT_FN(SLOT_FN_NAME("declaredOnly", "void"), &C__declaredOnly),
+    VSLOT_OP_TYPED(SLOT_OP_NAME("infix", "plus", "generic_C_generic_C"), SLOT_OP_KEY("infix", "plus"), &C__operator_infix_plus_generic_C_generic_C, 2, "C", "C"),
 };
 
 static void* C__slot_ptrs[] = {
+    (void*)&C__slots[0],
+    (void*)&C__slots[1],
 };
 
 VTableInfo C_info;
@@ -223,6 +227,7 @@ Value* operator_infix_tilde_generic_T_generic_T(List* args) {
 static const VSlot global_operator_slots[] = {
     VSLOT_OP_TYPED(SLOT_OP_NAME("postfix", "question", "Any"), SLOT_OP_KEY("postfix", "question"), &operator_postfix_question_Any, 1, "Any", NULL),
     VSLOT_OP_TYPED(SLOT_OP_NAME("infix", "tilde", "Int_Int"), SLOT_OP_KEY("infix", "tilde"), &operator_infix_tilde_Int_Int, 2, "Int", "Int"),
+    VSLOT_OP_TYPED(SLOT_OP_NAME("prefix", "bang", "generic_C"), SLOT_OP_KEY("prefix", "bang"), &operator_prefix_bang_generic_C, 1, "C", NULL),
     VSLOT_OP_TYPED(SLOT_OP_NAME("infix", "tilde", "generic_T_generic_T"), SLOT_OP_KEY("infix", "tilde"), &operator_infix_tilde_generic_T_generic_T, 2, "Any", "Any"),
 };
 
@@ -230,11 +235,12 @@ static void* global_operator_slot_ptrs[] = {
     (void*)&global_operator_slots[0],
     (void*)&global_operator_slots[1],
     (void*)&global_operator_slots[2],
+    (void*)&global_operator_slots[3],
 };
 
 void test_init(void) {
     runtime_init();
-    if (!rt_register_slots(&__global_info, global_operator_slot_ptrs, 3)) {
+    if (!rt_register_slots(&__global_info, global_operator_slot_ptrs, 4)) {
         fputs("runtime error: could not register global operators\n", stderr);
         abort();
     }
@@ -242,7 +248,7 @@ void test_init(void) {
 
     DEF_TYPE_INIT(B, 1, B__destroy, (void *)(intptr_t)Any_info.index);
 
-    DEF_TYPE_INIT(C, 0, C__destroy, (void *)(intptr_t)B_info.index);
+    DEF_TYPE_INIT(C, 2, C__destroy, (void *)(intptr_t)B_info.index);
 
 }
 

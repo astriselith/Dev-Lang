@@ -35,8 +35,15 @@ check: $(TARGET)
 		printf 'Generated variable access does not use runtime slot lookup\n'; \
 		exit 1; \
 	fi
-	@if grep -Fq 'C__declaredOnly' test.c || grep -Fq 'C__operator_infix_plus' test.c \
-		|| grep -Fq 'operator_prefix_bang_C(List* args) {' test.c; then \
+	@if ! grep -Fq 'VSLOT_FN(SLOT_FN_NAME("declaredOnly", "void"), &C__declaredOnly)' test.c \
+		|| ! grep -Fq 'VSLOT_OP_TYPED(SLOT_OP_NAME("infix", "plus", "generic_C_generic_C")' test.c \
+		|| ! grep -Fq 'VSLOT_OP_TYPED(SLOT_OP_NAME("prefix", "bang", "generic_C")' test.c; then \
+		printf 'A bodyless function or operator is missing from generated slots\n'; \
+		exit 1; \
+	fi
+	@if grep -Fq 'Value* C__declaredOnly(const Value* self, List* args) {' test.c \
+		|| grep -Fq 'Value* C__operator_infix_plus_generic_C_generic_C(List* args) {' test.c \
+		|| grep -Fq 'Value* operator_prefix_bang_generic_C(List* args) {' test.c; then \
 		printf 'Generated implementation includes a declaration without a body\n'; \
 		exit 1; \
 	fi

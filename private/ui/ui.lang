@@ -1,0 +1,31 @@
+# simbolos importados #
+fun uiOpen(title: String, width: Int, height: Int): Bool;
+fun uiRunning(): Bool;
+fun uiBeginFrame(): Void;
+fun uiPanel(x: Int, y: Int, width: Int, height: Int, red: Int, green: Int, blue: Int): Void;
+fun uiButton(label: String, x: Int, y: Int, width: Int, height: Int): Bool;
+fun uiText(text: String, x: Int, y: Int, size: Int, red: Int, green: Int, blue: Int): Void;
+fun uiPresent(): Void;
+fun uiClose(): Void;
+
+fun main(): Void {
+    if (uiOpen("Dev-Lang UI", 800, 520)) {
+        let clicked: Bool -> false;
+        while (uiRunning()) {
+            uiBeginFrame();
+            uiPanel(24, 24, 752, 472, 34, 42, 60);
+            uiText("Dev-Lang views", 56, 76, 30, 245, 247, 255);
+            uiText("SDL3 handles the window and input; Skia draws this view.", 56, 118, 17, 180, 193, 214);
+            if (uiButton("Click me", 56, 166, 160, 48)) {
+                clicked = true;
+            }
+            if (clicked) {
+                uiText("Button click recebido.", 56, 252, 19, 110, 231, 183);
+            } else {
+                uiText("Click the button to {inserido manualmente} this view.", 56, 252, 19, 180, 193, 214);
+            }
+            uiPresent();
+        }
+        uiClose();
+    }
+};

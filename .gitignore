@@ -124,3 +124,8 @@ Thumbs.db
 
 
 private/
+!private/
+private/*
+!private/ui/
+!private/ui/**
+private/ui/build/
