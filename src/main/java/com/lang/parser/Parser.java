@@ -245,6 +245,14 @@ public class Parser {
         }
 
         if (prefixOp != null) {
+            // `::<T1, T2, ...>` inline
+            List<TypeParamDecl> typeParams = null;
+            if (stream.matchSequence(COLON, COLON)) {
+                expect(LANGLE);
+                typeParams = stream.check(RANGLE) ? new ArrayList<>() : typeParameterList();
+                expect(RANGLE);
+            }
+
             ParamDecl operand = parameter();
             expect(COLON);
             Typed ret = type();
@@ -253,8 +261,8 @@ public class Parser {
                 body = block();
             else if (!stream.check(SEMICOLON))
                 throw error(EXPECTED_FUNCTION_BODY.format(), stream.peek());
-            return new OperatorDecl(Operator.PREFIX, null, prefixOp, operand,
-                    ret, body, null, span(start, body));
+            return new OperatorDecl(Operator.PREFIX, List.of(operand), prefixOp,
+                    ret, body, typeParams, span(start, body));
         }
 
         ParamDecl left = parameter();
@@ -271,6 +279,14 @@ public class Parser {
         if (op == null)
             throw error("Expected operator symbol", stream.peek());
 
+        // `::<T1, T2, ...>` inline
+        List<TypeParamDecl> typeParams = null;
+        if (stream.matchSequence(COLON, COLON)) {
+            expect(LANGLE);
+            typeParams = stream.check(RANGLE) ? new ArrayList<>() : typeParameterList();
+            expect(RANGLE);
+        }
+
         if (stream.check(COLON)) {
             expect(COLON);
             Typed ret = type();
@@ -279,8 +295,8 @@ public class Parser {
                 body = block();
             else if (!stream.check(SEMICOLON))
                 throw error(EXPECTED_FUNCTION_BODY.format(), stream.peek());
-            return new OperatorDecl(Operator.POSTFIX, left, op, null,
-                    ret, body, null, span(start, body));
+            return new OperatorDecl(Operator.POSTFIX, List.of(left), op,
+                    ret, body, typeParams, span(start, body));
         }
 
         ParamDecl right = parameter();
@@ -291,8 +307,8 @@ public class Parser {
             body = block();
         else if (!stream.check(SEMICOLON))
             throw error(EXPECTED_FUNCTION_BODY.format(), stream.peek());
-        return new OperatorDecl(Operator.INFIX, left, op, right,
-                ret, body, null, span(start, body));
+        return new OperatorDecl(Operator.INFIX, List.of(left, right), op,
+                ret, body, typeParams, span(start, body));
     }
 
     // ==================== PARAMS ====================
@@ -551,13 +567,21 @@ public class Parser {
                 sb.append(stream.advance().lexeme);
             Operator op = new Operator(sb.toString(), pos(t));
 
+            // `::<T1, T2, ...>` inline
+            List<Typed> typeArguments = null;
+            if (stream.matchSequence(COLON, COLON)) {
+                expect(LANGLE);
+                typeArguments = stream.check(RANGLE) ? new ArrayList<>() : typeArgumentList();
+                expect(RANGLE);
+            }
+
             Token next = stream.peek();
             if (next != null && (next.is(DEFAULT_PRIMARY_TYPE) || next.is(DEFAULT_OPERATOR_TYPE))) {
                 Expr right = prefix();
-                left = new OperatorExpr(Operator.INFIX, left, op, right, null,
+                left = new OperatorExpr(Operator.INFIX, List.of(left, right), op, typeArguments,
                         between(left, right));
             } else {
-                left = new OperatorExpr(Operator.POSTFIX, left, op, null, null,
+                left = new OperatorExpr(Operator.POSTFIX, List.of(left), op, typeArguments,
                         between(left, t));
             }
         }
@@ -572,8 +596,17 @@ public class Parser {
             while ((tk = stream.peek()) != null && tk.is(DEFAULT_OPERATOR_TYPE))
                 sb.append(stream.advance().lexeme);
             Operator op = new Operator(sb.toString(), pos(first));
+
+            // `::<T1, T2, ...>` inline
+            List<Typed> typeArguments = null;
+            if (stream.matchSequence(COLON, COLON)) {
+                expect(LANGLE);
+                typeArguments = stream.check(RANGLE) ? new ArrayList<>() : typeArgumentList();
+                expect(RANGLE);
+            }
+
             Expr right = prefix();
-            return new OperatorExpr(Operator.PREFIX, null, op, right, null,
+            return new OperatorExpr(Operator.PREFIX, List.of(right), op, typeArguments,
                     between(first, right));
         }
         return postfix();

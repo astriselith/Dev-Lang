@@ -2,27 +2,26 @@ package com.lang.ast;
 
 import com.lang.util.Position;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class OperatorDecl extends MemberDecl {
     public int kind;
-    public ParamDecl left;
+    public List<ParamDecl> operands = new ArrayList<>();
     public Operator operator;
-    public ParamDecl right;
     public List<TypeParamDecl> typeParameters;
     public BlockStmt body;
 
     public OperatorDecl() {
     }
 
-    public OperatorDecl(int kind, ParamDecl left, Operator operator, ParamDecl right,
+    public OperatorDecl(int kind, List<ParamDecl> operands, Operator operator,
                         Typed type, BlockStmt body,
                         List<TypeParamDecl> typeParameters, Position position) {
         super(new Identifier(operator.lexeme, position), type, position);
         this.kind = kind;
-        this.left = left;
+        this.operands = operands != null ? operands : List.of();
         this.operator = operator;
-        this.right = right;
         this.typeParameters = typeParameters;
         this.body = body;
     }

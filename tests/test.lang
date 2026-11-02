@@ -1,57 +1,117 @@
-fun soma(a: Int, b: Int) : Int {
+
+fun main(): Void {
+    println("Hello World!");
+    println(1 + 2);
+    println(1.0 + 2.0);
+    println(2 ~ 3);
+    println(2 ~ A(false));
+    println(firstOf(2, A(false)));
+    println(alternating(2, A(false), 3, A(false)));
+    let child: C -> C();
+    child.data = 9;
+    println(child.data);
+    println(symbolProbe(7));
+
+    let a0: A -> A(false);
+    let a1: A -> A(false);
+
+    let empty: A;
+    if(empty?) {
+        println("C null check failed");
+    }
+
+    let r: A -> null;
+    if(!isNull(r)) {
+        println("null helper failed");
+    }
+
+    if(r?) {
+        println("null check failed");
+    }
+
+    let alias: A -> r;
+    r = a0;
+
+    if(r?) {
+        println("custom operator failed");
+    }
+
+    a0.should = true;
+
+    if(r?) {
+        println("reference mutation visible");
+    }
+
+    r = a1;
+
+    if(r?) {
+        println("r updated");
+    }
+
+    if(alias?) {
+        println("alias updated");
+    }
+
+    r = a1;
+    let an: Any -> null;
+    if(an?) {
+
+    }
+
+    if(r?) {
+        println("custom assignment preserved");
+    }
+};
+
+fun firstOf::<T, U>(first: T, second: U): T {
+    return first;
+};
+
+fun alternating::<T, U>(first: T, second: U, third: T, fourth: U): T {
+    return third;
+};
+
+operator a: Any ? : Bool {
+    println("global any question operator");
+    return !isNull(a);
+};
+
+class A(b: Bool) : Stringfiable() {
+    var should -> b;
+
+    operator a: A ? : Bool {
+        println("A question operator");
+        if(isNull(a)) {
+            return false;
+        } else {
+            return a.should;
+        }
+    };
+
+    operator a: A = b: A : A {
+        return a;
+    };
+
+    fun stringfy(): String {
+        return "A";
+    };
+};
+
+class B() {
+    var data -> 0;
+};
+
+class C() : B() {
+    fun declaredOnly(): Int;
+    operator a: C + b: C : C;
+};
+
+operator a: Int ~ b: Int : Int {
     return a + b;
 };
 
-fun declara(x: Int) : Int;
+operator ! a: C : Bool;
 
-class Ponto();
-
-class Vec2(x: Float, y: Float) : Ponto() {
-    var x : Float;
-    var y : Float;
-
-    operator a: Self + b: Self : Self {
-        return Vec2(a.x + b.x, a.y + b.y);
-    };
-
-    operator a: Self * b: Float : Self {
-        return Vec2(a.x * b, a.y * b);
-    };
-};
-
-operator base: Int ** expoent: Int : Int {
-    let result -> base;
-    while()
-};
-
-operator - a: Int : Int;
-
-class Box::<T>(value: T) : Ponto() {
-    var value : T;
-
-    fun get() : T {
-        return value;
-    };
-};
-
-fun main() : Void {
-    let a -> Vec2(1.0, 2.0);
-    let b -> Vec2(3.0, 4.0);
-    let c -> a + b;
-    let d -> a * 2.0;
-
-    let box : Box::<Int> -> Box::<Int>(42);
-
-    if (a == b) -> print("iguais");
-
-    while (a.x > 10.0) -> a = a - a;
-
-    return;
-};
-
-fun teste_flat() : Int {
-    let x -> 1 + 2 * 3;
-    let y -> 1 + (2 * 3);
-    let z -> (1 + 2) * 3;
-    return x;
+operator a: T ~::<T<Stringfiable>> b: T : T {
+    return a;
 };

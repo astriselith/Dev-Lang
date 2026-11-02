@@ -2,10 +2,13 @@
 
 fun print(str: Stringfiable): Void;
 fun println(str: Stringfiable): Void;
-fun typeof(value: Any): String;
+fun isNull(value: Any): Bool;
+fun symbolProbe(value: Int): Int;
 
 # --- Tipos raiz (regras especiais) --- #
-class Any();
+class Any() {
+    operator a: T =::<T> b: T : T;
+}
 class Void();
 class Null();
 
@@ -14,8 +17,8 @@ class Bool() : Stringfiable() {
     operator ! a: Self : Self;
     operator a: Self && b: Self : Self;
     operator a: Self || b: Self : Self;
-    operator a: Self == b: Self : Bool;
-    operator a: Self != b: Self : Bool;
+    operator a: Self == b: Self : Self;
+    operator a: Self != b: Self : Self;
 
     fun stringfy(): String;
 };
@@ -65,21 +68,8 @@ class String() : Stringfiable() {
     operator a: Self + b: Stringfiable : String;
     operator a: Self == b: Self : Bool;
     operator a: Self != b: Self : Bool;
-    operator a: Self < b: Self : Bool;
-    operator a: Self > b: Self : Bool;
-    operator a: Self <= b: Self : Bool;
-    operator a: Self >= b: Self : Bool;
 
     fun stringfy(): String;
-};
-
-class StringBuilder() : Stringfiable() {
-    var str: String -> "";
-
-    operator a: Self + b: Stringfiable : Self;
-
-    fun stringfy(): String;
-    fun append(str: Stringfiable): Void;
 };
 
 class Stringfiable() {
