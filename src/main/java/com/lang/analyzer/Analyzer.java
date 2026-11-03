@@ -31,8 +31,6 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
     private ClassSymbol currentClass;
     private FunSymbol currentFunction;
     private OperatorSymbol currentOperator;
-    private TypeParamSymbol currentTypeParameter;
-    private Symbol currentReturnType;
     private int loopDepth;
 
     public Analyzer(SymbolTable table, CompilationUnit unit) {
@@ -152,7 +150,6 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
             return null;
 
         declaration.symbol = symbol;
-        ClassSymbol previousClass = currentClass;
         currentClass = symbol;
         SymbolScope classScope = currentScope().child(symbol.getName());
         classScope.putLocal("this", symbol);
@@ -176,7 +173,7 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
 
         popSubstitutions();
         popScope();
-        currentClass = previousClass;
+        currentClass = null;
         return null;
     }
 
@@ -188,11 +185,11 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
         if (function == null || function.node != declaration)
             return null;
 
+        if (declaration.body == null)
+            warn(declaration, FUNCTION_WITHOUT_BODY.format(function.getName()));
+
         declaration.symbol = function;
-        FunSymbol previousFunction = currentFunction;
-        Symbol previousReturnType = currentReturnType;
         currentFunction = function;
-        currentReturnType = function.getType();
 
         SymbolScope functionScope = currentScope().child(function.getName());
         for (TypeParamSymbol parameter : function.getTypeParameters().values())
@@ -213,8 +210,7 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
         popSubstitutions();
         popScope();
 
-        currentFunction = previousFunction;
-        currentReturnType = previousReturnType;
+        currentFunction = null;
         return null;
     }
 
@@ -233,11 +229,11 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
         if (operator == null || operator.node != declaration)
             return null;
 
+        if (declaration.body == null)
+            warn(declaration, OPERATOR_WITHOUT_BODY.format(operator.getLexeme()));
+
         declaration.symbol = operator;
-        OperatorSymbol previousOperator = currentOperator;
-        Symbol previousReturnType = currentReturnType;
         currentOperator = operator;
-        currentReturnType = operator.getType();
 
         SymbolScope operatorScope = currentScope().child("operator " + operator.getLexeme());
         for (TypeParamSymbol parameter : operator.getTypeParameters().values())
@@ -255,8 +251,7 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
         popSubstitutions();
         popScope();
 
-        currentOperator = previousOperator;
-        currentReturnType = previousReturnType;
+        currentOperator = null;
         return null;
     }
 
@@ -272,9 +267,7 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
         if (declaration.value != null) {
             SymbolResult value = declaration.value.accept(this);
             Symbol valueType = value != null ? value.getType() : null;
-            if (variable.getType() == null && valueType != null)
-                variable.setType(valueType);
-            else if (valueType != null && variable.getType() != null
+            if (valueType != null && variable.getType() != null
                     && !isAssignmentCompatible(variable.getType(), declaration.value, valueType))
                 report(declaration.value, INVALID_ASSIGNMENT.format(
                         getTypeName(valueType), getTypeName(variable.getType())));
@@ -311,17 +304,12 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
 
     @Override
     public Void visitTypeParamDecl(TypeParamDecl declaration) {
-        TypeParamSymbol previous = currentTypeParameter;
         if (currentOperator != null)
-            currentTypeParameter = currentOperator.getTypeParameter(declaration.name.source);
+            declaration.symbol = currentOperator.getTypeParameter(declaration.name.source);
         else if (currentFunction != null)
-            currentTypeParameter = currentFunction.getTypeParameter(declaration.name.source);
+            declaration.symbol = currentFunction.getTypeParameter(declaration.name.source);
         else if (currentClass != null)
-            currentTypeParameter = currentClass.getTypeParameter(declaration.name.source);
-        declaration.symbol = currentTypeParameter;
-        if (declaration.bounds != null)
-            declaration.bounds.forEach(bound -> bound.accept(this));
-        currentTypeParameter = previous;
+            declaration.symbol = currentClass.getTypeParameter(declaration.name.source);
         return null;
     }
 
@@ -332,13 +320,6 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
             if (declaration.arguments != null)
                 declaration.arguments.forEach(argument -> argument.accept(this));
         }
-        return null;
-    }
-
-    @Override
-    public Void visitBoundDecl(BoundDecl declaration) {
-        if (currentTypeParameter != null)
-            declaration.symbol = currentTypeParameter.getBound(declaration.name.source);
         return null;
     }
 
@@ -420,19 +401,21 @@ public class Analyzer implements DeclVisitor<Void>, StmtVisitor<Void>, ExprVisit
             report(statement, INVALID_FUNCTION_RETURN_OUTSIDE.format());
             return null;
         }
+        Symbol returnType = currentFunction != null
+                ? currentFunction.getType() : currentOperator.getType();
         if (statement.value == null) {
-            if (currentReturnType != null && !table.isVoid(currentReturnType))
+            if (returnType != null && !table.isVoid(returnType))
                 report(statement, INVALID_FUNCTION_MISSING_RETURN.format(
-                        currentCallableName(), getTypeName(currentReturnType)));
+                        currentCallableName(), getTypeName(returnType)));
             return null;
         }
 
         SymbolResult result = statement.value.accept(this);
         Symbol valueType = result != null ? result.getType() : null;
-        if (valueType != null && currentReturnType != null
-                && !table.isAssignable(valueType, currentReturnType))
+        if (valueType != null && returnType != null
+                && !table.isAssignable(valueType, returnType))
             report(statement.value, INVALID_FUNCTION_RETURN_TYPE.format(
-                    currentCallableName(), getTypeName(currentReturnType), getTypeName(valueType)));
+                    currentCallableName(), getTypeName(returnType), getTypeName(valueType)));
         return null;
     }
 

@@ -152,6 +152,80 @@ Value* C_new(List* args) {
     return instance;
 }
 
+/* ==== BoundTarget ==== */
+static const VSlot BoundTarget__slots[] = {
+};
+
+static void* BoundTarget__slot_ptrs[] = {
+};
+
+VTableInfo BoundTarget_info;
+
+DEF_BUILD(BoundTarget)
+DEF_VT(BoundTarget)
+
+static Value* BoundTarget__create(List* args) {
+    (void)args;
+    BoundTarget* obj = (BoundTarget*)calloc(1, sizeof(BoundTarget));
+    if (!obj) return NULL;
+    obj->vtable = BoundTarget__vt();
+    return Value_new(obj);
+}
+
+static Value* BoundTarget__destroy(Value* self) {
+    if (!self || !self->ptr) return NULL;
+    free(self->ptr);
+    return NULL;
+}
+
+Value* BoundTarget_new(List* args) {
+    BoundTarget* obj = (BoundTarget*)calloc(1, sizeof(BoundTarget));
+    if (!obj) return NULL;
+    obj->vtable = BoundTarget__vt();
+    Value* instance = Value_new(obj);
+    if (!instance) { free(obj); return NULL; }
+    Value* self = instance;
+    (void)self;
+    return instance;
+}
+
+/* ==== BoundConsumer ==== */
+static const VSlot BoundConsumer__slots[] = {
+};
+
+static void* BoundConsumer__slot_ptrs[] = {
+};
+
+VTableInfo BoundConsumer_info;
+
+DEF_BUILD(BoundConsumer)
+DEF_VT(BoundConsumer)
+
+static Value* BoundConsumer__create(List* args) {
+    (void)args;
+    BoundConsumer* obj = (BoundConsumer*)calloc(1, sizeof(BoundConsumer));
+    if (!obj) return NULL;
+    obj->vtable = BoundConsumer__vt();
+    return Value_new(obj);
+}
+
+static Value* BoundConsumer__destroy(Value* self) {
+    if (!self || !self->ptr) return NULL;
+    free(self->ptr);
+    return NULL;
+}
+
+Value* BoundConsumer_new(List* args) {
+    BoundConsumer* obj = (BoundConsumer*)calloc(1, sizeof(BoundConsumer));
+    if (!obj) return NULL;
+    obj->vtable = BoundConsumer__vt();
+    Value* instance = Value_new(obj);
+    if (!instance) { free(obj); return NULL; }
+    Value* self = instance;
+    (void)self;
+    return instance;
+}
+
 Value* function_main(List* args) {
     (void)(({ Value* _arg_0 = String_new("Hello World!"); List _args = List_elements((void *[]){_arg_0}, 1); function_println(List_arg(&_args, 0)); }));
     (void)(({ Value* _arg_0 = ({ Value* _arg_0 = Int_new(1LL); Value* _arg_1 = Int_new(2LL); List _args = List_elements((void *[]){_arg_0, _arg_1}, 2); Value* _self = List_arg(&_args, 0); SlotOp _op = rt_find_operator_for_type(_self, SLOT_OP_KEY("infix", "plus"), &_args, Int__vt()); _op ? _op(&_args) : rt_missing_operator(SLOT_OP_KEY("infix", "plus")); }); List _args = List_elements((void *[]){_arg_0}, 1); function_println(List_arg(&_args, 0)); }));
@@ -249,6 +323,10 @@ void test_init(void) {
     DEF_TYPE_INIT(B, 1, B__destroy, (void *)(intptr_t)Any_info.index);
 
     DEF_TYPE_INIT(C, 2, C__destroy, (void *)(intptr_t)B_info.index);
+
+    DEF_TYPE_INIT(BoundTarget, 0, BoundTarget__destroy, (void *)(intptr_t)Any_info.index);
+
+    DEF_TYPE_INIT(BoundConsumer, 0, BoundConsumer__destroy, (void *)(intptr_t)Any_info.index);
 
 }
 

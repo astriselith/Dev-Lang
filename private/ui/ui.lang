@@ -20,9 +20,9 @@ fun main(): Void {
                 clicked = true;
             }
             if (clicked) {
-                uiText("Button click recebido.", 56, 252, 19, 110, 231, 183);
+                uiText("Clicado.", 56, 252, 19, 110, 231, 183);
             } else {
-                uiText("Click the button to {inserido manualmente} this view.", 56, 252, 19, 180, 193, 214);
+                uiText("Clica ai man.", 56, 252, 19, 180, 193, 214);
             }
             uiPresent();
         }

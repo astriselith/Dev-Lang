@@ -356,11 +356,9 @@ public class Parser {
     private TypeParamDecl typeParameter() {
         Token nameTok = expect(IDENTIFIER);
         Identifier name = new Identifier(nameTok.lexeme, nameTok.position);
-        List<BoundDecl> bounds = null;
-        if (stream.match(LANGLE)) {
-            bounds = stream.check(RANGLE) ? new ArrayList<>() : boundList();
-            expect(RANGLE);
-        }
+        List<Typed> bounds = null;
+        if (stream.match(COLON))
+            bounds = boundList();
         Positioned end = (bounds != null && !bounds.isEmpty())
                 ? bounds.get(bounds.size() - 1)
                 : nameTok;
@@ -375,23 +373,11 @@ public class Parser {
         return params;
     }
 
-    private BoundDecl bound() {
-        Token nameTok = expect(IDENTIFIER);
-        Identifier name = new Identifier(nameTok.lexeme, nameTok.position);
-        List<TypeParamDecl> typeParams = null;
-        if (stream.match(LANGLE)) {
-            typeParams = stream.check(RANGLE) ? new ArrayList<>() : typeParameterList();
-            expect(RANGLE);
-        }
-        Positioned end = typeParams != null ? stream.previous() : nameTok;
-        return new BoundDecl(name, typeParams, between(nameTok, end));
-    }
-
-    private List<BoundDecl> boundList() {
-        List<BoundDecl> bounds = new ArrayList<>();
+    private List<Typed> boundList() {
+        List<Typed> bounds = new ArrayList<>();
         do {
-            bounds.add(bound());
-        } while (stream.match(COMMA));
+            bounds.add(type());
+        } while (stream.match(AMP));
         return bounds;
     }
 

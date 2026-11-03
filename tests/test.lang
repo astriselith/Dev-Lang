@@ -77,7 +77,7 @@ operator a: Any ? : Bool {
 };
 
 class A(b: Bool) : Stringfiable() {
-    var should -> b;
+    var should: Bool -> b;
 
     operator a: A ? : Bool {
         println("A question operator");
@@ -106,12 +106,17 @@ class C() : B() {
     operator a: C + b: C : C;
 };
 
+class BoundTarget::<Item>();
+class BoundConsumer::<Item: BoundTarget::<String> & Stringfiable>();
+
 operator a: Int ~ b: Int : Int {
     return a + b;
 };
 
 operator ! a: C : Bool;
 
-operator a: T ~::<T<Stringfiable>> b: T : T {
+operator a: T ~::<T: Stringfiable> b: T : T {
     return a;
 };
+
+var tt -> 0;

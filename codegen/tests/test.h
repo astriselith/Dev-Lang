@@ -7,6 +7,8 @@
 typedef struct A A;
 typedef struct B B;
 typedef struct C C;
+typedef struct BoundTarget BoundTarget;
+typedef struct BoundConsumer BoundConsumer;
 
 struct A {
     const VTable* vtable;
@@ -17,6 +19,14 @@ struct B {
 };
 
 struct C {
+    const VTable* vtable;
+};
+
+struct BoundTarget {
+    const VTable* vtable;
+};
+
+struct BoundConsumer {
     const VTable* vtable;
 };
 
@@ -33,6 +43,12 @@ Value* C_new(List* args);
 VTable* C__vt(void);
 Value* C__declaredOnly(const Value* self, List* args);
 Value* C__operator_infix_plus_generic_C_generic_C(List* args);
+
+Value* BoundTarget_new(List* args);
+VTable* BoundTarget__vt(void);
+
+Value* BoundConsumer_new(List* args);
+VTable* BoundConsumer__vt(void);
 
 Value* function_main(List* args);
 Value* function_firstOf(List* args);

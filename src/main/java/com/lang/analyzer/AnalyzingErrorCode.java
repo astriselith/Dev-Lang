@@ -16,6 +16,8 @@ public enum AnalyzingErrorCode {
     INVALID_FUNCTION_RETURN_TYPE("Function '%s' has return type '%s', but returns value of type '%s'"),
     INVALID_FUNCTION_MISSING_RETURN("Function '%s' expects return type '%s' but no value returned"),
     INVALID_FUNCTION_RETURN_OUTSIDE("Return outside function"),
+    FUNCTION_WITHOUT_BODY("Function '%s' has no body; its implementation must be provided externally"),
+    OPERATOR_WITHOUT_BODY("Operator '%s' has no body; its implementation must be provided externally"),
     INVALID_ASSIGNMENT("Cannot assign value of type '%s' to variable of type '%s'"),
     INVALID_TYPE("Type '%s' is not valid"),
     INVALID_OPERATOR("Operator '%s' is not valid for type '%s'"),

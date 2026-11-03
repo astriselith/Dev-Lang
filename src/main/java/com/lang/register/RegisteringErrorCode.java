@@ -9,6 +9,7 @@ public enum RegisteringErrorCode {
     REDEFINED_VARIABLE("Variable '%s' is already defined"),
     REDEFINED_FUNCTION("Function '%s' is already defined"),
     REDEFINED_PARAMETER("Parameter '%s' is already defined"),
+    INVALID_INFERRED_VARIABLE_INITIALIZER("Global or class variable '%s' requires an explicit type unless its initializer is a literal"),
     REDEFINED_OPERATOR("Operator '%s' is already defined for these operand types"),
     UNRESOLVED_TYPE("Type '%s' could not be resolved");
 

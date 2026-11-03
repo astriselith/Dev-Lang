@@ -334,7 +334,19 @@ public class Register implements DeclVisitor<Void> {
         TypeParamSymbol previous = currentTypeParameter;
         currentTypeParameter = parameter;
         if (declaration.bounds != null)
-            declaration.bounds.forEach(bound -> bound.accept(this));
+            for (Typed boundType : declaration.bounds) {
+                String name = boundType.getName();
+                if (parameter.hasBound(name)) {
+                    report(boundType, REDEFINED_BOUND.format(name));
+                    continue;
+                }
+                Symbol type = resolveType(boundType);
+                if (type == null)
+                    continue;
+                BoundSymbol bound = new BoundSymbol(name);
+                bound.setType(type);
+                parameter.addBound(bound);
+            }
         currentTypeParameter = previous;
         return null;
     }
@@ -346,26 +358,6 @@ public class Register implements DeclVisitor<Void> {
         Symbol type = resolveType(declaration.type);
         if (type != null)
             symbol.setType(type);
-        return null;
-    }
-
-    @Override
-    public Void visitBoundDecl(BoundDecl declaration) {
-        if (currentTypeParameter == null)
-            return null;
-        String name = declaration.name.source;
-        if (currentTypeParameter.hasBound(name)) {
-            report(declaration, REDEFINED_BOUND.format(name));
-            return null;
-        }
-        Symbol type = resolveType(new RefTyped(declaration.name, declaration.getPosition()));
-        if (type == null)
-            return null;
-        BoundSymbol bound = new BoundSymbol(name);
-        bound.node = declaration;
-        bound.setType(type);
-        currentTypeParameter.addBound(bound);
-        declaration.symbol = bound;
         return null;
     }
 
@@ -389,6 +381,18 @@ public class Register implements DeclVisitor<Void> {
             Symbol type = resolveType(declaration.type);
             if (type != null)
                 symbol.setType(type);
+        } else if (declaration.value instanceof LiteralExpr literal) {
+            String typeName = literal.getTypeName();
+            Symbol type = typeName != null
+                    ? resolveType(new RefTyped(
+                            new Identifier(typeName, literal.getPosition()),
+                            literal.getPosition()))
+                    : null;
+            if (type != null)
+                symbol.setType(type);
+        } else if (declaration.value != null) {
+            report(declaration.value, INVALID_INFERRED_VARIABLE_INITIALIZER.format(
+                    declaration.name.source));
         }
         return null;
     }

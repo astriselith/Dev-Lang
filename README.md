@@ -22,10 +22,14 @@ class Box::<T>(value: T) : Stringfiable() {
 };
 ```
 
-Type parameters use `::<...>` and may declare bounds with `<...>`:
+Type parameters use `::<...>` and introduce bounds with `:`. Multiple bounds
+are separated by `&`. A bound may itself be parameterized; its arguments are
+types, not new type parameter declarations:
 
 ```text
-class Container::<T<Stringfiable>>(value: T);
+class Container::<T: Stringfiable>(value: T);
+class ComparableContainer::<T: Comparable::<String>>(value: T);
+class MultiBound::<T: Stringfiable & Comparable::<String>>(value: T);
 ```
 
 Supertypes are constructor calls separated by `&`, for example
@@ -42,6 +46,10 @@ var count: Int -> 0;
 let next: Int -> count + 1;
 let value -> null;
 ```
+
+For top-level variables and class fields, an omitted type is inferred during
+registration only when the initializer is a literal. Other initializers require
+an explicit type; local `let` declarations can still infer from expressions.
 
 An assignment expression uses `=` as an operator:
 

@@ -6,12 +6,12 @@ import com.lang.util.Position;
 
 public class TypeParamDecl extends Decl {
 	public Identifier name;
-	public List<BoundDecl> bounds;
+	public List<Typed> bounds;
 
 	public TypeParamDecl() {
 	}
 
-	public TypeParamDecl(Identifier name, List<BoundDecl> bounds,
+	public TypeParamDecl(Identifier name, List<Typed> bounds,
 			Position position) {
 		super(position);
 		this.name = name;
