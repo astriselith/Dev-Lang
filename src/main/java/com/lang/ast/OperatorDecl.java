@@ -1,30 +1,26 @@
 package com.lang.ast;
 
-import com.lang.util.Position;
-import java.util.ArrayList;
 import java.util.List;
+import com.lang.util.Position;
 
-public class OperatorDecl extends MemberDecl {
-    public Typed type;                
+public class OperatorDecl extends CallableDecl {
+
     public int kind;
-    public List<ParamDecl> operands = new ArrayList<>();
     public Operator operator;
-    public List<TypeParamDecl> typeParameters;
     public BlockStmt body;
 
-    public OperatorDecl() {}
+    public OperatorDecl() {
+    }
 
     public OperatorDecl(List<AnnoDecl> annotations, List<Modifier> modifiers,
-                        int kind, List<ParamDecl> operands, Operator operator,
+                        int kind, List<ParamDecl> parameters, Operator operator,
                         Typed type, BlockStmt body,
                         List<TypeParamDecl> typeParameters, Position position) {
         super(annotations, modifiers,
-              new Identifier(operator.lexeme, position), position);
-        this.type = type;
+              new Identifier(operator.lexeme, position),
+              type, typeParameters, parameters, position);
         this.kind = kind;
-        this.operands = operands != null ? operands : List.of();
         this.operator = operator;
-        this.typeParameters = typeParameters;
         this.body = body;
     }
 

@@ -8,76 +8,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class ClassSymbol extends MemberSymbol {
+public class ClassSymbol extends CallableSymbol {
 
-    private final Map<String, TypeParamSymbol> typeParameters;
-    private final Map<String, ParamSymbol> parameters;
-    private final Map<String, SuperSymbol> supers;
-
-    private final Map<String, FunSymbol> declaredFuns;
-    private final Map<String, VarSymbol> declaredVars;
-    private final Map<String, OperatorSymbol> declaredOperators;
+    private final Map<String, SuperSymbol> supers = new LinkedHashMap<>();
+    private final Map<String, FunSymbol> declaredFuns = new LinkedHashMap<>();
+    private final Map<String, VarSymbol> declaredVars = new LinkedHashMap<>();
+    private final Map<String, OperatorSymbol> declaredOperators = new LinkedHashMap<>();
 
     public ClassSymbol(String name) {
         super(name);
-        this.typeParameters = new LinkedHashMap<>();
-        this.parameters = new LinkedHashMap<>();
-        this.supers = new LinkedHashMap<>();
-        this.declaredFuns = new LinkedHashMap<>();
-        this.declaredVars = new LinkedHashMap<>();
-        this.declaredOperators = new LinkedHashMap<>();
-    }
-
-    public void addTypeParameter(TypeParamSymbol tpSymbol) {
-        this.typeParameters.put(tpSymbol.getName(), tpSymbol);
-    }
-
-    public void setTypeParameters(Map<String, TypeParamSymbol> typeParameters) {
-        this.typeParameters.clear();
-        if (typeParameters != null)
-            this.typeParameters.putAll(typeParameters);
-    }
-
-    public TypeParamSymbol getTypeParameter(String tpName) {
-        return this.typeParameters.get(tpName);
-    }
-
-    public Map<String, TypeParamSymbol> getTypeParameters() {
-        return Collections.unmodifiableMap(typeParameters);
-    }
-
-    public boolean hasTypeParameter(String tpName) {
-        return this.typeParameters.containsKey(tpName);
-    }
-
-    public boolean hasTypeParameters() {
-        return !typeParameters.isEmpty();
-    }
-
-    public void addParameter(ParamSymbol pSymbol) {
-        this.parameters.put(pSymbol.getName(), pSymbol);
-    }
-
-    public void setParameters(Map<String, ParamSymbol> parameters) {
-        this.parameters.clear();
-        if (parameters != null)
-            this.parameters.putAll(parameters);
-    }
-
-    public ParamSymbol getParameter(String pName) {
-        return this.parameters.get(pName);
-    }
-
-    public Map<String, ParamSymbol> getParameters() {
-        return Collections.unmodifiableMap(parameters);
-    }
-
-    public boolean hasParameter(String pName) {
-        return this.parameters.containsKey(pName);
-    }
-
-    public boolean hasParameters() {
-        return !parameters.isEmpty();
     }
 
     public void addSuper(SuperSymbol symbol) {

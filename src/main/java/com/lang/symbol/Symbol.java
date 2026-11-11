@@ -24,6 +24,7 @@ public abstract class Symbol {
     public boolean isSuper()              { return this instanceof SuperSymbol; }
     public boolean isAnno()               { return this instanceof AnnoSymbol; }
     public boolean isMember()             { return this instanceof MemberSymbol; }
+    public boolean isCallable()           { return this instanceof CallableSymbol; }
     public boolean isFun()                { return this instanceof FunSymbol; }
     public boolean isOperator()           { return this instanceof OperatorSymbol; }
     public boolean isParam()              { return this instanceof ParamSymbol; }
@@ -35,6 +36,7 @@ public abstract class Symbol {
     public SuperSymbol asSuper()                          { return isSuper() ? (SuperSymbol) this : null; }
     public AnnoSymbol asAnno()                            { return isAnno() ? (AnnoSymbol) this : null; }
     public MemberSymbol asMember()                        { return isMember() ? (MemberSymbol) this : null; }
+    public CallableSymbol asCallable()                    { return isCallable() ? (CallableSymbol) this : null; }
     public FunSymbol asFun()                              { return isFun() ? (FunSymbol) this : null; }
     public OperatorSymbol asOperator()                    { return isOperator() ? (OperatorSymbol) this : null; }
     public ParamSymbol asParam()                          { return isParam() ? (ParamSymbol) this : null; }

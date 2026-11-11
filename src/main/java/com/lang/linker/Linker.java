@@ -16,8 +16,7 @@ public class Linker implements DeclVisitor<Void> {
     private final CompilationUnit unit;
 
     private ClassSymbol currentClass;
-    private FunSymbol currentFunction;
-    private OperatorSymbol currentOperator;
+    private CallableSymbol currentCallable;
 
     public Linker(SymbolTable table, CompilationUnit unit) {
         this.table = table;
@@ -48,6 +47,13 @@ public class Linker implements DeclVisitor<Void> {
             declaration.parameters.forEach(p -> p.accept(this));
         if (declaration.supers != null)
             declaration.supers.forEach(s -> s.accept(this));
+
+        if (declaration.type != null) {
+            Symbol type = resolveType(declaration.type);
+            if (type != null)
+                symbol.setType(type);
+        }
+
         if (declaration.members != null)
             declaration.members.forEach(m -> m.accept(this));
 
@@ -67,7 +73,7 @@ public class Linker implements DeclVisitor<Void> {
         for (Typed boundType : declaration.bounds) {
             String name = boundType.getName();
             if (parameter.hasBound(name))
-                continue; // Register já reportou duplicata
+                continue;
             Symbol type = resolveType(boundType);
             if (type == null)
                 continue;
@@ -105,8 +111,7 @@ public class Linker implements DeclVisitor<Void> {
         if (type == null)
             return null;
         if (!type.isClass() && !type.isParameterizedClass()) {
-            report(declaration, INVALID_ANNOTATION_TYPE.format(
-                    type.getName()));
+            report(declaration, INVALID_ANNOTATION_TYPE.format(type.getName()));
             return null;
         }
         symbol.setType(type);
@@ -147,9 +152,27 @@ public class Linker implements DeclVisitor<Void> {
                 : null;
         if (function == null || function.node != declaration)
             return null;
+        linkCallable(declaration, function);
+        return null;
+    }
 
-        FunSymbol previousFunction = currentFunction;
-        currentFunction = function;
+    @Override
+    public Void visitOperatorDecl(OperatorDecl declaration) {
+        OperatorSymbol operator = currentClass != null
+                ? currentClass.getDeclaredOperators().values().stream()
+                        .filter(candidate -> candidate.node == declaration)
+                        .findFirst().orElse(null)
+                : null;
+        if (operator == null || operator.node != declaration)
+            return null;
+        linkCallable(declaration, operator);
+        return null;
+    }
+
+    private void linkCallable(CallableDecl declaration, CallableSymbol symbol) {
+        CallableSymbol previous = currentCallable;
+        currentCallable = symbol;
+
         if (declaration.annotations != null)
             declaration.annotations.forEach(a -> a.accept(this));
         if (declaration.typeParameters != null)
@@ -160,11 +183,10 @@ public class Linker implements DeclVisitor<Void> {
         if (declaration.type != null) {
             Symbol type = resolveType(declaration.type);
             if (type != null)
-                function.setType(type);
+                symbol.setType(type);
         }
 
-        currentFunction = previousFunction;
-        return null;
+        currentCallable = previous;
     }
 
     @Override
@@ -179,37 +201,6 @@ public class Linker implements DeclVisitor<Void> {
         return null;
     }
 
-    @Override
-    public Void visitOperatorDecl(OperatorDecl declaration) {
-        OperatorSymbol operator = currentClass != null
-                ? currentClass.getDeclaredOperators().values().stream()
-                        .filter(candidate -> candidate.node == declaration)
-                        .findFirst().orElse(null)
-                : null;
-        if (operator == null || operator.node != declaration)
-            return null;
-
-        OperatorSymbol previousOperator = currentOperator;
-        currentOperator = operator;
-        if (declaration.annotations != null)
-            declaration.annotations.forEach(a -> a.accept(this));
-        if (declaration.typeParameters != null)
-            declaration.typeParameters.forEach(p -> p.accept(this));
-        if (declaration.operands != null)
-            declaration.operands.forEach(o -> o.accept(this));
-
-        if (declaration.type != null) {
-            Symbol type = resolveType(declaration.type);
-            if (type != null)
-                operator.setType(type);
-        }
-
-        currentOperator = previousOperator;
-        return null;
-    }
-
-    // ==================== helpers ====================
-
     private void addImplicitAnySuper(ClassSymbol symbol) {
         ClassSymbol any = table.getAny();
         if (any == null || symbol == any || symbol.hasSupers())
@@ -223,10 +214,8 @@ public class Linker implements DeclVisitor<Void> {
         Map<String, Symbol> substitutions = new LinkedHashMap<>();
         if (currentClass != null)
             substitutions.putAll(currentClass.getTypeParameters());
-        if (currentFunction != null)
-            substitutions.putAll(currentFunction.getTypeParameters());
-        if (currentOperator != null)
-            substitutions.putAll(currentOperator.getTypeParameters());
+        if (currentCallable != null)
+            substitutions.putAll(currentCallable.getTypeParameters());
         if (currentClass != null)
             substitutions.put("Self", currentClass);
         return substitutions;

@@ -1,20 +1,14 @@
 package com.lang.symbol;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.lang.ast.Operator;
 import com.lang.ast.Typed;
 
-public class OperatorSymbol extends MemberSymbol {
+public class OperatorSymbol extends CallableSymbol {
 
     private final int kind;
     private final Operator operator;
-    private final Map<String, TypeParamSymbol> typeParameters = new LinkedHashMap<>();
-    private final Map<String, ParamSymbol> parameters = new LinkedHashMap<>();
-    private Symbol type;
 
     public OperatorSymbol(int kind, Operator operator) {
         super(operator != null ? operator.lexeme : "");
@@ -32,42 +26,6 @@ public class OperatorSymbol extends MemberSymbol {
 
     public String getLexeme() {
         return operator != null ? operator.lexeme : "";
-    }
-
-    public void addTypeParameter(TypeParamSymbol parameter) {
-        typeParameters.put(parameter.getName(), parameter);
-    }
-
-    public TypeParamSymbol getTypeParameter(String name) {
-        return typeParameters.get(name);
-    }
-
-    public boolean hasTypeParameter(String name) {
-        return typeParameters.containsKey(name);
-    }
-
-    public Map<String, TypeParamSymbol> getTypeParameters() {
-        return Collections.unmodifiableMap(typeParameters);
-    }
-
-    public void addParameter(ParamSymbol parameter) {
-        parameters.put(parameter.getName(), parameter);
-    }
-
-    public ParamSymbol getParameter(String name) {
-        return parameters.get(name);
-    }
-
-    public Map<String, ParamSymbol> getParameters() {
-        return Collections.unmodifiableMap(parameters);
-    }
-
-    public void setType(Symbol type) {
-        this.type = type;
-    }
-
-    public Symbol getType() {
-        return type;
     }
 
     public String signatureKey(List<? extends Typed> operandTypes) {

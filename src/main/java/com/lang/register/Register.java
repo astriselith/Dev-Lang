@@ -1,5 +1,3 @@
-// ./src/main/java/com/lang/register/Register.java
-// auto generated
 package com.lang.register;
 
 import static com.lang.register.RegisteringErrorCode.*;
@@ -16,8 +14,7 @@ public class Register implements DeclVisitor<Void> {
 
     private ClassSymbol currentClass;
     private VarSymbol currentVariable;
-    private FunSymbol currentFunction;
-    private OperatorSymbol currentOperator;
+    private CallableSymbol currentCallable;
 
     public Register(SymbolTable table, CompilationUnit unit) {
         this.table = table;
@@ -29,15 +26,11 @@ public class Register implements DeclVisitor<Void> {
             declaration.accept(this);
     }
 
-    // ==================== context ====================
-
     private MemberSymbol currentMember() {
         if (currentVariable != null)
             return currentVariable;
-        if (currentFunction != null)
-            return currentFunction;
-        if (currentOperator != null)
-            return currentOperator;
+        if (currentCallable != null)
+            return currentCallable;
         return currentClass;
     }
 
@@ -45,8 +38,6 @@ public class Register implements DeclVisitor<Void> {
         unit.addDiagnostic(TAG, Diagnostic.error(
                 node != null ? node.getPosition() : null, message));
     }
-
-    // ==================== decls ====================
 
     @Override
     public Void visitClassDecl(ClassDecl declaration) {
@@ -68,7 +59,6 @@ public class Register implements DeclVisitor<Void> {
 
         if (declaration.annotations != null)
             declaration.annotations.forEach(a -> a.accept(this));
-
         if (declaration.typeParameters != null)
             declaration.typeParameters.forEach(p -> p.accept(this));
         if (declaration.parameters != null)
@@ -87,10 +77,8 @@ public class Register implements DeclVisitor<Void> {
         String name = declaration.name.source;
 
         boolean alreadyDefined;
-        if (currentFunction != null)
-            alreadyDefined = currentFunction.hasTypeParameter(name);
-        else if (currentOperator != null)
-            alreadyDefined = currentOperator.hasTypeParameter(name);
+        if (currentCallable != null)
+            alreadyDefined = currentCallable.hasTypeParameter(name);
         else if (currentClass != null)
             alreadyDefined = currentClass.hasTypeParameter(name);
         else
@@ -105,10 +93,8 @@ public class Register implements DeclVisitor<Void> {
         symbol.node = declaration;
         declaration.symbol = symbol;
 
-        if (currentFunction != null)
-            currentFunction.addTypeParameter(symbol);
-        else if (currentOperator != null)
-            currentOperator.addTypeParameter(symbol);
+        if (currentCallable != null)
+            currentCallable.addTypeParameter(symbol);
         else if (currentClass != null)
             currentClass.addTypeParameter(symbol);
         return null;
@@ -197,19 +183,46 @@ public class Register implements DeclVisitor<Void> {
         currentClass.addDeclaredFun(symbol);
         declaration.symbol = symbol;
 
-        FunSymbol previousFunction = currentFunction;
-        currentFunction = symbol;
+        bindCallable(declaration, symbol);
+        return null;
+    }
+
+    @Override
+    public Void visitOperatorDecl(OperatorDecl declaration) {
+        if (currentClass == null)
+            return null;
+        String signature = OperatorSymbol.signatureKey(
+                declaration.kind, declaration.operator,
+                declaration.parameters.stream().map(p -> p.type).toList());
+
+        if (currentClass.hasDeclaredOperator(signature)) {
+            report(declaration, REDEFINED_OPERATOR.format(declaration.operator.lexeme));
+            return null;
+        }
+
+        OperatorSymbol symbol = new OperatorSymbol(declaration.kind, declaration.operator);
+        symbol.node = declaration;
+        symbol.setDeclaringClass(currentClass);
+        symbol.setModifiers(declaration.modifiers);
+        currentClass.addDeclaredOperator(signature, symbol);
+        declaration.symbol = symbol;
+
+        bindCallable(declaration, symbol);
+        return null;
+    }
+
+    private void bindCallable(CallableDecl declaration, CallableSymbol symbol) {
+        CallableSymbol previous = currentCallable;
+        currentCallable = symbol;
 
         if (declaration.annotations != null)
             declaration.annotations.forEach(a -> a.accept(this));
-
         if (declaration.typeParameters != null)
             declaration.typeParameters.forEach(p -> p.accept(this));
         if (declaration.parameters != null)
             declaration.parameters.forEach(p -> p.accept(this));
 
-        currentFunction = previousFunction;
-        return null;
+        currentCallable = previous;
     }
 
     @Override
@@ -217,12 +230,9 @@ public class Register implements DeclVisitor<Void> {
         String name = declaration.name.source;
 
         boolean alreadyDefined;
-        if (currentFunction != null)
-            alreadyDefined = currentFunction.hasParameter(name)
-                    || currentFunction.hasTypeParameter(name);
-        else if (currentOperator != null)
-            alreadyDefined = currentOperator.getParameter(name) != null
-                    || currentOperator.hasTypeParameter(name);
+        if (currentCallable != null)
+            alreadyDefined = currentCallable.hasParameter(name)
+                    || currentCallable.hasTypeParameter(name);
         else if (currentClass != null)
             alreadyDefined = currentClass.hasParameter(name)
                     || currentClass.hasTypeParameter(name);
@@ -239,47 +249,10 @@ public class Register implements DeclVisitor<Void> {
         symbol.setInit(declaration.init);
         declaration.symbol = symbol;
 
-        if (currentFunction != null)
-            currentFunction.addParameter(symbol);
-        else if (currentOperator != null)
-            currentOperator.addParameter(symbol);
+        if (currentCallable != null)
+            currentCallable.addParameter(symbol);
         else if (currentClass != null)
             currentClass.addParameter(symbol);
-        return null;
-    }
-
-    @Override
-    public Void visitOperatorDecl(OperatorDecl declaration) {
-        if (currentClass == null)
-            return null;
-        String signature = OperatorSymbol.signatureKey(
-                declaration.kind, declaration.operator,
-                declaration.operands.stream().map(operand -> operand.type).toList());
-
-        if (currentClass.hasDeclaredOperator(signature)) {
-            report(declaration, REDEFINED_OPERATOR.format(declaration.operator.lexeme));
-            return null;
-        }
-
-        OperatorSymbol symbol = new OperatorSymbol(declaration.kind, declaration.operator);
-        symbol.node = declaration;
-        symbol.setDeclaringClass(currentClass);
-        symbol.setModifiers(declaration.modifiers);
-        currentClass.addDeclaredOperator(signature, symbol);
-        declaration.symbol = symbol;
-
-        OperatorSymbol previousOperator = currentOperator;
-        currentOperator = symbol;
-
-        if (declaration.annotations != null)
-            declaration.annotations.forEach(a -> a.accept(this));
-
-        if (declaration.typeParameters != null)
-            declaration.typeParameters.forEach(p -> p.accept(this));
-        if (declaration.operands != null)
-            declaration.operands.forEach(o -> o.accept(this));
-
-        currentOperator = previousOperator;
         return null;
     }
 }
