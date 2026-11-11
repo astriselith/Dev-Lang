@@ -14,6 +14,7 @@ public class OperatorSymbol extends MemberSymbol {
     private final Operator operator;
     private final Map<String, TypeParamSymbol> typeParameters = new LinkedHashMap<>();
     private final Map<String, ParamSymbol> parameters = new LinkedHashMap<>();
+    private Symbol type;
 
     public OperatorSymbol(int kind, Operator operator) {
         super(operator != null ? operator.lexeme : "");
@@ -59,6 +60,14 @@ public class OperatorSymbol extends MemberSymbol {
 
     public Map<String, ParamSymbol> getParameters() {
         return Collections.unmodifiableMap(parameters);
+    }
+
+    public void setType(Symbol type) {
+        this.type = type;
+    }
+
+    public Symbol getType() {
+        return type;
     }
 
     public String signatureKey(List<? extends Typed> operandTypes) {

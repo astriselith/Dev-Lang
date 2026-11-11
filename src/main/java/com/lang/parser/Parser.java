@@ -16,9 +16,10 @@ public class Parser {
     private static final Set<String> DEFAULT_STMT_RECOVERY = Set.of(
             "let", "if", "while", "break", "continue", "return");
     private static final Set<String> DEFAULT_MEMBER_RECOVERY = Set.of(
-            "fun", "var", "operator", "}");
+            "fun", "var", "operator", "}",
+            "public", "private", "final", "static");
     private static final Set<String> DEFAULT_TOPLEVEL_RECOVERY = Set.of(
-            "class", "fun", "var", "operator");
+            "class", "public", "private", "final", "static");
 
     private static final int[] DEFAULT_OPERATOR_TYPE = {
             PLUS, MINUS, STAR, SLASH, PERCENT,
@@ -109,27 +110,61 @@ public class Parser {
     private void program() {
         while (!stream.isAtEnd() && !stream.check(EOF)) {
             try {
-                if (stream.check("class"))
-                    unit.addClass(classDecl());
-                else if (stream.check("fun")) {
-                    unit.addFunction(funDecl());
-                    semicolon();
-                } else if (stream.check("var")) {
-                    unit.addVar(varDecl());
-                    semicolon();
-                } else if (stream.check("operator")) {
-                    unit.addOperator(operatorDecl());
-                    semicolon();
-                } else
-                    throw error(EXPECTED_TOKEN.format("class/fun/var/operator",
+                int i = 0;
+                while (Modifier.type(stream.peekIndex(i).lexeme) != 0)
+                    i++;
+                if (!stream.checkIndex(i, "class"))
+                    throw error(EXPECTED_TOKEN.format("class",
                             Token.typeName(stream.peek().type)), stream.peek());
+
+                List<AnnoDecl> annos = annoList();
+                List<Modifier> mods = modifierList();
+                unit.addClass(classDecl(annos, mods));
             } catch (IllegalStateException e) {
                 synchronizeAfter(DEFAULT_TOPLEVEL_RECOVERY);
             }
         }
     }
 
-    private ClassDecl classDecl() {
+    private AnnoDecl annoDecl() {
+        Token start = expect(AT);
+        Typed type = type();
+        List<Expr> args = null;
+
+        expect(LPAREN);
+        args = stream.check(RPAREN) ? new ArrayList<>() : argumentList();
+        expect(RPAREN);
+
+        return new AnnoDecl(type,
+                args, between(start, stream.previous()));
+
+    }
+
+    public List<AnnoDecl> annoList() {
+        List<AnnoDecl> result = new ArrayList<>();
+        while (stream.check(AT)) {
+
+            result.add(annoDecl());
+        }
+        return result;
+    }
+
+    private List<Modifier> modifierList() {
+        List<Modifier> result = new ArrayList<>();
+        while (Modifier.type(stream.peek().lexeme) != 0) {
+            result.add(modifier());
+        }
+        return result;
+    }
+
+    private Modifier modifier() {
+        Token t = stream.peek();
+        int type = Modifier.type(t.lexeme);
+        stream.advance();
+        return new Modifier(type, t.position);
+    }
+
+    private ClassDecl classDecl(List<AnnoDecl> annotations, List<Modifier> modifiers) {
         Token start = expect("class");
         Token nameTok = expect(IDENTIFIER);
 
@@ -163,23 +198,28 @@ public class Parser {
             throw error(EXPECTED_CLASS_BODY.format(), stream.peek());
         }
 
-        return new ClassDecl(new Identifier(nameTok.lexeme, nameTok.position),
+        ClassDecl decl = new ClassDecl(annotations, modifiers, new Identifier(nameTok.lexeme, nameTok.position),
                 parameters, supers, typeParams, members, between(start, end));
+        return decl;
     }
 
     private List<MemberDecl> memberList() {
         List<MemberDecl> members = new ArrayList<>();
         while (!stream.isAtEnd() && !stream.check(RBRACE)) {
             try {
+                List<AnnoDecl> annos = annoList();
+                List<Modifier> mods = modifierList();
+
+                if (!stream.checkAny("fun", "var", "operator"))
+                    throw error(EXPECTED_MEMBER.format(), stream.peek());
+
                 MemberDecl member;
                 if (stream.check("fun"))
-                    member = funDecl();
+                    member = funDecl(annos, mods);
                 else if (stream.check("var"))
-                    member = varDecl();
-                else if (stream.check("operator"))
-                    member = operatorDecl();
+                    member = varDecl(annos, mods);
                 else
-                    throw error(EXPECTED_MEMBER.format(), stream.peek());
+                    member = operatorDecl(annos, mods);
                 members.add(member);
                 semicolon();
             } catch (IllegalStateException e) {
@@ -189,7 +229,7 @@ public class Parser {
         return members;
     }
 
-    private VarDecl varDecl() {
+    private VarDecl varDecl(List<AnnoDecl> annotations, List<Modifier> modifiers) {
         Token start = expect("var");
         Token nameTok = expect(IDENTIFIER);
         Typed type = null;
@@ -198,11 +238,12 @@ public class Parser {
         Expr value = null;
         if (stream.matchSequence(MINUS, RANGLE))
             value = expr();
-        return new VarDecl(new Identifier(nameTok.lexeme, nameTok.position),
+        VarDecl decl = new VarDecl(annotations, modifiers, new Identifier(nameTok.lexeme, nameTok.position),
                 type, value, between(start, stream.previous()));
+        return decl;
     }
 
-    private FunDecl funDecl() {
+    private FunDecl funDecl(List<AnnoDecl> annotations, List<Modifier> modifiers) {
         Token start = expect("fun");
         Token nameTok = expect(IDENTIFIER);
 
@@ -227,11 +268,12 @@ public class Parser {
         else if (!stream.check(SEMICOLON))
             throw error(EXPECTED_FUNCTION_BODY.format(), stream.peek());
 
-        return new FunDecl(new Identifier(nameTok.lexeme, nameTok.position),
+        FunDecl decl = new FunDecl(annotations, modifiers, new Identifier(nameTok.lexeme, nameTok.position),
                 ret, typeParams, params, body, span(start, body));
+        return decl;
     }
 
-    private OperatorDecl operatorDecl() {
+    private OperatorDecl operatorDecl(List<AnnoDecl> annotations, List<Modifier> modifiers) {
         Token start = expect("operator");
 
         Token pFirst = stream.peek();
@@ -245,7 +287,6 @@ public class Parser {
         }
 
         if (prefixOp != null) {
-            // `::<T1, T2, ...>` inline
             List<TypeParamDecl> typeParams = null;
             if (stream.matchSequence(COLON, COLON)) {
                 expect(LANGLE);
@@ -261,8 +302,10 @@ public class Parser {
                 body = block();
             else if (!stream.check(SEMICOLON))
                 throw error(EXPECTED_FUNCTION_BODY.format(), stream.peek());
-            return new OperatorDecl(Operator.PREFIX, List.of(operand), prefixOp,
+            OperatorDecl decl = new OperatorDecl(annotations, modifiers, Operator.PREFIX, List.of(operand), prefixOp,
                     ret, body, typeParams, span(start, body));
+            decl.modifiers = modifiers;
+            return decl;
         }
 
         ParamDecl left = parameter();
@@ -279,7 +322,6 @@ public class Parser {
         if (op == null)
             throw error("Expected operator symbol", stream.peek());
 
-        // `::<T1, T2, ...>` inline
         List<TypeParamDecl> typeParams = null;
         if (stream.matchSequence(COLON, COLON)) {
             expect(LANGLE);
@@ -287,16 +329,16 @@ public class Parser {
             expect(RANGLE);
         }
 
-        if (stream.check(COLON)) {
-            expect(COLON);
+        if (stream.match(COLON)) {
             Typed ret = type();
             BlockStmt body = null;
             if (stream.check(LBRACE))
                 body = block();
             else if (!stream.check(SEMICOLON))
                 throw error(EXPECTED_FUNCTION_BODY.format(), stream.peek());
-            return new OperatorDecl(Operator.POSTFIX, List.of(left), op,
+            OperatorDecl decl = new OperatorDecl(annotations, modifiers, Operator.POSTFIX, List.of(left), op,
                     ret, body, typeParams, span(start, body));
+            return decl;
         }
 
         ParamDecl right = parameter();
@@ -307,8 +349,9 @@ public class Parser {
             body = block();
         else if (!stream.check(SEMICOLON))
             throw error(EXPECTED_FUNCTION_BODY.format(), stream.peek());
-        return new OperatorDecl(Operator.INFIX, List.of(left, right), op,
+        OperatorDecl decl = new OperatorDecl(annotations, modifiers, Operator.INFIX, List.of(left, right), op,
                 ret, body, typeParams, span(start, body));
+        return decl;
     }
 
     // ==================== PARAMS ====================
@@ -450,6 +493,9 @@ public class Parser {
                 semicolon();
                 return new ReturnStmt(v, between(t, v));
             }
+
+            if (stream.check(LBRACE))
+                return block();
             return exprStmt();
         } catch (IllegalStateException e) {
             synchronizeAfter(DEFAULT_STMT_RECOVERY);
@@ -477,31 +523,10 @@ public class Parser {
         Expr cond = expr();
         expect(RPAREN);
 
-        BlockStmt thenB;
-        if (stream.check(LBRACE)) {
-            thenB = block();
-        } else if (stream.matchSequence(MINUS, RANGLE)) {
-            Expr e = expr();
-            semicolon();
-            List<Stmt> list = new ArrayList<>();
-            list.add(new ExprStmt(e, pos(e)));
-            thenB = new BlockStmt(list, between(start, e));
-        } else
-            throw error(EXPECTED_FUNCTION_BODY.format(), stream.peek());
-
-        BlockStmt elseB = null;
-        if (stream.match("else")) {
-            if (stream.check(LBRACE)) {
-                elseB = block();
-            } else if (stream.matchSequence(MINUS, RANGLE)) {
-                Expr e = expr();
-                semicolon();
-                List<Stmt> list = new ArrayList<>();
-                list.add(new ExprStmt(e, pos(e)));
-                elseB = new BlockStmt(list, between(start, e));
-            } else
-                throw error(EXPECTED_FUNCTION_BODY.format(), stream.peek());
-        }
+        Stmt thenB = stmt();
+        Stmt elseB = null;
+        if (stream.match("else"))
+            elseB = stmt();
 
         return new IfStmt(cond, thenB, elseB,
                 between(start, elseB != null ? elseB : thenB));
@@ -513,18 +538,7 @@ public class Parser {
         Expr cond = expr();
         expect(RPAREN);
 
-        BlockStmt body;
-        if (stream.check(LBRACE)) {
-            body = block();
-        } else if (stream.matchSequence(MINUS, RANGLE)) {
-            Expr e = expr();
-            semicolon();
-            List<Stmt> list = new ArrayList<>();
-            list.add(new ExprStmt(e, pos(e)));
-            body = new BlockStmt(list, between(start, e));
-        } else
-            throw error(EXPECTED_FUNCTION_BODY.format(), stream.peek());
-
+        Stmt body = stmt();
         return new WhileStmt(cond, body, between(start, body));
     }
 
@@ -553,7 +567,6 @@ public class Parser {
                 sb.append(stream.advance().lexeme);
             Operator op = new Operator(sb.toString(), pos(t));
 
-            // `::<T1, T2, ...>` inline
             List<Typed> typeArguments = null;
             if (stream.matchSequence(COLON, COLON)) {
                 expect(LANGLE);
@@ -583,7 +596,6 @@ public class Parser {
                 sb.append(stream.advance().lexeme);
             Operator op = new Operator(sb.toString(), pos(first));
 
-            // `::<T1, T2, ...>` inline
             List<Typed> typeArguments = null;
             if (stream.matchSequence(COLON, COLON)) {
                 expect(LANGLE);

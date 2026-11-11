@@ -1,122 +1,13 @@
+public class Test() {
 
-fun main(): Void {
-    println("Hello World!");
-    println(1 + 2);
-    println(1.0 + 2.0);
-    println(2 ~ 3);
-    println(2 ~ A(false));
-    println(firstOf(2, A(false)));
-    println(alternating(2, A(false), 3, A(false)));
-    let child: C -> C();
-    child.data = 9;
-    println(child.data);
-    println(symbolProbe(7));
-
-    let a0: A -> A(false);
-    let a1: A -> A(false);
-
-    let empty: A;
-    if(empty?) {
-        println("C null check failed");
-    }
-
-    let r: A -> null;
-    if(!isNull(r)) {
-        println("null helper failed");
-    }
-
-    if(r?) {
-        println("null check failed");
-    }
-
-    let alias: A -> r;
-    r = a0;
-
-    if(r?) {
-        println("custom operator failed");
-    }
-
-    a0.should = true;
-
-    if(r?) {
-        println("reference mutation visible");
-    }
-
-    r = a1;
-
-    if(r?) {
-        println("r updated");
-    }
-
-    if(alias?) {
-        println("alias updated");
-    }
-
-    r = a1;
-    let an: Any -> null;
-    if(an?) {
-
-    }
-
-    if(r?) {
-        println("custom assignment preserved");
-    }
-};
-
-fun firstOf::<T, U>(first: T, second: U): T {
-    return first;
-};
-
-fun alternating::<T, U>(first: T, second: U, third: T, fourth: U): T {
-    return third;
-};
-
-operator a: Any ? : Bool {
-    println("global any question operator");
-    return !isNull(a);
-};
-
-class A(b: Bool) : Stringfiable() {
-    var should: Bool -> b;
-
-    operator a: A ? : Bool {
-        println("A question operator");
-        if(isNull(a)) {
-            return false;
-        } else {
-            return a.should;
-        }
+    @Deprecated()
+    public static fun main(args: String) {
+        let t -> (10!) + (10!2);
+        s();
     };
+    public fun s(): Void {
 
-    operator a: A = b: A : A {
-        return a;
-    };
-
-    fun stringfy(): String {
-        return "A";
     };
 };
 
-class B() {
-    var data -> 0;
-};
-
-class C() : B() {
-    fun declaredOnly(): Int;
-    operator a: C + b: C : C;
-};
-
-class BoundTarget::<Item>();
-class BoundConsumer::<Item: BoundTarget::<String> & Stringfiable>();
-
-operator a: Int ~ b: Int : Int {
-    return a + b;
-};
-
-operator ! a: C : Bool;
-
-operator a: T ~::<T: Stringfiable> b: T : T {
-    return a;
-};
-
-var tt -> 0;
+class Deprecated(s: String) : Any();

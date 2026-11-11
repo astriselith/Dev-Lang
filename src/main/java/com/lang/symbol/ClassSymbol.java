@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class ClassSymbol extends Symbol {
+public class ClassSymbol extends MemberSymbol {
 
     private final Map<String, TypeParamSymbol> typeParameters;
     private final Map<String, ParamSymbol> parameters;
@@ -17,7 +17,6 @@ public class ClassSymbol extends Symbol {
     private final Map<String, FunSymbol> declaredFuns;
     private final Map<String, VarSymbol> declaredVars;
     private final Map<String, OperatorSymbol> declaredOperators;
-    private boolean pure;
 
     public ClassSymbol(String name) {
         super(name);
@@ -27,7 +26,6 @@ public class ClassSymbol extends Symbol {
         this.declaredFuns = new LinkedHashMap<>();
         this.declaredVars = new LinkedHashMap<>();
         this.declaredOperators = new LinkedHashMap<>();
-        this.pure = true;
     }
 
     public void addTypeParameter(TypeParamSymbol tpSymbol) {
@@ -36,7 +34,8 @@ public class ClassSymbol extends Symbol {
 
     public void setTypeParameters(Map<String, TypeParamSymbol> typeParameters) {
         this.typeParameters.clear();
-        if (typeParameters != null) this.typeParameters.putAll(typeParameters);
+        if (typeParameters != null)
+            this.typeParameters.putAll(typeParameters);
     }
 
     public TypeParamSymbol getTypeParameter(String tpName) {
@@ -61,7 +60,8 @@ public class ClassSymbol extends Symbol {
 
     public void setParameters(Map<String, ParamSymbol> parameters) {
         this.parameters.clear();
-        if (parameters != null) this.parameters.putAll(parameters);
+        if (parameters != null)
+            this.parameters.putAll(parameters);
     }
 
     public ParamSymbol getParameter(String pName) {
@@ -86,7 +86,8 @@ public class ClassSymbol extends Symbol {
 
     public void setSupers(Map<String, SuperSymbol> supers) {
         this.supers.clear();
-        if (supers != null) this.supers.putAll(supers);
+        if (supers != null)
+            this.supers.putAll(supers);
     }
 
     public boolean hasSuper(String className) {
@@ -109,7 +110,8 @@ public class ClassSymbol extends Symbol {
         List<ClassSymbol> result = new ArrayList<>();
         for (SuperSymbol sup : supers.values()) {
             Symbol base = sup.getType();
-            if (base == null) continue;
+            if (base == null)
+                continue;
             if (base.isClass()) {
                 result.add(base.asClass());
             } else if (base.isParameterizedClass()) {
@@ -120,7 +122,8 @@ public class ClassSymbol extends Symbol {
     }
 
     public void addDeclaredFun(FunSymbol fun) {
-        if (fun != null) declaredFuns.put(fun.getName(), fun);
+        if (fun != null)
+            declaredFuns.put(fun.getName(), fun);
     }
 
     public FunSymbol getDeclaredFun(String name) {
@@ -140,7 +143,8 @@ public class ClassSymbol extends Symbol {
     }
 
     public void addDeclaredVar(VarSymbol var) {
-        if (var != null) declaredVars.put(var.getName(), var);
+        if (var != null)
+            declaredVars.put(var.getName(), var);
     }
 
     public VarSymbol getDeclaredVar(String name) {
@@ -208,13 +212,5 @@ public class ClassSymbol extends Symbol {
                 return inherited;
         }
         return null;
-    }
-
-    public void setPure(boolean pure) {
-        this.pure = pure;
-    }
-
-    public boolean isPure() {
-        return pure;
     }
 }

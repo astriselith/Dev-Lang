@@ -1,10 +1,4 @@
 # This is a stub #
-
-fun print(str: Stringfiable): Void;
-fun println(str: Stringfiable): Void;
-fun isNull(value: Any): Bool;
-fun symbolProbe(value: Int): Int;
-
 # --- Tipos raiz (regras especiais) --- #
 class Any() {
     operator a: T =::<T> b: T : T;
@@ -29,6 +23,8 @@ class Int() : Stringfiable() {
     operator a: Self * b: Self : Self;
     operator a: Self / b: Self : Self;
     operator a: Self % b: Self : Self;
+    operator a: Self ! b: Self: Self;
+    operator a: Self ! : Self;
     operator - a: Self : Self;
     operator + a: Self : Self;
 
@@ -71,6 +67,8 @@ class String() : Stringfiable() {
 
     fun stringfy(): String;
 };
+
+class Annotation();
 
 class Stringfiable() {
     fun stringfy(): String;

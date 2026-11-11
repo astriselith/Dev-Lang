@@ -5,13 +5,11 @@ public enum RegisteringErrorCode {
     REDEFINED_CLASS("Class '%s' is already defined"),
     REDEFINED_TYPE_PARAMETER("Type parameter '%s' is already defined"),
     REDEFINED_SUPER("Super '%s' is already defined"),
-    REDEFINED_BOUND("Bound '%s' is already defined"),
     REDEFINED_VARIABLE("Variable '%s' is already defined"),
     REDEFINED_FUNCTION("Function '%s' is already defined"),
     REDEFINED_PARAMETER("Parameter '%s' is already defined"),
-    INVALID_INFERRED_VARIABLE_INITIALIZER("Global or class variable '%s' requires an explicit type unless its initializer is a literal"),
-    REDEFINED_OPERATOR("Operator '%s' is already defined for these operand types"),
-    UNRESOLVED_TYPE("Type '%s' could not be resolved");
+    REDEFINED_ANNOTATION("Annotation '%s' is already defined"),
+    REDEFINED_OPERATOR("Operator '%s' is already defined for these operand types");
 
     public static final String TAG = "REGISTER";
 
@@ -27,5 +25,9 @@ public enum RegisteringErrorCode {
 
     public String getMessage() {
         return message;
+    }
+
+    public String getTag() {
+        return TAG;
     }
 }

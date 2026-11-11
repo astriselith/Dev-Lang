@@ -8,9 +8,6 @@ import java.util.function.Consumer;
 
 public class SymbolTable {
     private final Map<String, ClassSymbol> classes = new LinkedHashMap<>();
-    private final Map<String, FunSymbol> functions = new LinkedHashMap<>();
-    private final Map<String, VarSymbol> variables = new LinkedHashMap<>();
-    private final Map<String, OperatorSymbol> operators = new LinkedHashMap<>();
 
     public SymbolTable() {
     }
@@ -31,53 +28,21 @@ public class SymbolTable {
         return Collections.unmodifiableMap(classes);
     }
 
-    public boolean addFun(FunSymbol symbol) {
-        return functions.putIfAbsent(symbol.getName(), symbol) == null;
-    }
-
-    public FunSymbol getFun(String name) {
-        return functions.get(name);
-    }
-
-    public Map<String, FunSymbol> getFuns() {
-        return Collections.unmodifiableMap(functions);
-    }
-
-    public boolean addVar(VarSymbol symbol) {
-        return variables.putIfAbsent(symbol.getName(), symbol) == null;
-    }
-
-    public VarSymbol getVar(String name) {
-        return variables.get(name);
-    }
-
-    public Map<String, VarSymbol> getVars() {
-        return Collections.unmodifiableMap(variables);
-    }
-
-    public boolean addOperator(String signature, OperatorSymbol symbol) {
-        return operators.putIfAbsent(signature, symbol) == null;
-    }
-
-    public OperatorSymbol getOperator(String signature) {
-        return operators.get(signature);
-    }
-
-    public Map<String, OperatorSymbol> getOperators() {
-        return Collections.unmodifiableMap(operators);
-    }
-
     public Symbol unwrap(Symbol sym) {
         if (sym == null)
             return null;
         if (sym.isClass() || sym.isParameterizedClass() || sym.isTypeParam())
             return sym;
-        if (sym.isMember())
-            return sym.asMember().getType();
+        if (sym.isVar())
+            return sym.asVar().getType();
+        if (sym.isFun())
+            return sym.asFun().getType();
+        if (sym.isOperator())
+            return sym.asOperator().getType();
         if (sym.isParam())
             return sym.asParam().getType();
-        if (sym.isBound())
-            return sym.asBound().getType();
+        if (sym.isAnno())
+            return sym.asAnno().getType();
         return null;
     }
 
@@ -276,9 +241,8 @@ public class SymbolTable {
 
         if (superType.isTypeParam()) {
             TypeParamSymbol tp = superType.asTypeParam();
-            for (BoundSymbol bound : tp.getBounds().values()) {
-                Symbol boundType = bound.getType();
-                if (boundType != null && isSubtype(subType, boundType)) {
+            for (Symbol bound : tp.getBounds().values()) {
+                if (isSubtype(subType, bound)) {
                     return true;
                 }
             }
@@ -334,9 +298,8 @@ public class SymbolTable {
 
         if (subType.isTypeParam()) {
             TypeParamSymbol tp = subType.asTypeParam();
-            for (BoundSymbol bound : tp.getBounds().values()) {
-                Symbol boundType = bound.getType();
-                if (boundType != null && isSubtype(boundType, superType)) {
+            for (Symbol bound : tp.getBounds().values()) {
+                if (isSubtype(subType, bound)) {
                     return true;
                 }
             }
@@ -433,8 +396,8 @@ public class SymbolTable {
             result.addAll(getAllSupertypes(param.getBase()));
         } else if (sym.isTypeParam()) {
             TypeParamSymbol tp = sym.asTypeParam();
-            for (BoundSymbol bound : tp.getBounds().values()) {
-                result.addAll(getAllSupertypes(bound.getType()));
+            for (Symbol bound : tp.getBounds().values()) {
+                result.addAll(getAllSupertypes(bound));
             }
         }
 
@@ -526,6 +489,10 @@ public class SymbolTable {
 
     public ClassSymbol getNull() {
         return getClass("Null");
+    }
+
+    public ClassSymbol getAnnotation() {
+        return getClass("Annotation");
     }
 
     public boolean isBool(Symbol sym) {

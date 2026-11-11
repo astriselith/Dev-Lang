@@ -9,8 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.lang.analyzer.Analyzer;
-import com.lang.codegen.Codegen;
 import com.lang.lexer.Lexer;
+import com.lang.linker.Linker;
 import com.lang.parser.Parser;
 import com.lang.register.Register;
 import com.lang.source.Source;
@@ -48,14 +48,6 @@ public class Main {
                     continue;
                 }
 
-                if (line.startsWith("generate ") || line.startsWith("gen ")) {
-                    String rest = line.startsWith("generate ")
-                            ? line.substring(9).trim()
-                            : line.substring(4).trim();
-                    handleGenerateCommand(rest);
-                    continue;
-                }
-
                 System.err.println("Comando inválido. Use 'help'");
             } catch (Exception e) {
                 System.err.println("Erro: " + e.getMessage());
@@ -69,12 +61,6 @@ public class Main {
         System.out.println("  file <arquivo1.lang> [<arquivo2.lang> ...] [--stub <arquivo.lang>]");
         System.out.println("      Analisa arquivos e mostra diagnósticos");
         System.out.println("      --stub <arquivo.lang> declarações externas disponíveis durante a análise");
-        System.out.println();
-        System.out.println("  generate <arquivo1.lang> [<arquivo2.lang> ...] [--stub <arquivo.lang>] [--out <dir>]");
-        System.out.println("      Gera <arquivo>.h e <arquivo>.c para cada fonte");
-        System.out.println("      --stub <arquivo.lang> arquivo de declarações externas usado como referência de símbolos");
-        System.out.println("      --out <dir>   diretório de saída (default: ao lado do .lang)");
-        System.out.println("      A geração valida os arquivos semanticamente e é interrompida se houver erros");
         System.out.println();
         System.out.println("  help  - Mostra esta ajuda");
         System.out.println("  exit  - Sai do programa");
@@ -131,6 +117,7 @@ public class Main {
     }
 
     private static void processFiles(List<CompilationUnit> units, CompilationUnit stub) {
+        // Parse
         boolean validStub = stub != null && parse(stub);
         List<CompilationUnit> validUnits = new ArrayList<>();
         for (CompilationUnit unit : units) {
@@ -139,19 +126,28 @@ public class Main {
         }
 
         SymbolTable table = new SymbolTable();
-        Register stubRegister = validStub ? new Register(table, stub) : null;
-        if (stubRegister != null)
-            stubRegister.register();
-        for (CompilationUnit unit : validUnits) {
-            Register register = new Register(table, unit);
-            register.register();
-        }
 
-        for (CompilationUnit unit : validUnits) {
+        List<CompilationUnit> all = new ArrayList<>();
+        if (validStub)
+            all.add(stub);
+        all.addAll(validUnits);
+
+        // 1) Registro — cria símbolos, sem resolver tipos.
+        for (CompilationUnit unit : all)
+            new Register(table, unit).register();
+
+        // 2) Linking — resolve tipos; roda após TODOS os registros,
+        //    para que arquivos e stub se enxerguem independentemente da ordem.
+        for (CompilationUnit unit : all)
+            new Linker(table, unit).link();
+
+        // 3) Análise semântica — assume linking completo.
+        //    O stub só serve de referência; não é analisado semanticamente.
+        for (CompilationUnit unit : validUnits)
             new Analyzer(table, unit).analyze();
-        }
 
-        for (CompilationUnit unit : units) unit.printReport(Diagnostic.HINT);
+        for (CompilationUnit unit : units)
+            unit.printReport(Diagnostic.HINT);
         if (stub != null)
             stub.printReport(Diagnostic.ERROR);
     }
@@ -168,146 +164,6 @@ public class Main {
                     "Erro ao processar " + unit.getFileName() + ": " + e.getMessage()));
         }
         return !hasAnyErrors(unit);
-    }
-
-    /* ===================== generate ===================== */
-
-    private static void handleGenerateCommand(String rest) {
-        if (rest.isEmpty()) {
-            System.err.println("Uso: generate <arquivo1.lang> [<arquivo2.lang> ...] [--out <dir>]");
-            return;
-        }
-
-        Path outDir = null;
-        Path stubPath = null;
-        List<String> files = new ArrayList<>();
-        String[] parts = rest.split("\\s+");
-        for (int i = 0; i < parts.length; i++) {
-            if (parts[i].equals("--out")) {
-                if (i + 1 >= parts.length) {
-                    System.err.println("--out requer um diretório");
-                    return;
-                }
-                outDir = Paths.get(parts[++i]);
-            } else if (parts[i].equals("--stub")) {
-                if (i + 1 >= parts.length) {
-                    System.err.println("--stub requer um arquivo");
-                    return;
-                }
-                stubPath = Paths.get(parts[++i]);
-            } else {
-                files.add(parts[i]);
-            }
-        }
-
-        if (files.isEmpty()) {
-            System.err.println("Nenhum arquivo especificado");
-            return;
-        }
-
-        if (outDir != null) {
-            try {
-                Files.createDirectories(outDir);
-            } catch (Exception e) {
-                System.err.println("Não foi possível criar " + outDir + ": " + e.getMessage());
-                return;
-            }
-        }
-
-        CompilationUnit symbols = null;
-        if (stubPath != null) {
-            if (!Files.exists(stubPath)) {
-                System.err.println("Arquivo de símbolos não encontrado: " + stubPath);
-                return;
-            }
-            try {
-                symbols = parseUnit(stubPath);
-            } catch (Exception e) {
-                System.err.println("Não foi possível carregar símbolos de " + stubPath + ": " + e.getMessage());
-                return;
-            }
-            if (hasAnyErrors(symbols)) {
-                System.err.println("Stub inválido: " + stubPath);
-                symbols.printReport(Diagnostic.ERROR);
-                return;
-            }
-        }
-
-        int ok = 0, fail = 0;
-        for (String fileName : files) {
-            if (generateFile(Paths.get(fileName), outDir, symbols)) ok++;
-            else fail++;
-        }
-        System.out.println("Concluído: " + ok + " gerado(s), " + fail + " falha(s).");
-    }
-
-    private static boolean generateFile(Path src, Path outDir, CompilationUnit symbols) {
-        if (!Files.exists(src)) {
-            System.err.println("Arquivo não encontrado: " + src);
-            return false;
-        }
-
-        Path targetDir = (outDir != null) ? outDir : src.toAbsolutePath().getParent();
-        String base = src.getFileName().toString().replaceFirst("\\.[^.]+$", "");
-
-        try {
-            CompilationUnit unit = parseUnit(src);
-
-            if (hasAnyErrors(unit)) {
-                System.err.println("Não gerado (erros de parsing): " + src);
-                unit.printReport(Diagnostic.ERROR);
-                return false;
-            }
-
-            SymbolTable table = new SymbolTable();
-            Register stubRegister = null;
-            if (symbols != null) {
-                stubRegister = new Register(table, symbols);
-                stubRegister.register();
-            }
-            Register unitRegister = new Register(table, unit);
-            unitRegister.register();
-            if (symbols != null && hasAnyErrors(symbols)) {
-                System.err.println("Não gerado (erros ao registrar o stub): "
-                        + symbols.getFilePath());
-                symbols.printReport(Diagnostic.ERROR);
-                return false;
-            }
-            new Analyzer(table, unit).analyze();
-            if (hasAnyErrors(unit)) {
-                System.err.println("Não gerado (erros de análise): " + src);
-                unit.printReport(Diagnostic.ERROR);
-                return false;
-            }
-
-            Codegen gen = new Codegen(unit, table);
-            String headerText = gen.header();
-            String sourceText = gen.source();
-
-            Path headerPath = targetDir.resolve(base + ".h");
-            Path sourcePath = targetDir.resolve(base + ".c");
-
-            Files.writeString(headerPath, headerText);
-            Files.writeString(sourcePath, sourceText);
-
-            System.out.println("Gerado: " + headerPath);
-            System.out.println("        " + sourcePath);
-            return true;
-        } catch (Exception e) {
-            System.err.println("Erro ao gerar " + src + ": " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    private static CompilationUnit parseUnit(Path src) throws Exception {
-        CompilationUnit unit = new CompilationUnit(
-                src.toString(), src.getFileName().toString());
-        Source source = Source.fromFile(src, unit);
-        Lexer lexer = new Lexer(source, unit);
-        Parser parser = new Parser(lexer, unit);
-        parser.parse();
-        return unit;
     }
 
     /* ===================== helpers ===================== */
