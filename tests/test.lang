@@ -10,4 +10,4 @@ public class Test() {
     };
 };
 
-class Deprecated(s: String) : Any();
+class Deprecated(s: String) : Annotation();
