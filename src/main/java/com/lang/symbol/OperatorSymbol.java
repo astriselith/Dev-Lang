@@ -1,9 +1,6 @@
 package com.lang.symbol;
 
-import java.util.List;
-
 import com.lang.ast.Operator;
-import com.lang.ast.Typed;
 
 public class OperatorSymbol extends CallableSymbol {
 
@@ -28,20 +25,14 @@ public class OperatorSymbol extends CallableSymbol {
         return operator != null ? operator.lexeme : "";
     }
 
-    public String signatureKey(List<? extends Typed> operandTypes) {
-        return signatureKey(kind, operator, operandTypes);
+    public String signatureKey() {
+        return signatureKey(kind, operator);
     }
 
-    public static String signatureKey(int kind, Operator operator,
-            List<? extends Typed> operandTypes) {
-        String lexeme = operator != null ? operator.lexeme : "";
-        StringBuilder signature = new StringBuilder()
-                .append(kind).append("|").append(lexeme);
-        if (operandTypes != null) {
-            for (Typed operandType : operandTypes)
-                signature.append("|").append(
-                        operandType != null ? operandType.getSignature() : "");
-        }
-        return signature.toString();
+    public static String signatureKey(int kind, Operator operator) {
+        String name = operator != null ? operator.name() : null;
+        if (name == null)
+            name = operator != null ? operator.lexeme : "";
+        return Operator.typeName(kind) + "_" + name;
     }
 }

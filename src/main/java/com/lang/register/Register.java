@@ -192,11 +192,11 @@ public class Register implements DeclVisitor<Void> {
         if (currentClass == null)
             return null;
         String signature = OperatorSymbol.signatureKey(
-                declaration.kind, declaration.operator,
-                declaration.parameters.stream().map(p -> p.type).toList());
+                declaration.kind, declaration.operator);
 
         if (currentClass.hasDeclaredOperator(signature)) {
-            report(declaration, REDEFINED_OPERATOR.format(declaration.operator.lexeme));
+            report(declaration,
+                    REDEFINED_OPERATOR.format(Operator.typeName(declaration.kind), declaration.operator.lexeme));
             return null;
         }
 

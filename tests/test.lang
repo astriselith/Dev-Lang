@@ -3,11 +3,13 @@ public class Test() {
     @Deprecated()
     public static fun main(args: String) {
         let t -> (10!) + (10!2);
-        s();
+        
     };
     public fun s(): Void {
-
+        this + this;
     };
+
+    public operator a:Test + b: Int : Test;
 };
 
 class Deprecated(s: String) : Annotation();

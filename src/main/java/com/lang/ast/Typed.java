@@ -18,7 +18,7 @@ public abstract class Typed extends Node {
 	public boolean isParameterizedRef() {
 		return this instanceof ParameterizedRefTyped;
 	}
-
+	
 	public RefTyped asRef() {
 		return (RefTyped) this;
 	}

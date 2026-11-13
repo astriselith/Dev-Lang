@@ -9,7 +9,7 @@ public enum RegisteringErrorCode {
     REDEFINED_FUNCTION("Function '%s' is already defined"),
     REDEFINED_PARAMETER("Parameter '%s' is already defined"),
     REDEFINED_ANNOTATION("Annotation '%s' is already defined"),
-    REDEFINED_OPERATOR("Operator '%s' is already defined for these operand types");
+    REDEFINED_OPERATOR("Operator '%s' '%s' is already defined");
 
     public static final String TAG = "REGISTER";
 

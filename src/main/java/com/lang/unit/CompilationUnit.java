@@ -23,23 +23,35 @@ public class CompilationUnit {
         this.fileName = fileName;
     }
 
-    public String getFilePath() { return filePath; }
-    public String getFileName() { return fileName; }
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
 
     public void addComment(Comment comment) {
-        if (comment != null) comments.add(comment);
+        if (comment != null)
+            comments.add(comment);
     }
 
-    public List<Comment> getComments() { return comments; }
+    public List<Comment> getComments() {
+        return comments;
+    }
 
     public void addClass(ClassDecl cls) {
-        if (cls != null) classes.add(cls);
+        if (cls != null)
+            classes.add(cls);
     }
 
-    public List<ClassDecl> getClasses() { return classes; }
+    public List<ClassDecl> getClasses() {
+        return classes;
+    }
 
     public void addDiagnostic(String tag, Diagnostic diagnostic) {
-        if (diagnostic == null) return;
+        if (diagnostic == null)
+            return;
         diagnostics.computeIfAbsent(tag, k -> new ArrayList<>()).add(diagnostic);
     }
 
@@ -47,12 +59,28 @@ public class CompilationUnit {
         return diagnostics.getOrDefault(tag, new ArrayList<>());
     }
 
-    public Map<String, List<Diagnostic>> getDiagnostics() { return diagnostics; }
+    public boolean hasDiagnostics(String tag, int severity) {
+        return diagnostics.getOrDefault(tag, new ArrayList<>()).stream()
+                .anyMatch(d -> d.getSeverity() <= severity);
+    }
 
-    public void printReport() { printReport(Diagnostic.INFO); }
+    public boolean hasDiagnostics(int severity) {
+        return diagnostics.values().stream()
+                .flatMap(List::stream)
+                .anyMatch(d -> d.getSeverity() <= severity);
+    }
+
+    public Map<String, List<Diagnostic>> getDiagnostics() {
+        return diagnostics;
+    }
+
+    public void printReport() {
+        printReport(Diagnostic.INFO);
+    }
 
     public void printReport(int level) {
-        if (level <= 0) return;
+        if (level <= 0)
+            return;
         boolean any = diagnostics.values().stream()
                 .flatMap(List::stream)
                 .anyMatch(d -> d.getSeverity() <= level);
@@ -65,7 +93,8 @@ public class CompilationUnit {
             List<Diagnostic> list = entry.getValue().stream()
                     .filter(d -> d.getSeverity() <= level)
                     .toList();
-            if (list.isEmpty()) continue;
+            if (list.isEmpty())
+                continue;
             System.out.printf("  [%s] %d diagnostic(s):%n", entry.getKey(), list.size());
             for (Diagnostic d : list)
                 System.out.printf("      %s%n", d.format());

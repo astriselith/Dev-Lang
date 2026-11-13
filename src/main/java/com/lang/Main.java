@@ -6,6 +6,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 import com.lang.analyzer.Analyzer;
@@ -31,29 +33,42 @@ public class Main {
             try {
                 System.out.print("> ");
                 String line = reader.readLine();
-                if (line == null) break;
+                if (line == null)
+                    break;
 
                 line = line.trim();
-                if (line.isEmpty()) continue;
-
-                if (line.equals("exit") || line.equals("quit")) break;
-
-                if (line.equals("help") || line.equals("?")) {
-                    printHelp();
+                if (line.isEmpty())
                     continue;
-                }
 
-                if (line.startsWith("file ")) {
-                    handleFileCommand(line.substring(5).trim());
-                    continue;
-                }
+                String[] tokens = line.split("\\s+");
+                String command = tokens[0];
+                String[] arguments = Arrays.copyOfRange(tokens, 1, tokens.length);
 
-                System.err.println("Comando inválido. Use 'help'");
+                if (!dispatch(command, arguments))
+                    break;
             } catch (Exception e) {
                 System.err.println("Erro: " + e.getMessage());
                 e.printStackTrace();
             }
         }
+    }
+
+    private static boolean dispatch(String command, String[] arguments) {
+        if (command.equals("exit"))
+            return false;
+
+        if (command.equals("help")) {
+            printHelp();
+            return true;
+        }
+
+        if (command.equals("file")) {
+            handleFileCommand(arguments);
+            return true;
+        }
+
+        System.err.println("Comando inválido. Use 'help'");
+        return true;
     }
 
     private static void printHelp() {
@@ -67,36 +82,38 @@ public class Main {
         System.out.println();
     }
 
-    /* ===================== file ===================== */
-
-    private static void handleFileCommand(String filesPart) {
-        if (filesPart.isEmpty()) {
+    private static void handleFileCommand(String[] arguments) {
+        if (arguments.length == 0) {
             System.err.println("Especifique pelo menos um arquivo");
             return;
         }
-        String[] parts = filesPart.split("\\s+");
-        Path stubPath = null;
-        List<String> fileNames = new ArrayList<>();
-        for (int i = 0; i < parts.length; i++) {
-            if (parts[i].equals("--stub")) {
-                if (i + 1 >= parts.length) {
+
+        CompilationUnit stub = null;
+        List<CompilationUnit> units = new ArrayList<>();
+
+        Iterator<String> fileIterator = Arrays.asList(arguments).iterator();
+        while (fileIterator.hasNext()) {
+            String argument = fileIterator.next();
+
+            if (argument.equals("--stub")) {
+                if (!fileIterator.hasNext()) {
                     System.err.println("--stub requer um arquivo");
                     return;
                 }
-                stubPath = Paths.get(parts[++i]);
-            } else {
-                fileNames.add(parts[i]);
+                Path stubPath = Paths.get(fileIterator.next());
+                if (!Files.exists(stubPath)) {
+                    System.err.println("Arquivo de símbolos não encontrado: " + stubPath);
+                    return;
+                }
+                if (stub != null) {
+                    System.err.println("--stub especificado mais de uma vez");
+                    return;
+                }
+                stub = new CompilationUnit(stubPath.toString(), stubPath.getFileName().toString());
+                continue;
             }
-        }
-        if (fileNames.isEmpty()) {
-            System.err.println("Especifique pelo menos um arquivo");
-            return;
-        }
 
-        List<CompilationUnit> units = new ArrayList<>();
-
-        for (String fileName : fileNames) {
-            Path path = Paths.get(fileName);
+            Path path = Paths.get(argument);
             if (!Files.exists(path)) {
                 System.err.println("Arquivo não encontrado: " + path);
                 continue;
@@ -104,20 +121,15 @@ public class Main {
             units.add(new CompilationUnit(path.toString(), path.getFileName().toString()));
         }
 
-        CompilationUnit stub = null;
-        if (stubPath != null) {
-            if (!Files.exists(stubPath)) {
-                System.err.println("Arquivo de símbolos não encontrado: " + stubPath);
-                return;
-            }
-            stub = new CompilationUnit(stubPath.toString(), stubPath.getFileName().toString());
+        if (units.isEmpty()) {
+            System.err.println("Nenhum arquivo válido para analisar");
+            return;
         }
 
-        if (!units.isEmpty()) processFiles(units, stub);
+        processFiles(units, stub);
     }
 
     private static void processFiles(List<CompilationUnit> units, CompilationUnit stub) {
-        // Parse
         boolean validStub = stub != null && parse(stub);
         List<CompilationUnit> validUnits = new ArrayList<>();
         for (CompilationUnit unit : units) {
@@ -132,17 +144,12 @@ public class Main {
             all.add(stub);
         all.addAll(validUnits);
 
-        // 1) Registro — cria símbolos, sem resolver tipos.
         for (CompilationUnit unit : all)
             new Register(table, unit).register();
 
-        // 2) Linking — resolve tipos; roda após TODOS os registros,
-        //    para que arquivos e stub se enxerguem independentemente da ordem.
         for (CompilationUnit unit : all)
             new Linker(table, unit).link();
 
-        // 3) Análise semântica — assume linking completo.
-        //    O stub só serve de referência; não é analisado semanticamente.
         for (CompilationUnit unit : validUnits)
             new Analyzer(table, unit).analyze();
 
@@ -163,14 +170,6 @@ public class Main {
             unit.addDiagnostic("PARSER", Diagnostic.error(null,
                     "Erro ao processar " + unit.getFileName() + ": " + e.getMessage()));
         }
-        return !hasAnyErrors(unit);
-    }
-
-    /* ===================== helpers ===================== */
-
-    private static boolean hasAnyErrors(CompilationUnit unit) {
-        return unit.getDiagnostics().values().stream()
-                .flatMap(List::stream)
-                .anyMatch(Diagnostic::isError);
+        return !unit.hasDiagnostics(Diagnostic.ERROR);
     }
 }
